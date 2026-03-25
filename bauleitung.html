@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="desch BL">
 <title>Bauleitung · desch architekten</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
-  
+
 <style>
   :root {
     --ink: #1a1a1a;
@@ -167,7 +167,39 @@
     cursor: pointer; margin-bottom: 10px;
   }
 
-  /* ── FIRMA ITEM ── */
+  /* ── SECTION BLOCKS ── */
+  .section-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+  .section-card-header { padding: 12px 16px 0; display: flex; align-items: center; justify-content: space-between; }
+  .section-card-title { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 17px; font-weight: 600; }
+  .blocks-list { padding: 8px 16px 4px; }
+  .block-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; position: relative; }
+  .block-bullet { flex-shrink: 0; width: 18px; text-align: center; padding-top: 10px; color: var(--accent); font-size: 14px; font-weight: 700; }
+  .block-text { flex: 1; padding: 8px 10px; background: var(--paper-2); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; min-height: 36px; word-break: break-word; white-space: pre-wrap; }
+  .block-photo { flex: 1; border-radius: var(--radius-sm); overflow: hidden; }
+  .block-photo img { width: 100%; max-height: 220px; object-fit: cover; display: block; border-radius: var(--radius-sm); }
+  .block-photo .photo-caption { font-size: 11px; color: var(--ink-3); padding: 4px 6px; }
+  .block-del { flex-shrink: 0; background: none; border: none; color: var(--ink-3); font-size: 18px; cursor: pointer; padding: 6px 2px; line-height: 1; }
+  .block-del:active { color: var(--accent); }
+  .block-actions { display: flex; gap: 6px; padding: 6px 16px 12px; }
+  .block-add-btn { flex: 1; padding: 9px 0; border: 1.5px dashed var(--paper-3); border-radius: var(--radius-sm); background: transparent; font-size: 12px; font-family: 'Arial Narrow', Arial, sans-serif; color: var(--ink-3); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: border-color 0.15s, color 0.15s; }
+  .block-add-btn:active, .block-add-btn.recording { border-color: var(--accent); color: var(--accent); }
+  .block-add-btn.recording { background: #fff0f0; }
+  .voice-interim { font-size: 12px; color: var(--accent); padding: 4px 16px 8px; font-style: italic; min-height: 0; }
+
+  /* ── FIRMA ROWS ── */
+  .firma-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--paper-3); }
+  .firma-row:last-child { border-bottom: none; }
+  .firma-row input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+  .firma-row-label { flex: 1; font-size: 12px; line-height: 1.3; cursor: pointer; }
+  .firma-row-name { font-weight: 600; color: var(--ink); }
+  .firma-row-gewerk { color: var(--ink-3); font-size: 11px; }
+  .ma-stepper { display: flex; align-items: center; border: 1.5px solid var(--paper-3); border-radius: 6px; overflow: hidden; background: #fff; opacity: 0.35; pointer-events: none; transition: opacity 0.15s; flex-shrink: 0; }
+  .ma-stepper.enabled { opacity: 1; pointer-events: all; }
+  .ma-btn { width: 28px; height: 28px; border: none; background: var(--paper-2); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; }
+  .ma-btn:active { background: var(--paper-3); }
+  .ma-val { width: 28px; text-align: center; font-size: 13px; font-weight: 700; border: none; background: #fff; color: var(--ink); }
+
+  /* ── FIRMA ITEM (Verlauf) ── */
   .firma-item {
     background: var(--paper-2); border-radius: var(--radius-sm); padding: 10px 12px;
     margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
@@ -366,79 +398,16 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">🏗 Firmen vor Ort</span>
-      <button class="header-btn" onclick="openFirmaModal()">+ Firma</button>
+      <button class="header-btn" onclick="openFirmaModal()">+ Weitere</button>
     </div>
     <div class="card-body" id="firmenListe">
-      <p style="color:var(--ink-3);font-size:13px">Noch keine Firmen eingetragen.</p>
+      <p style="color:var(--ink-3);font-size:13px">Bitte zuerst ein Projekt wählen.</p>
     </div>
   </div>
 
-  <!-- Ausgef. Arbeiten -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">🔨 Ausgeführte Arbeiten</span></div>
-    <div class="card-body">
-      <div class="voice-row">
-        <textarea id="pArbeiten" placeholder="Welche Arbeiten wurden heute ausgeführt?"></textarea>
-        <button class="voice-btn" id="vBtnArbeiten" onclick="toggleVoice('pArbeiten','vBtnArbeiten')">🎤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Abstimmungen -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">🤝 Abstimmungen / Entscheidungen</span></div>
-    <div class="card-body">
-      <div class="voice-row">
-        <textarea id="pAbstimmungen" placeholder="Welche Abstimmungen wurden getroffen?"></textarea>
-        <button class="voice-btn" id="vBtnAbstimmungen" onclick="toggleVoice('pAbstimmungen','vBtnAbstimmungen')">🎤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mängel -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">⚠️ Mängel / Probleme</span></div>
-    <div class="card-body">
-      <div class="voice-row">
-        <textarea id="pMaengel" placeholder="Festgestellte Mängel, Probleme, Abweichungen…"></textarea>
-        <button class="voice-btn" id="vBtnMaengel" onclick="toggleVoice('pMaengel','vBtnMaengel')">🎤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Planer-Aufgaben -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">📌 Meine Aufgaben (Planer)</span></div>
-    <div class="card-body">
-      <div class="voice-row">
-        <textarea id="pAufgaben" placeholder="Was muss ich als Planer erledigen?"></textarea>
-        <button class="voice-btn" id="vBtnAufgaben" onclick="toggleVoice('pAufgaben','vBtnAufgaben')">🎤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Nächste Schritte -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">🔜 Nächste Schritte / Termine</span></div>
-    <div class="card-body">
-      <div class="voice-row">
-        <textarea id="pNaechste" placeholder="Nächster Baustellentermin, Lieferungen, Termine…"></textarea>
-        <button class="voice-btn" id="vBtnNaechste" onclick="toggleVoice('pNaechste','vBtnNaechste')">🎤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Fotos -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">📷 Fotos</span></div>
-    <div class="card-body">
-      <div class="photo-grid" id="photoGrid">
-        <div class="photo-add" onclick="document.getElementById('photoInput').click()">＋</div>
-      </div>
-      <input type="file" id="photoInput" accept="image/*" multiple onchange="addPhotos(this)">
-      <p style="font-size:11px;color:var(--ink-3)">Fotos werden als Anhang ins Protokoll eingefügt.</p>
-    </div>
-  </div>
+  <!-- SECTIONS as block lists -->
+  <div id="sections-container"></div>
+  <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhotoForSection(this)">
 
   <!-- E-Mail -->
   <div class="card">
@@ -595,6 +564,36 @@
       <div class="icon-picker" id="iconPicker"></div>
       <input type="hidden" id="mProjIcon" value="🏗">
     </div>
+    <div class="field">
+      <label>Stamm-Firmen des Projekts</label>
+      <div id="mProjFirmen" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="mProjFirmaName" placeholder="Firmenname" style="flex:1">
+        <select id="mProjFirmaGewerk" style="flex:1">
+          <option>Rohbau</option><option>Zimmerei</option><option>Dachdecker</option>
+          <option>Maurer</option><option>Elektriker</option><option>Sanitär/HK</option>
+          <option>Trockenbau</option><option>Maler</option><option>Fliesen</option>
+          <option>Fenster/Türen</option><option>Estrich</option><option>Außenanlage</option>
+          <option>Gerüst</option><option>Abriss</option><option>Sonstiges</option>
+        </select>
+      </div>
+      <button class="add-btn" style="margin-top:6px" onclick="addProjFirma()">+ Firma hinzufügen</button>
+    </div>
+    <div class="field">
+      <label>Stamm-Firmen des Projekts</label>
+      <div id="mProjFirmen" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="mProjFirmaName" placeholder="Firmenname" style="flex:1.5">
+        <select id="mProjFirmaGewerk" style="flex:1">
+          <option>Rohbau</option><option>Zimmerei</option><option>Dachdecker</option>
+          <option>Maurer</option><option>Elektriker</option><option>Sanitär/HK</option>
+          <option>Trockenbau</option><option>Maler</option><option>Fliesen</option>
+          <option>Fenster/Türen</option><option>Estrich</option><option>Außenanlage</option>
+          <option>Gerüst</option><option>Abriss</option><option>Sonstiges</option>
+        </select>
+      </div>
+      <button class="add-btn" style="margin-top:6px" onclick="addProjFirma()">+ Firma hinzufügen</button>
+    </div>
     <input type="hidden" id="mProjEditIndex" value="-1">
     <button class="big-btn primary" onclick="saveProjekt()">Projekt speichern</button>
     <button class="big-btn secondary" id="deleteProjBtn" onclick="deleteProjekt()" style="display:none;color:var(--accent)">🗑 Projekt löschen</button>
@@ -699,6 +698,8 @@ function load() {
 window.addEventListener('DOMContentLoaded', () => {
   load();
   loadSettings();
+  initBlocks();
+  renderSections();
   renderProjekte();
   renderAufgaben();
   renderVerlauf();
@@ -799,6 +800,8 @@ function selectProjekt(i) {
   document.getElementById('headerSub').textContent = ' – ' + p.name;
   document.querySelectorAll('.project-item').forEach((el,j)=>el.classList.toggle('selected',j===i));
   switchTab('protokoll', document.querySelectorAll('.tab')[1]);
+  state.firmen = [];
+  renderFirmenChips();
   toast('Projekt gewählt: '+p.name);
 }
 
@@ -825,6 +828,8 @@ function openNewProjektModal() {
   document.getElementById('mProjIcon').value = '🏗';
   document.getElementById('mProjEditIndex').value = '-1';
   document.getElementById('deleteProjBtn').style.display = 'none';
+  mProjFirmenList = [];
+  renderMProjFirmen();
   renderIconPicker('🏗');
   openModal('modalProjekt');
 }
@@ -838,6 +843,8 @@ function openEditProjekt(i) {
   document.getElementById('mProjNr').value = p.nr || '';
   document.getElementById('mProjIcon').value = p.icon || '🏗';
   document.getElementById('mProjEditIndex').value = i;
+  mProjFirmenList = (p.firmen || []).map(f => ({...f}));
+  renderMProjFirmen();
   renderIconPicker(p.icon||'🏗');
   document.getElementById('deleteProjBtn').style.display = 'block';
   openModal('modalProjekt');
@@ -862,6 +869,7 @@ function saveProjekt() {
     bauherr: document.getElementById('mProjBauherr').value.trim(),
     nr: document.getElementById('mProjNr').value.trim(),
     icon: document.getElementById('mProjIcon').value||'🏗',
+    firmen: mProjFirmenList.map(f => ({...f, aktiv: false, ma: 0, leistung: ''})),
   };
   if(editIndex >= 0) {
     data.erstellt = state.projekte[editIndex].erstellt;
@@ -882,7 +890,117 @@ function updateProjektSelects() {
 }
 
 // ══════════════════════════════════
-// FIRMEN
+// STAMM-FIRMEN (Projekt-Modal)
+// ══════════════════════════════════
+let mProjFirmenList = []; // temp list while modal is open
+
+function renderMProjFirmen() {
+  const el = document.getElementById('mProjFirmen');
+  if(!mProjFirmenList.length) { el.innerHTML = '<p style="color:var(--ink-3);font-size:12px;margin-bottom:4px">Noch keine Firmen definiert.</p>'; return; }
+  el.innerHTML = mProjFirmenList.map((f,i) => `
+    <div class="firma-item" style="margin-bottom:6px">
+      <div style="flex:1">
+        <div class="firma-name">${f.name}</div>
+        <div class="firma-gewerk">${f.gewerk}</div>
+      </div>
+      <button class="remove-btn" onclick="removeMProjFirma(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function addProjFirma() {
+  const name = document.getElementById('mProjFirmaName').value.trim();
+  if(!name) { toast('Firmenname eingeben'); return; }
+  mProjFirmenList.push({ name, gewerk: document.getElementById('mProjFirmaGewerk').value });
+  document.getElementById('mProjFirmaName').value = '';
+  renderMProjFirmen();
+}
+
+function removeMProjFirma(i) {
+  mProjFirmenList.splice(i, 1);
+  renderMProjFirmen();
+}
+
+// ══════════════════════════════════
+// FIRMEN VOR ORT (Protokoll-Tab)
+// ══════════════════════════════════
+function renderFirmenChips() {
+  const el = document.getElementById('firmenListe');
+  const projektName = document.getElementById('pProjekt').value;
+  const proj = state.projekte.find(p => p.name === projektName);
+  const stammFirmen = (proj && proj.firmen) ? proj.firmen : [];
+  const adHoc = state.firmen.filter(f => !f.stamm);
+  const allFirmen = [
+    ...stammFirmen.map(f => ({...f, stamm: true})),
+    ...adHoc
+  ];
+
+  if (!allFirmen.length) {
+    el.innerHTML = '<p style="color:var(--ink-3);font-size:12px">Keine Stamm-Firmen hinterlegt. Bitte im Projekt definieren oder „+ Weitere" nutzen.</p>';
+    return;
+  }
+
+  el.innerHTML = allFirmen.map((f, i) => {
+    const checked = !!f.aktiv;
+    const ma = f.ma || 0;
+    return `
+    <div class="firma-row" id="frow-${i}">
+      <input type="checkbox" id="fcheck-${i}" ${checked ? 'checked' : ''}
+        onchange="toggleFirmaRow(${i}, this.checked)">
+      <label class="firma-row-label" for="fcheck-${i}">
+        <span class="firma-row-name">${f.name}</span>
+        <span class="firma-row-gewerk"> · ${f.gewerk}</span>
+      </label>
+      <div class="ma-stepper${checked ? ' enabled' : ''}" id="ma-step-${i}">
+        <button class="ma-btn" onclick="changeMa(${i},-1)">−</button>
+        <span class="ma-val" id="ma-val-${i}">${ma}</span>
+        <button class="ma-btn" onclick="changeMa(${i},1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFirmaRow(i, checked) {
+  const all = getAllFirmen();
+  all[i].aktiv = checked;
+  if (checked && !all[i].ma) all[i].ma = 0;
+  syncFirmenBack(all);
+  const stepper = document.getElementById('ma-step-' + i);
+  if (stepper) stepper.classList.toggle('enabled', checked);
+}
+
+function changeMa(i, delta) {
+  const all = getAllFirmen();
+  all[i].ma = Math.max(0, (all[i].ma || 0) + delta);
+  syncFirmenBack(all);
+  const v = document.getElementById('ma-val-' + i);
+  if (v) v.textContent = all[i].ma;
+}
+
+function getAllFirmen() {
+  const projektName = document.getElementById('pProjekt').value;
+  const proj = state.projekte.find(p => p.name === projektName);
+  const stammFirmen = (proj && proj.firmen) ? proj.firmen : [];
+  return [
+    ...stammFirmen.map(f => ({...f, stamm: true})),
+    ...state.firmen.filter(f => !f.stamm)
+  ];
+}
+
+function syncFirmenBack(allFirmen) {
+  const projektName = document.getElementById('pProjekt').value;
+  const projIdx = state.projekte.findIndex(p => p.name === projektName);
+  if (projIdx >= 0) {
+    state.projekte[projIdx].firmen = allFirmen
+      .filter(f => f.stamm)
+      .map(f => ({...f}));
+  }
+  state.firmen = allFirmen.filter(f => !f.stamm);
+  save();
+}
+
+// ══════════════════════════════════
+// FIRMEN (Ad-hoc, Modal)
 // ══════════════════════════════════
 function openFirmaModal() { openModal('modalFirma'); }
 
@@ -890,13 +1008,15 @@ function saveFirma() {
   const f = {
     name: document.getElementById('mFirmaName').value.trim(),
     gewerk: document.getElementById('mFirmaGewerk').value,
-    anzahl: document.getElementById('mFirmaAnzahl').value,
+    ma: parseInt(document.getElementById('mFirmaAnzahl').value) || 0,
     ap: document.getElementById('mFirmaAP').value,
-    leistung: document.getElementById('mFirmaLeistung').value
+    leistung: document.getElementById('mFirmaLeistung').value,
+    aktiv: true,
+    stamm: false
   };
   if(!f.name) { toast('Firmenname eingeben'); return; }
   state.firmen.push(f);
-  renderFirmen();
+  renderFirmenChips();
   closeModal('modalFirma');
   document.getElementById('mFirmaName').value='';
   document.getElementById('mFirmaAnzahl').value='';
@@ -905,82 +1025,232 @@ function saveFirma() {
   toast('Firma hinzugefügt');
 }
 
-function renderFirmen() {
-  const el = document.getElementById('firmenListe');
-  if(!state.firmen.length) { el.innerHTML='<p style="color:var(--ink-3);font-size:13px">Noch keine Firmen eingetragen.</p>'; return; }
-  el.innerHTML = state.firmen.map((f,i)=>`
-    <div class="firma-item">
-      <div>
-        <div class="firma-name">${f.name}</div>
-        <div class="firma-gewerk">${f.gewerk} · ${f.anzahl||'?'} MA ${f.ap?'· '+f.ap:''}</div>
-        ${f.leistung?`<div style="font-size:12px;color:var(--ink-2);margin-top:4px">${f.leistung}</div>`:''}
+function removeFirma(i) { state.firmen.splice(i,1); renderFirmenChips(); }
+
+// (photos handled by block system)
+
+// (voice handled per-section)
+
+// ══════════════════════════════════
+// BLOCK-BASED SECTIONS
+// ══════════════════════════════════
+const SECTIONS = [
+  { id: 'arbeiten',     icon: '🔨', title: 'Ausgeführte Arbeiten',       placeholder: 'Arbeit beschreiben…' },
+  { id: 'abstimmungen', icon: '🤝', title: 'Abstimmungen / Entscheidungen', placeholder: 'Abstimmung beschreiben…' },
+  { id: 'maengel',      icon: '⚠️', title: 'Mängel / Probleme',           placeholder: 'Mangel beschreiben…' },
+  { id: 'aufgaben',     icon: '📌', title: 'Meine Aufgaben (Planer)',     placeholder: 'Aufgabe beschreiben…' },
+  { id: 'naechste',     icon: '🔜', title: 'Nächste Schritte / Termine', placeholder: 'Nächsten Schritt beschreiben…' },
+];
+
+// state.blocks = { arbeiten: [{type:'text'|'photo', text:'…', data:'…'}], … }
+function initBlocks() {
+  if (!state.blocks) state.blocks = {};
+  SECTIONS.forEach(s => { if (!state.blocks[s.id]) state.blocks[s.id] = []; });
+}
+
+function renderSections() {
+  initBlocks();
+  const container = document.getElementById('sections-container');
+  if (!container) return;
+  container.innerHTML = SECTIONS.map(s => renderSectionCard(s)).join('');
+}
+
+function renderSectionCard(s) {
+  const blocks = state.blocks[s.id] || [];
+  const blocksHtml = blocks.map((b, i) => renderBlock(s.id, b, i)).join('');
+  return `
+  <div class="section-card">
+    <div class="section-card-header">
+      <span class="section-card-title">${s.icon} ${s.title}</span>
+    </div>
+    <div class="blocks-list" id="blocks-${s.id}">${blocksHtml}</div>
+    <div id="interim-${s.id}" class="voice-interim"></div>
+    <div class="block-actions">
+      <button class="block-add-btn" id="voicebtn-${s.id}" onclick="startVoiceBlock('${s.id}')">🎤 Sprache</button>
+      <button class="block-add-btn" onclick="addTextBlock('${s.id}')">✏️ Text</button>
+      <button class="block-add-btn" onclick="triggerPhotoForSection('${s.id}')">📷 Foto</button>
+    </div>
+  </div>`;
+}
+
+function renderBlock(secId, block, i) {
+  if (block.type === 'photo') {
+    return `<div class="block-item">
+      <div class="block-bullet">📷</div>
+      <div class="block-photo">
+        <img src="${block.data}" alt="Foto">
       </div>
-      <button class="remove-btn" onclick="removeFirma(${i})">×</button>
-    </div>
-  `).join('');
+      <button class="block-del" onclick="deleteBlock('${secId}',${i})">×</button>
+    </div>`;
+  }
+  // text block
+  return `<div class="block-item">
+    <div class="block-bullet">·</div>
+    <div class="block-text" contenteditable="true" oninput="updateBlockText('${secId}',${i},this)">${escHtml(block.text||'')}</div>
+    <button class="block-del" onclick="deleteBlock('${secId}',${i})">×</button>
+  </div>`;
 }
 
-function removeFirma(i) { state.firmen.splice(i,1); renderFirmen(); }
-
-// ══════════════════════════════════
-// FOTOS
-// ══════════════════════════════════
-function addPhotos(input) {
-  const files = Array.from(input.files);
-  files.forEach(f => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      state.fotos.push({data: e.target.result, name: f.name});
-      renderPhotoGrid();
-    };
-    reader.readAsDataURL(f);
-  });
-  input.value='';
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function renderPhotoGrid() {
-  const grid = document.getElementById('photoGrid');
-  grid.innerHTML = state.fotos.map((f,i)=>`
-    <div class="photo-thumb">
-      <img src="${f.data}" alt="Foto ${i+1}">
-      <button class="remove-photo" onclick="removePhoto(${i})">×</button>
-    </div>
-  `).join('') + `<div class="photo-add" onclick="document.getElementById('photoInput').click()">＋</div>`;
+function addTextBlock(secId, text) {
+  initBlocks();
+  state.blocks[secId].push({ type: 'text', text: text || '' });
+  save();
+  rerenderSection(secId);
+  // focus last text block
+  setTimeout(() => {
+    const list = document.getElementById('blocks-' + secId);
+    if (!list) return;
+    const items = list.querySelectorAll('.block-text');
+    if (items.length) items[items.length-1].focus();
+  }, 50);
 }
 
-function removePhoto(i) { state.fotos.splice(i,1); renderPhotoGrid(); }
+function updateBlockText(secId, i, el) {
+  initBlocks();
+  if (state.blocks[secId][i]) {
+    state.blocks[secId][i].text = el.innerText;
+    save();
+  }
+}
 
-// ══════════════════════════════════
-// SPRACHERKENNUNG
-// ══════════════════════════════════
+function deleteBlock(secId, i) {
+  initBlocks();
+  state.blocks[secId].splice(i, 1);
+  save();
+  rerenderSection(secId);
+}
+
+function rerenderSection(secId) {
+  const s = SECTIONS.find(s => s.id === secId);
+  if (!s) return;
+  const container = document.getElementById('sections-container');
+  // Replace just this section card
+  const existing = container.querySelector(`#blocks-${secId}`);
+  if (!existing) { renderSections(); return; }
+  const card = existing.closest('.section-card');
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderSectionCard(s);
+  card.replaceWith(tmp.firstElementChild);
+}
+
+// ── VOICE per section ──
+let sectionRecognition = null;
+let activeSecId = null;
+
+function startVoiceBlock(secId) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { toast('Spracherkennung nicht verfügbar'); return; }
+
+  const btn = document.getElementById('voicebtn-' + secId);
+  const interim = document.getElementById('interim-' + secId);
+
+  // If already recording this section → stop and commit
+  if (sectionRecognition && activeSecId === secId) {
+    sectionRecognition.stop();
+    return;
+  }
+  // Stop any other recording
+  if (sectionRecognition) sectionRecognition.stop();
+
+  sectionRecognition = new SpeechRecognition();
+  sectionRecognition.lang = localStorage.getItem('blpro_settings') ? (JSON.parse(localStorage.getItem('blpro_settings')).sLang || 'de-DE') : 'de-DE';
+  sectionRecognition.continuous = false;
+  sectionRecognition.interimResults = true;
+  activeSecId = secId;
+
+  sectionRecognition.onstart = () => {
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹ Stop'; }
+    if (interim) interim.textContent = '…';
+  };
+
+  sectionRecognition.onresult = e => {
+    let final = '', inter = '';
+    for (let r of e.results) {
+      if (r.isFinal) final += r[0].transcript + ' ';
+      else inter += r[0].transcript;
+    }
+    if (interim) interim.textContent = inter || final;
+    if (final.trim()) {
+      // Commit each final result as its own bullet
+      final.trim().split(/[.!?]+/).map(s => s.trim()).filter(Boolean).forEach(sentence => {
+        addTextBlock(secId, sentence);
+      });
+      if (interim) interim.textContent = '';
+    }
+  };
+
+  sectionRecognition.onerror = (e) => {
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤 Sprache'; }
+    if (interim) interim.textContent = '';
+    if (e.error !== 'no-speech') toast('Spracherkennung fehlgeschlagen');
+    sectionRecognition = null; activeSecId = null;
+  };
+
+  sectionRecognition.onend = () => {
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤 Sprache'; }
+    if (interim) interim.textContent = '';
+    sectionRecognition = null; activeSecId = null;
+  };
+
+  sectionRecognition.start();
+  toast('Sprechen Sie jetzt…');
+}
+
+// Legacy voice for other fields (firma modal etc.)
 let recognition = null;
 let activeVoiceField = null;
-let activeVoiceBtn = null;
 
 function toggleVoice(fieldId, btnId) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition) { toast('Spracherkennung nicht verfügbar'); return; }
+  if (!SpeechRecognition) { toast('Spracherkennung nicht verfügbar'); return; }
   const btn = document.getElementById(btnId);
-  if(recognition && activeVoiceField === fieldId) {
-    recognition.stop(); return;
-  }
-  if(recognition) recognition.stop();
+  if (recognition && activeVoiceField === fieldId) { recognition.stop(); return; }
+  if (recognition) recognition.stop();
   recognition = new SpeechRecognition();
   recognition.lang = 'de-DE';
   recognition.continuous = true;
   recognition.interimResults = false;
   activeVoiceField = fieldId;
-  activeVoiceBtn = btnId;
-  recognition.onstart = () => { btn.classList.add('recording'); btn.textContent='⏹'; };
+  recognition.onstart = () => { btn.classList.add('recording'); btn.textContent = '⏹'; };
   recognition.onresult = e => {
-    const text = Array.from(e.results).map(r=>r[0].transcript).join(' ');
+    const text = Array.from(e.results).map(r => r[0].transcript).join(' ');
     const field = document.getElementById(fieldId);
-    field.value += (field.value?' ':'')+text;
+    if (field) field.value += (field.value ? ' ' : '') + text;
   };
-  recognition.onerror = () => { btn.classList.remove('recording'); btn.textContent='🎤'; toast('Spracherkennung fehlgeschlagen'); };
-  recognition.onend = () => { btn.classList.remove('recording'); btn.textContent='🎤'; recognition=null; activeVoiceField=null; };
+  recognition.onerror = () => { btn.classList.remove('recording'); btn.textContent = '🎤'; sectionRecognition = null; };
+  recognition.onend = () => { btn.classList.remove('recording'); btn.textContent = '🎤'; recognition = null; activeVoiceField = null; };
   recognition.start();
   toast('Sprechen Sie jetzt…');
+}
+
+// ── PHOTOS per section ──
+let pendingPhotoSecId = null;
+
+function triggerPhotoForSection(secId) {
+  pendingPhotoSecId = secId;
+  const input = document.getElementById('photoInput');
+  input.value = '';
+  input.click();
+}
+
+function handlePhotoForSection(input) {
+  const files = Array.from(input.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      initBlocks();
+      const secId = pendingPhotoSecId || 'arbeiten';
+      state.blocks[secId].push({ type: 'photo', data: e.target.result, name: f.name });
+      save();
+      rerenderSection(secId);
+    };
+    reader.readAsDataURL(f);
+  });
+  input.value = '';
 }
 
 // ══════════════════════════════════
@@ -991,22 +1261,35 @@ function generiereProtokoll() {
   const datum = document.getElementById('pDatum').value;
   const bauleiter = document.getElementById('pBauleiter').value || '–';
   const wetter = document.getElementById('pWetter').value || '–';
-  const arbeiten = document.getElementById('pArbeiten').value || '–';
-  const abstimmungen = document.getElementById('pAbstimmungen').value || '–';
-  const maengel = document.getElementById('pMaengel').value || 'Keine';
-  const aufgaben = document.getElementById('pAufgaben').value || 'Keine';
-  const naechste = document.getElementById('pNaechste').value || '–';
+  // Read blocks per section
+  function sectionText(id, fallback) {
+    const blocks = (state.blocks && state.blocks[id]) || [];
+    const texts = blocks.filter(b => b.type === 'text' && b.text.trim()).map(b => '  · ' + b.text.trim());
+    return texts.length ? texts.join('\n') : fallback;
+  }
+  function sectionPhotoCount(id) {
+    const blocks = (state.blocks && state.blocks[id]) || [];
+    return blocks.filter(b => b.type === 'photo').length;
+  }
+  const arbeiten = sectionText('arbeiten', '–');
+  const abstimmungen = sectionText('abstimmungen', '–');
+  const maengel = sectionText('maengel', 'Keine');
+  const aufgaben = sectionText('aufgaben', 'Keine');
+  const naechste = sectionText('naechste', '–');
+  const totalPhotos = SECTIONS.reduce((acc, s) => acc + sectionPhotoCount(s.id), 0);
   const email = document.getElementById('pEmail').value;
 
   // Datum formatieren
   const dParts = datum.split('-');
   const datumDE = dParts.length===3 ? `${dParts[2]}.${dParts[1]}.${dParts[0]}` : datum;
 
-  // Firmen-Liste
-  let firmenText = 'Keine Firmen eingetragen.';
-  if(state.firmen.length) {
-    firmenText = state.firmen.map((f,i)=>
-      `  ${i+1}. ${f.name} (${f.gewerk})${f.anzahl?' – '+f.anzahl+' MA':''}${f.ap?' – AP: '+f.ap:''}\n     ${f.leistung?'Tagesleistung: '+f.leistung:''}`
+  // Firmen-Liste (aktive Firmen aus Chips + ad-hoc)
+  const aktiveFirmen = getAllFirmen().filter(f => f.aktiv);
+  let firmenText = 'Keine Firmen vor Ort.';
+  if(aktiveFirmen.length) {
+    firmenText = aktiveFirmen.map((f,i)=>
+      `  ${i+1}. ${f.name} (${f.gewerk})${f.ma?' – '+f.ma+' Mitarbeiter':''}${f.ap?' – AP: '+f.ap:''}` +
+      (f.leistung ? `\n     Tagesleistung: ${f.leistung}` : '')
     ).join('\n');
   }
 
@@ -1056,7 +1339,7 @@ function generiereProtokoll() {
     naechste,
     ``,
     `──────────────────────────────────────────────`,
-    state.fotos.length ? `Fotos: ${state.fotos.length} Bild(er) angehängt` : `Fotos: keine`,
+    totalPhotos > 0 ? `Fotos: ${totalPhotos} Bild(er) in den Abschnitten` : `Fotos: keine`,
     ``,
     `Erstellt am: ${new Date().toLocaleString('de-DE')}`,
     stellv,
@@ -1122,12 +1405,10 @@ function speichernEntwurf() {
 
 function showNewProtokoll() {
   state.firmen = [];
-  state.fotos = [];
-  renderFirmen();
-  renderPhotoGrid();
-  ['pArbeiten','pAbstimmungen','pMaengel','pAufgaben','pNaechste'].forEach(id=>{
-    document.getElementById(id).value='';
-  });
+  state.blocks = {};
+  initBlocks();
+  renderFirmenChips();
+  renderSections();
   setDatum();
   switchTab('protokoll', document.querySelectorAll('.tab')[1]);
 }
