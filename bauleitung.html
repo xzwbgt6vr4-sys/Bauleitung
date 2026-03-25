@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="desch BL">
+<title>Bauleitung · desch architekten</title>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --ink-2: #444;
+    --ink-3: #888;
+    --paper: #f5f2ed;
+    --paper-2: #ece8e0;
+    --paper-3: #e0dbd0;
+    --accent: #A80000;
+    --accent-2: #d43333;
+    --green: #2a7a4e;
+    --blue: #1e5a8c;
+    --card: #faf8f4;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    background: #e8e4de;
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .sticky-top {
+    position: sticky; top: 0; z-index: 100;
+  }
+  header {
+    background: #fff;
+    color: var(--ink);
+    padding: calc(var(--safe-top) + 14px) 20px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-title { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 22px; letter-spacing: -0.3px; }
+  .header-sub { font-size: 13px; color: var(--ink-3); display: flex; align-items: center; margin-top: 2px; padding-left: 10px; }
+  .header-sub span:first-child { color: var(--ink-2); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+  .header-sub span:last-child { color: var(--ink-3); font-weight: 600; }
+  .header-btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    font-family: 'Arial Narrow', Arial, sans-serif; cursor: pointer; white-space: nowrap;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; background: #fff; padding: 0 14px 0; gap: 2px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #ddd8d0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex-shrink: 0; padding: 10px 16px 11px; border-radius: 0; font-size: 13px;
+    font-weight: 500; color: var(--ink-3); border: none; background: transparent;
+    cursor: pointer; transition: all 0.15s; font-family: 'Arial Narrow', Arial, sans-serif;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+  /* ── MAIN ── */
+  main { padding: 16px 16px calc(var(--safe-bottom) + 80px); max-width: 700px; margin: 0 auto; }
+
+  /* ── SCREEN ── */
+  .screen { display: none; animation: fadeUp 0.25s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--paper-3);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 17px; }
+  .card-body { padding: 14px 16px; }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--ink-3); margin: 18px 0 8px;
+  }
+  .sec-label:first-child { margin-top: 0; }
+
+  /* ── WEATHER STRIP ── */
+  .weather-strip {
+    background: linear-gradient(135deg, var(--blue) 0%, #2d7abf 100%);
+    border-radius: var(--radius); padding: 16px; color: #fff;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 16px;
+  }
+  .weather-icon { font-size: 44px; line-height: 1; }
+  .weather-data { flex: 1; }
+  .weather-temp { font-size: 32px; font-weight: 300; line-height: 1; }
+  .weather-desc { font-size: 13px; opacity: 0.8; margin-top: 3px; }
+  .weather-meta { font-size: 11px; opacity: 0.65; margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .weather-btn {
+    background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 8px 12px; font-size: 12px; font-family: 'Arial Narrow', Arial, sans-serif;
+    cursor: pointer; white-space: nowrap;
+  }
+
+  .icon-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .icon-opt { width: 44px; height: 44px; border-radius: 10px; border: 2px solid var(--paper-3); background: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: border-color 0.15s; flex-shrink: 0; }
+  .icon-opt.selected { border-color: var(--accent); background: #fff0f0; }
+  .project-list { display: flex; flex-direction: column; gap: 10px; }
+  .project-item {
+    background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px;
+    cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+  }
+  .project-item.selected { border-color: var(--accent); }
+  .project-icon { width: 44px; height: 44px; border-radius: 10px; background: transparent; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .project-info { flex: 1; }
+  .project-name { font-weight: 600; font-size: 15px; }
+  .project-meta { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .project-chevron { color: var(--ink-3); font-size: 18px; }
+  .edit-proj-btn { background: var(--paper-2); border: none; border-radius: 8px; padding: 6px 9px; font-size: 15px; cursor: pointer; flex-shrink: 0; }
+
+  /* ── FORM ELEMENTS ── */
+  .field { margin-bottom: 12px; }
+  label { font-size: 12px; font-weight: 600; color: var(--ink-2); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=email], input[type=date], textarea, select {
+    width: 100%; padding: 11px 13px; border: 1.5px solid var(--paper-3);
+    border-radius: var(--radius-sm); font-size: 15px; font-family: 'Arial Narrow', Arial, sans-serif;
+    background: #fff; color: var(--ink); outline: none; transition: border-color 0.15s;
+    -webkit-appearance: none; appearance: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { min-height: 80px; resize: vertical; }
+
+  /* ── VOICE BTN ── */
+  .voice-row { display: flex; gap: 8px; align-items: flex-start; }
+  .voice-row textarea { flex: 1; }
+  .voice-btn {
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; background: var(--paper-2);
+    border: 1.5px solid var(--paper-3); display: flex; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer; transition: all 0.15s; margin-top: 0;
+  }
+  .voice-btn.recording { background: var(--accent); border-color: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+  /* ── ADD BTN ── */
+  .add-btn {
+    width: 100%; padding: 10px; border: 2px dashed var(--paper-3); border-radius: var(--radius-sm);
+    background: transparent; color: var(--ink-3); font-size: 13px; font-family: 'Arial Narrow', Arial, sans-serif;
+    cursor: pointer; margin-bottom: 10px;
+  }
+
+  /* ── FIRMA ITEM ── */
+  .firma-item {
+    background: var(--paper-2); border-radius: var(--radius-sm); padding: 10px 12px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
+  }
+  .firma-item .firma-name { flex: 1; font-weight: 500; font-size: 14px; }
+  .firma-item .firma-gewerk { font-size: 12px; color: var(--ink-3); }
+  .remove-btn { color: var(--accent); background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 4px; flex-shrink: 0; }
+
+  /* ── TASK ITEM ── */
+  .task-item {
+    background: var(--paper-2); border-radius: var(--radius-sm); padding: 10px 12px;
+    margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .task-priority { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+  .task-priority.hoch { background: var(--accent); }
+  .task-priority.mittel { background: #e8a82a; }
+  .task-priority.niedrig { background: var(--green); }
+  .task-text { flex: 1; font-size: 14px; }
+  .task-meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+  /* ── PHOTO GRID ── */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .photo-thumb {
+    aspect-ratio: 1; border-radius: var(--radius-sm); object-fit: cover;
+    background: var(--paper-3); display: flex; align-items: center; justify-content: center;
+    font-size: 28px; cursor: pointer; overflow: hidden; position: relative;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-photo {
+    position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: #fff;
+    border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .photo-add {
+    aspect-ratio: 1; border-radius: var(--radius-sm); border: 2px dashed var(--paper-3);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    cursor: pointer; color: var(--ink-3); background: transparent;
+  }
+
+  /* ── BIG BTN ── */
+  .big-btn {
+    width: 100%; padding: 15px; border-radius: var(--radius); font-size: 16px; font-weight: 600;
+    font-family: 'Arial Narrow', Arial, sans-serif; border: none; cursor: pointer; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s;
+  }
+  .big-btn:active { transform: scale(0.98); }
+  .big-btn.primary { background: var(--accent); color: #fff; }
+  .big-btn.secondary { background: var(--paper-2); color: var(--ink); }
+  .big-btn.success { background: var(--green); color: #fff; }
+
+  /* ── PROTOKOLL PREVIEW ── */
+  .protokoll-box {
+    background: #fff; border: 1px solid var(--paper-3); border-radius: var(--radius);
+    padding: 16px; font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+    max-height: 400px; overflow-y: auto; margin-bottom: 14px; color: var(--ink);
+  }
+
+  /* ── STATUS BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .badge.offen { background: #fff3e0; color: #e65100; }
+  .badge.erledigt { background: #e8f5e9; color: #2e7d32; }
+  .badge.datum { background: var(--paper-2); color: var(--ink-2); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: calc(var(--safe-bottom) + 90px); left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px;
+    opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+    display: flex; align-items: flex-end; padding-bottom: var(--safe-bottom);
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.hidden { display: none; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .modal-sheet {
+    background: var(--paper); border-radius: 20px 20px 0 0; width: 100%; padding: 20px 16px 24px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(40px)} to{transform:none} }
+  .modal-handle { width: 40px; height: 4px; background: var(--paper-3); border-radius: 2px; margin: -10px auto 16px; }
+  .modal-title { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 20px; margin-bottom: 14px; }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--paper-3); margin: 14px 0; }
+
+  /* ── DATUM ── */
+  .date-row { display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-2); margin-bottom: 4px; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--ink-3); }
+  .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; line-height: 1.6; }
+
+  /* ── PROTOKOLL HISTORY ── */
+  .history-item {
+    background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+    margin-bottom: 10px; box-shadow: var(--shadow); display: flex; gap: 12px; cursor: pointer;
+  }
+  .history-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+  .history-info { flex: 1; }
+  .history-date { font-weight: 600; font-size: 14px; }
+  .history-proj { font-size: 12px; color: var(--ink-3); }
+  .history-preview { font-size: 12px; color: var(--ink-2); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ── SCROLL INPUT ── */
+  .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .checkbox-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); flex-shrink: 0; }
+
+  input[type=file] { display: none; }
+  .header-logo-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .pro-badge { font-family: 'Permanent Marker', 'Segoe Script', cursive; font-size: 22px; font-weight: 900; color: #00A8A8; line-height: 1; transform: rotate(-20deg); display: inline-block; margin-left: 4px; margin-top: 4px; letter-spacing: -0.5px; position: relative; z-index: 1; }
+  .header-logo { width: 260px; height: 32px; flex-shrink: 0; }
+  .header-logo svg { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<div class="sticky-top"><header>
+  <div class="header-logo-wrap">
+    <div class="header-logo-row"><div class="header-logo"><svg width="100%" height="100%" style="display:block;" viewBox="0 0 5438 575" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g transform="matrix(4.166667,0,0,4.166667,0,0)"><g transform="matrix(4.171943,0,0,4.171943,0.250145,0)"><g transform="matrix(1,0,0,1,-435.9013,-427.6508)"><path d="M435.901,427.651L512.274,427.651L512.274,460.921L435.901,460.921L435.901,427.651" style="fill:rgb(168,0,0);"/></g><g transform="matrix(1,0,0,1,-435.9013,-381.0785)"><g transform="matrix(21.99062,0,0,21.99062,447.9831,410.78878)"><path d="M0.064,-0.322C0.064,-0.346 0.07,-0.367 0.082,-0.387C0.106,-0.43 0.143,-0.451 0.193,-0.451L0.322,-0.451L0.322,-0.612C0.322,-0.634 0.333,-0.645 0.354,-0.645C0.376,-0.645 0.387,-0.634 0.387,-0.612L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322ZM0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387L0.193,-0.387Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,461.216849,410.78878)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,474.450598,410.78878)"><path d="M0.322,-0.113C0.322,-0.133 0.313,-0.148 0.295,-0.157L0.129,-0.236C0.086,-0.257 0.064,-0.291 0.064,-0.338C0.064,-0.375 0.08,-0.404 0.11,-0.424C0.137,-0.442 0.17,-0.451 0.209,-0.451C0.257,-0.451 0.3,-0.439 0.337,-0.415C0.349,-0.408 0.354,-0.398 0.354,-0.387C0.354,-0.378 0.351,-0.37 0.345,-0.364C0.339,-0.358 0.331,-0.354 0.322,-0.354C0.316,-0.354 0.311,-0.356 0.307,-0.358C0.276,-0.377 0.243,-0.386 0.209,-0.386C0.156,-0.386 0.129,-0.37 0.129,-0.338C0.129,-0.318 0.138,-0.304 0.155,-0.295L0.322,-0.215C0.365,-0.194 0.387,-0.16 0.387,-0.113C0.387,-0.074 0.371,-0.044 0.34,-0.025C0.314,-0.008 0.28,-0 0.238,-0C0.176,-0 0.125,-0.012 0.083,-0.036C0.07,-0.042 0.064,-0.052 0.064,-0.064C0.064,-0.073 0.068,-0.081 0.074,-0.087C0.08,-0.094 0.088,-0.097 0.097,-0.097C0.101,-0.097 0.105,-0.096 0.109,-0.094C0.119,-0.09 0.135,-0.084 0.155,-0.076C0.184,-0.068 0.213,-0.064 0.24,-0.064C0.295,-0.064 0.322,-0.081 0.322,-0.113Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,487.684347,410.78878)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,499.500732,410.78878)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,522.2775,410.97808)"><path d="M0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129C0.064,-0.152 0.07,-0.174 0.082,-0.194C0.106,-0.236 0.143,-0.258 0.193,-0.258L0.322,-0.258L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387C0.107,-0.387 0.097,-0.397 0.097,-0.419C0.097,-0.44 0.107,-0.451 0.129,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0ZM0.322,-0.193L0.193,-0.193C0.175,-0.193 0.16,-0.187 0.148,-0.175C0.135,-0.162 0.129,-0.147 0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,533.529575,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,543.622843,410.97808)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,553.716111,410.97808)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,564.968186,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,571.585033,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,581.678301,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,592.930376,410.97808)"><path d="M0.129,-0.209L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.291L0.335,-0.445C0.34,-0.449 0.347,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419C0.387,-0.408 0.382,-0.399 0.374,-0.393L0.249,-0.299L0.383,-0.047C0.386,-0.043 0.387,-0.038 0.387,-0.032C0.387,-0.023 0.384,-0.016 0.377,-0.01C0.371,-0.003 0.363,-0 0.354,-0C0.342,-0 0.332,-0.006 0.326,-0.017L0.197,-0.26L0.129,-0.209Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,604.182451,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,614.275719,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,625.527794,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,636.779869,410.97808)"><path d="M0.193,-0.193L0.097,-0.193C0.075,-0.193 0.064,-0.204 0.064,-0.226C0.064,-0.247 0.075,-0.258 0.097,-0.258L0.193,-0.258L0.193,-0.354C0.193,-0.376 0.204,-0.387 0.226,-0.387C0.247,-0.387 0.258,-0.376 0.258,-0.354L0.258,-0.258L0.354,-0.258C0.376,-0.258 0.387,-0.247 0.387,-0.226C0.387,-0.204 0.376,-0.193 0.354,-0.193L0.258,-0.193L0.258,-0.097C0.258,-0.075 0.247,-0.064 0.226,-0.064C0.204,-0.064 0.193,-0.075 0.193,-0.097L0.193,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,648.031945,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,654.648791,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,665.900866,410.97808)"><path d="M0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419L0.387,0.064C0.387,0.101 0.374,0.131 0.349,0.156C0.324,0.181 0.294,0.193 0.258,0.193L0.129,0.193C0.107,0.193 0.097,0.183 0.097,0.161C0.097,0.14 0.107,0.129 0.129,0.129L0.258,0.129C0.276,0.129 0.291,0.123 0.303,0.11C0.316,0.098 0.322,0.082 0.322,0.064L0.322,-0L0.193,-0C0.143,-0 0.106,-0.021 0.082,-0.064C0.07,-0.084 0.064,-0.105 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.354,-0.451ZM0.322,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,677.152941,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,688.405016,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,699.657092,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,706.273938,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,717.526013,410.97808)"><path d="M0.387,-0.419L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.419C0.322,-0.44 0.333,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,728.778088,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,738.871356,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g></g></g></g></svg></div><span class="pro-badge">Pro</span></div>
+    <div class="header-sub"><span>Bauleitung</span><span id="headerSub"></span></div>
+  </div>
+  <button class="header-btn" onclick="showNewProtokoll()">+ Protokoll</button>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('projekte',this)">Projekte</button>
+  <button class="tab" onclick="switchTab('protokoll',this)">Protokoll</button>
+  <button class="tab" onclick="switchTab('aufgaben',this)">Aufgaben</button>
+  <button class="tab" onclick="switchTab('verlauf',this)">Verlauf</button>
+  <button class="tab" onclick="switchTab('einstellungen',this)">Einstellungen</button>
+</div>
+</div>
+
+<main>
+
+<!-- ══════════════════════════════════════════
+     TAB: PROJEKTE
+══════════════════════════════════════════ -->
+<div id="tab-projekte" class="screen active">
+  <p class="sec-label">Meine Projekte</p>
+  <div class="project-list" id="projekteListe"></div>
+  <button class="big-btn secondary" onclick="openNewProjektModal()">＋ Neues Projekt anlegen</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: PROTOKOLL (Neue Eingabe)
+══════════════════════════════════════════ -->
+<div id="tab-protokoll" class="screen">
+
+  <!-- Datum & Wetter -->
+  <div class="weather-strip" id="weatherStrip">
+    <div class="weather-icon" id="wIcon">🌤</div>
+    <div class="weather-data">
+      <div class="weather-temp" id="wTemp">–°C</div>
+      <div class="weather-desc" id="wDesc">Wetterdaten laden…</div>
+      <div class="weather-meta" id="wMeta">
+        <span id="wHumidity"></span>
+        <span id="wWind"></span>
+      </div>
+    </div>
+    <button class="weather-btn" onclick="loadWeather()">🔄 Neu</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📋 Basisinfos</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>Projekt</label>
+        <select id="pProjekt">
+          <option value="">— Projekt wählen —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Datum</label>
+        <input type="date" id="pDatum">
+      </div>
+      <div class="field">
+        <label>Bauleiter</label>
+        <input type="text" id="pBauleiter" placeholder="Name des Bauleiters">
+      </div>
+      <div class="field">
+        <label>Witterung (ergänzen)</label>
+        <input type="text" id="pWetter" placeholder="z. B. bewölkt, 12°C, kein Regen">
+      </div>
+    </div>
+  </div>
+
+  <!-- Firmen vor Ort -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🏗 Firmen vor Ort</span>
+      <button class="header-btn" onclick="openFirmaModal()">+ Firma</button>
+    </div>
+    <div class="card-body" id="firmenListe">
+      <p style="color:var(--ink-3);font-size:13px">Noch keine Firmen eingetragen.</p>
+    </div>
+  </div>
+
+  <!-- Ausgef. Arbeiten -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">🔨 Ausgeführte Arbeiten</span></div>
+    <div class="card-body">
+      <div class="voice-row">
+        <textarea id="pArbeiten" placeholder="Welche Arbeiten wurden heute ausgeführt?"></textarea>
+        <button class="voice-btn" id="vBtnArbeiten" onclick="toggleVoice('pArbeiten','vBtnArbeiten')">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Abstimmungen -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">🤝 Abstimmungen / Entscheidungen</span></div>
+    <div class="card-body">
+      <div class="voice-row">
+        <textarea id="pAbstimmungen" placeholder="Welche Abstimmungen wurden getroffen?"></textarea>
+        <button class="voice-btn" id="vBtnAbstimmungen" onclick="toggleVoice('pAbstimmungen','vBtnAbstimmungen')">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mängel -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">⚠️ Mängel / Probleme</span></div>
+    <div class="card-body">
+      <div class="voice-row">
+        <textarea id="pMaengel" placeholder="Festgestellte Mängel, Probleme, Abweichungen…"></textarea>
+        <button class="voice-btn" id="vBtnMaengel" onclick="toggleVoice('pMaengel','vBtnMaengel')">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Planer-Aufgaben -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">📌 Meine Aufgaben (Planer)</span></div>
+    <div class="card-body">
+      <div class="voice-row">
+        <textarea id="pAufgaben" placeholder="Was muss ich als Planer erledigen?"></textarea>
+        <button class="voice-btn" id="vBtnAufgaben" onclick="toggleVoice('pAufgaben','vBtnAufgaben')">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nächste Schritte -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">🔜 Nächste Schritte / Termine</span></div>
+    <div class="card-body">
+      <div class="voice-row">
+        <textarea id="pNaechste" placeholder="Nächster Baustellentermin, Lieferungen, Termine…"></textarea>
+        <button class="voice-btn" id="vBtnNaechste" onclick="toggleVoice('pNaechste','vBtnNaechste')">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fotos -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">📷 Fotos</span></div>
+    <div class="card-body">
+      <div class="photo-grid" id="photoGrid">
+        <div class="photo-add" onclick="document.getElementById('photoInput').click()">＋</div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" multiple onchange="addPhotos(this)">
+      <p style="font-size:11px;color:var(--ink-3)">Fotos werden als Anhang ins Protokoll eingefügt.</p>
+    </div>
+  </div>
+
+  <!-- E-Mail -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">📧 Protokoll senden an</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>E-Mail Empfänger</label>
+        <input type="email" id="pEmail" placeholder="architekt@buero.de">
+      </div>
+      <div class="field">
+        <label>CC (optional)</label>
+        <input type="email" id="pEmailCC" placeholder="weitere@empfaenger.de">
+      </div>
+    </div>
+  </div>
+
+  <button class="big-btn primary" onclick="generiereProtokoll()">📄 Protokoll generieren & senden</button>
+  <button class="big-btn secondary" onclick="speichernEntwurf()">💾 Als Entwurf speichern</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: AUFGABEN
+══════════════════════════════════════════ -->
+<div id="tab-aufgaben" class="screen">
+  <p class="sec-label">Offene Aufgaben</p>
+  <div id="aufgabenListe"></div>
+  <button class="big-btn secondary" onclick="openAufgabeModal()">＋ Aufgabe hinzufügen</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: VERLAUF
+══════════════════════════════════════════ -->
+<div id="tab-verlauf" class="screen">
+  <p class="sec-label">Alle Protokolle</p>
+  <div id="verlaufListe"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: EINSTELLUNGEN
+══════════════════════════════════════════ -->
+<div id="tab-einstellungen" class="screen">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">👤 Projektleitung</span></div>
+    <div class="card-body">
+      <div class="field"><label>Vollständiger Name</label>
+        <input type="text" id="sName" placeholder="Dipl.-Ing. Max Mustermann" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Titel / Funktion</label>
+        <input type="text" id="sFunktion" placeholder="Architekt / Projektleiter" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>E-Mail</label>
+        <input type="email" id="sMail" placeholder="m.mustermann@desch.de" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Telefon</label>
+        <input type="text" id="sTel" placeholder="+49 931 …" oninput="saveSettings()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">👥 Stellvertretung</span></div>
+    <div class="card-body">
+      <div class="field"><label>Name Stellvertreter</label>
+        <input type="text" id="sStellvName" placeholder="Dipl.-Ing. Erika Muster" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>E-Mail Stellvertreter</label>
+        <input type="email" id="sStellvMail" placeholder="e.muster@desch.de" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Telefon Stellvertreter</label>
+        <input type="text" id="sStellvTel" placeholder="+49 931 …" oninput="saveSettings()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏢 Büro</span></div>
+    <div class="card-body">
+      <div class="field"><label>Büroname</label>
+        <input type="text" id="sBuero" placeholder="desch architekten+ingenieure" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Adresse</label>
+        <input type="text" id="sBueroAdresse" placeholder="Musterstraße 1, 97070 Würzburg" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Büro-Telefon</label>
+        <input type="text" id="sBueroTel" placeholder="+49 931 …" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Büro-E-Mail</label>
+        <input type="email" id="sBueroMail" placeholder="info@desch.de" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Website</label>
+        <input type="text" id="sBueroWeb" placeholder="www.desch.de" oninput="saveSettings()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📧 Protokoll-Versand</span></div>
+    <div class="card-body">
+      <div class="field"><label>Standard-Empfänger (An)</label>
+        <input type="email" id="sDefaultMail" placeholder="protokoll@desch.de" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>Standard-CC</label>
+        <input type="email" id="sDefaultCC" placeholder="buero@desch.de" oninput="saveSettings()">
+      </div>
+      <div class="field"><label>E-Mail Signatur / Fußzeile</label>
+        <textarea id="sSignatur" placeholder="Mit freundlichen Grüßen&#10;desch architekten+ingenieure" oninput="saveSettings()" style="min-height:80px"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">⚙️ App-Einstellungen</span></div>
+    <div class="card-body">
+      <div class="field"><label>Standardsprache Spracherkennung</label>
+        <select id="sLang" onchange="saveSettings()">
+          <option value="de-DE">Deutsch</option>
+          <option value="en-US">Englisch</option>
+          <option value="fr-FR">Französisch</option>
+          <option value="it-IT">Italienisch</option>
+        </select>
+      </div>
+      <div class="field"><label>Protokoll-Nummerierung (Präfix)</label>
+        <input type="text" id="sProtNr" placeholder="BL-2024-" oninput="saveSettings()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">🗑 Daten</span></div>
+    <div class="card-body">
+      <button class="big-btn secondary" style="color:var(--accent)" onclick="clearAllData()">Alle App-Daten löschen</button>
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<!-- ══════ TOAST ══════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════ MODAL: Neues Projekt ══════ -->
+<div class="modal-overlay hidden" id="modalProjekt">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalProjektTitle">Neues Projekt</div>
+    <div class="field"><label>Projektname</label><input type="text" id="mProjName" placeholder="z. B. Wohnhaus Musterstraße 5"></div>
+    <div class="field"><label>Ort / Adresse</label><input type="text" id="mProjOrt" placeholder="Musterstraße 5, 97070 Würzburg"></div>
+    <div class="field"><label>Bauherr</label><input type="text" id="mProjBauherr" placeholder="Name des Bauherrn"></div>
+    <div class="field"><label>Projektnummer</label><input type="text" id="mProjNr" placeholder="2024-001"></div>
+    <div class="field">
+      <label>Icon wählen</label>
+      <div class="icon-picker" id="iconPicker"></div>
+      <input type="hidden" id="mProjIcon" value="🏗">
+    </div>
+    <input type="hidden" id="mProjEditIndex" value="-1">
+    <button class="big-btn primary" onclick="saveProjekt()">Projekt speichern</button>
+    <button class="big-btn secondary" id="deleteProjBtn" onclick="deleteProjekt()" style="display:none;color:var(--accent)">🗑 Projekt löschen</button>
+    <button class="big-btn secondary" onclick="closeModal('modalProjekt')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: Firma ══════ -->
+<div class="modal-overlay hidden" id="modalFirma">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Firma hinzufügen</div>
+    <div class="field"><label>Firmenname</label><input type="text" id="mFirmaName" placeholder="Musterbau GmbH"></div>
+    <div class="field"><label>Gewerk</label>
+      <select id="mFirmaGewerk">
+        <option>Rohbau</option><option>Zimmerei</option><option>Dachdecker</option>
+        <option>Maurer</option><option>Elektriker</option><option>Sanitär / Heizung</option>
+        <option>Trockenbau</option><option>Maler</option><option>Fliesen</option>
+        <option>Fenster / Türen</option><option>Estrich</option><option>Außenanlage</option>
+        <option>Gerüst</option><option>Abriss</option><option>Sonstiges</option>
+      </select>
+    </div>
+    <div class="field"><label>Anzahl Arbeiter vor Ort</label><input type="text" id="mFirmaAnzahl" placeholder="3"></div>
+    <div class="field"><label>Ansprechpartner</label><input type="text" id="mFirmaAP" placeholder="Herr Muster"></div>
+    <div class="field">
+      <label>Tagesleistung / Notiz</label>
+      <div class="voice-row">
+        <textarea id="mFirmaLeistung" placeholder="Was hat die Firma heute gemacht?"></textarea>
+        <button class="voice-btn" id="vBtnFirma" onclick="toggleVoice('mFirmaLeistung','vBtnFirma')">🎤</button>
+      </div>
+    </div>
+    <button class="big-btn primary" onclick="saveFirma()">Firma speichern</button>
+    <button class="big-btn secondary" onclick="closeModal('modalFirma')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: Aufgabe ══════ -->
+<div class="modal-overlay hidden" id="modalAufgabe">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Aufgabe hinzufügen</div>
+    <div class="field"><label>Beschreibung</label>
+      <div class="voice-row">
+        <textarea id="mAufgabeText" placeholder="Aufgabe beschreiben…"></textarea>
+        <button class="voice-btn" id="vBtnAufgabeM" onclick="toggleVoice('mAufgabeText','vBtnAufgabeM')">🎤</button>
+      </div>
+    </div>
+    <div class="field"><label>Priorität</label>
+      <select id="mAufgabePrio">
+        <option value="hoch">🔴 Hoch</option>
+        <option value="mittel" selected>🟡 Mittel</option>
+        <option value="niedrig">🟢 Niedrig</option>
+      </select>
+    </div>
+    <div class="field"><label>Projekt</label><select id="mAufgabeProjekt"></select></div>
+    <div class="field"><label>Fällig bis</label><input type="date" id="mAufgabeDatum"></div>
+    <button class="big-btn primary" onclick="saveAufgabe()">Aufgabe speichern</button>
+    <button class="big-btn secondary" onclick="closeModal('modalAufgabe')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL: Protokoll Vorschau ══════ -->
+<div class="modal-overlay hidden" id="modalProtokoll">
+  <div class="modal-sheet" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📄 Protokoll Vorschau</div>
+    <div class="protokoll-box" id="protokollPreview"></div>
+    <button class="big-btn success" onclick="sendeEmail()">📧 Per E-Mail senden</button>
+    <button class="big-btn secondary" onclick="kopiereProtokoll()">📋 In Zwischenablage kopieren</button>
+    <button class="big-btn secondary" onclick="closeModal('modalProtokoll')">Schließen</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+let state = {
+  projekte: [],
+  aufgaben: [],
+  protokolle: [],
+  fotos: [],
+  firmen: [],
+  wetter: null,
+  currentProtokoll: ''
+};
+
+// ══════════════════════════════════
+// PERSIST
+// ══════════════════════════════════
+function save() { try { localStorage.setItem('blpro', JSON.stringify(state)); } catch(e){} }
+function load() {
+  try {
+    const d = localStorage.getItem('blpro');
+    if(d) state = {...state, ...JSON.parse(d)};
+  } catch(e){}
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  load();
+  loadSettings();
+  renderProjekte();
+  renderAufgaben();
+  renderVerlauf();
+  updateProjektSelects();
+  setDatum();
+  loadWeather();
+  loadBauleiterName();
+});
+
+function setDatum() {
+  const d = new Date();
+  document.getElementById('pDatum').value = d.toISOString().split('T')[0];
+  document.getElementById('mAufgabeDatum').value = d.toISOString().split('T')[0];
+}
+
+function loadBauleiterName() {
+  const saved = localStorage.getItem('bauleiterName');
+  if(saved) document.getElementById('pBauleiter').value = saved;
+}
+
+// ══════════════════════════════════
+// TABS
+// ══════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════
+// WETTER
+// ══════════════════════════════════
+async function loadWeather() {
+  document.getElementById('wDesc').textContent = 'Standort wird ermittelt…';
+  if(!navigator.geolocation) { document.getElementById('wDesc').textContent = 'Standort nicht verfügbar'; return; }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const {latitude:lat, longitude:lon} = pos.coords;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&timezone=auto`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const c = d.current;
+      const temp = Math.round(c.temperature_2m);
+      const code = c.weathercode;
+      const wind = Math.round(c.windspeed_10m);
+      const hum = c.relativehumidity_2m;
+      const {icon, desc} = wCode(code);
+      state.wetter = {temp, desc, wind, hum, icon};
+      save();
+      document.getElementById('wTemp').textContent = temp+'°C';
+      document.getElementById('wDesc').textContent = desc;
+      document.getElementById('wIcon').textContent = icon;
+      document.getElementById('wHumidity').textContent = '💧 '+hum+'%';
+      document.getElementById('wWind').textContent = '💨 '+wind+' km/h';
+      document.getElementById('pWetter').value = `${desc}, ${temp}°C, Wind ${wind} km/h, Luftfeuchte ${hum}%`;
+    } catch(e) { document.getElementById('wDesc').textContent = 'Wetter nicht verfügbar'; }
+  }, ()=>{ document.getElementById('wDesc').textContent = 'Zugriff verweigert'; });
+}
+
+function wCode(c) {
+  if(c===0) return {icon:'☀️',desc:'Sonnig, klarer Himmel'};
+  if(c<=2) return {icon:'⛅',desc:'Teilweise bewölkt'};
+  if(c<=3) return {icon:'☁️',desc:'Bedeckt'};
+  if(c<=48) return {icon:'🌫',desc:'Nebel'};
+  if(c<=55) return {icon:'🌦',desc:'Nieselregen'};
+  if(c<=65) return {icon:'🌧',desc:'Regen'};
+  if(c<=75) return {icon:'🌨',desc:'Schneefall'};
+  if(c<=82) return {icon:'🌧',desc:'Regenschauer'};
+  if(c<=99) return {icon:'⛈',desc:'Gewitter'};
+  return {icon:'🌡',desc:'–'};
+}
+
+// ══════════════════════════════════
+// PROJEKTE
+// ══════════════════════════════════
+function renderProjekte() {
+  const el = document.getElementById('projekteListe');
+  if(!state.projekte.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🏗</div><p>Noch keine Projekte angelegt.<br>Lege dein erstes Projekt an!</p></div>';
+    return;
+  }
+  el.innerHTML = state.projekte.map((p,i) => `
+    <div class="project-item" onclick="selectProjekt(${i})">
+      <div class="project-icon">${p.icon||'🏗'}</div>
+      <div class="project-info">
+        <div class="project-name">${p.name}</div>
+        <div class="project-meta">${p.ort||''} ${p.nr ? '· Nr. '+p.nr : ''}</div>
+      </div>
+      <button class="edit-proj-btn" onclick="event.stopPropagation();openEditProjekt(${i})">✏️</button>
+    </div>
+  `).join('');
+}
+
+function selectProjekt(i) {
+  const p = state.projekte[i];
+  document.getElementById('pProjekt').value = p.name;
+  document.getElementById('headerSub').textContent = ' – ' + p.name;
+  document.querySelectorAll('.project-item').forEach((el,j)=>el.classList.toggle('selected',j===i));
+  switchTab('protokoll', document.querySelectorAll('.tab')[1]);
+  toast('Projekt gewählt: '+p.name);
+}
+
+const PROJ_ICONS = ['🏗','🏠','🏢','🏬','🏭','🏛','🏗️','🏘','🏚','🏙','🏰','🏯','⛪','🕌','🕍','🏟','🧱','🔨','🪚','⚙️','📐','📏','🪜','🛗','🚧','🔑','🗝','📋','📁','🗂','🌳','🌿','⛰','🌊'];
+
+function renderIconPicker(selected) {
+  const el = document.getElementById('iconPicker');
+  el.innerHTML = PROJ_ICONS.map(ic => `
+    <div class="icon-opt${ic === selected ? ' selected' : ''}" onclick="selectIcon('${ic}')">${ic}</div>
+  `).join('');
+}
+
+function selectIcon(ic) {
+  document.getElementById('mProjIcon').value = ic;
+  document.querySelectorAll('.icon-opt').forEach(el => el.classList.toggle('selected', el.textContent === ic));
+}
+
+function openNewProjektModal() {
+  document.getElementById('modalProjektTitle').textContent = 'Neues Projekt';
+  document.getElementById('mProjName').value = '';
+  document.getElementById('mProjOrt').value = '';
+  document.getElementById('mProjBauherr').value = '';
+  document.getElementById('mProjNr').value = '';
+  document.getElementById('mProjIcon').value = '🏗';
+  document.getElementById('mProjEditIndex').value = '-1';
+  document.getElementById('deleteProjBtn').style.display = 'none';
+  renderIconPicker('🏗');
+  openModal('modalProjekt');
+}
+
+function openEditProjekt(i) {
+  const p = state.projekte[i];
+  document.getElementById('modalProjektTitle').textContent = 'Projekt bearbeiten';
+  document.getElementById('mProjName').value = p.name || '';
+  document.getElementById('mProjOrt').value = p.ort || '';
+  document.getElementById('mProjBauherr').value = p.bauherr || '';
+  document.getElementById('mProjNr').value = p.nr || '';
+  document.getElementById('mProjIcon').value = p.icon || '🏗';
+  document.getElementById('mProjEditIndex').value = i;
+  renderIconPicker(p.icon||'🏗');
+  document.getElementById('deleteProjBtn').style.display = 'block';
+  openModal('modalProjekt');
+}
+
+function deleteProjekt() {
+  const i = parseInt(document.getElementById('mProjEditIndex').value);
+  if(i < 0) return;
+  if(!confirm('Projekt „' + state.projekte[i].name + '" wirklich löschen?')) return;
+  state.projekte.splice(i, 1);
+  save(); renderProjekte(); updateProjektSelects();
+  closeModal('modalProjekt');
+  toast('Projekt gelöscht');
+}
+
+function saveProjekt() {
+  const name = document.getElementById('mProjName').value.trim();
+  if(!name) { toast('Bitte Projektname eingeben'); return; }
+  const editIndex = parseInt(document.getElementById('mProjEditIndex').value);
+  const data = {
+    name, ort: document.getElementById('mProjOrt').value.trim(),
+    bauherr: document.getElementById('mProjBauherr').value.trim(),
+    nr: document.getElementById('mProjNr').value.trim(),
+    icon: document.getElementById('mProjIcon').value||'🏗',
+  };
+  if(editIndex >= 0) {
+    data.erstellt = state.projekte[editIndex].erstellt;
+    state.projekte[editIndex] = data;
+    toast('Projekt aktualisiert!');
+  } else {
+    data.erstellt = new Date().toISOString();
+    state.projekte.push(data);
+    toast('Projekt angelegt!');
+  }
+  save(); renderProjekte(); updateProjektSelects(); closeModal('modalProjekt');
+}
+
+function updateProjektSelects() {
+  const opts = '<option value="">— Projekt wählen —</option>'+state.projekte.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+  document.getElementById('pProjekt').innerHTML = opts;
+  document.getElementById('mAufgabeProjekt').innerHTML = opts;
+}
+
+// ══════════════════════════════════
+// FIRMEN
+// ══════════════════════════════════
+function openFirmaModal() { openModal('modalFirma'); }
+
+function saveFirma() {
+  const f = {
+    name: document.getElementById('mFirmaName').value.trim(),
+    gewerk: document.getElementById('mFirmaGewerk').value,
+    anzahl: document.getElementById('mFirmaAnzahl').value,
+    ap: document.getElementById('mFirmaAP').value,
+    leistung: document.getElementById('mFirmaLeistung').value
+  };
+  if(!f.name) { toast('Firmenname eingeben'); return; }
+  state.firmen.push(f);
+  renderFirmen();
+  closeModal('modalFirma');
+  document.getElementById('mFirmaName').value='';
+  document.getElementById('mFirmaAnzahl').value='';
+  document.getElementById('mFirmaAP').value='';
+  document.getElementById('mFirmaLeistung').value='';
+  toast('Firma hinzugefügt');
+}
+
+function renderFirmen() {
+  const el = document.getElementById('firmenListe');
+  if(!state.firmen.length) { el.innerHTML='<p style="color:var(--ink-3);font-size:13px">Noch keine Firmen eingetragen.</p>'; return; }
+  el.innerHTML = state.firmen.map((f,i)=>`
+    <div class="firma-item">
+      <div>
+        <div class="firma-name">${f.name}</div>
+        <div class="firma-gewerk">${f.gewerk} · ${f.anzahl||'?'} MA ${f.ap?'· '+f.ap:''}</div>
+        ${f.leistung?`<div style="font-size:12px;color:var(--ink-2);margin-top:4px">${f.leistung}</div>`:''}
+      </div>
+      <button class="remove-btn" onclick="removeFirma(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeFirma(i) { state.firmen.splice(i,1); renderFirmen(); }
+
+// ══════════════════════════════════
+// FOTOS
+// ══════════════════════════════════
+function addPhotos(input) {
+  const files = Array.from(input.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.fotos.push({data: e.target.result, name: f.name});
+      renderPhotoGrid();
+    };
+    reader.readAsDataURL(f);
+  });
+  input.value='';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = state.fotos.map((f,i)=>`
+    <div class="photo-thumb">
+      <img src="${f.data}" alt="Foto ${i+1}">
+      <button class="remove-photo" onclick="removePhoto(${i})">×</button>
+    </div>
+  `).join('') + `<div class="photo-add" onclick="document.getElementById('photoInput').click()">＋</div>`;
+}
+
+function removePhoto(i) { state.fotos.splice(i,1); renderPhotoGrid(); }
+
+// ══════════════════════════════════
+// SPRACHERKENNUNG
+// ══════════════════════════════════
+let recognition = null;
+let activeVoiceField = null;
+let activeVoiceBtn = null;
+
+function toggleVoice(fieldId, btnId) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) { toast('Spracherkennung nicht verfügbar'); return; }
+  const btn = document.getElementById(btnId);
+  if(recognition && activeVoiceField === fieldId) {
+    recognition.stop(); return;
+  }
+  if(recognition) recognition.stop();
+  recognition = new SpeechRecognition();
+  recognition.lang = 'de-DE';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  activeVoiceField = fieldId;
+  activeVoiceBtn = btnId;
+  recognition.onstart = () => { btn.classList.add('recording'); btn.textContent='⏹'; };
+  recognition.onresult = e => {
+    const text = Array.from(e.results).map(r=>r[0].transcript).join(' ');
+    const field = document.getElementById(fieldId);
+    field.value += (field.value?' ':'')+text;
+  };
+  recognition.onerror = () => { btn.classList.remove('recording'); btn.textContent='🎤'; toast('Spracherkennung fehlgeschlagen'); };
+  recognition.onend = () => { btn.classList.remove('recording'); btn.textContent='🎤'; recognition=null; activeVoiceField=null; };
+  recognition.start();
+  toast('Sprechen Sie jetzt…');
+}
+
+// ══════════════════════════════════
+// PROTOKOLL GENERIEREN
+// ══════════════════════════════════
+function generiereProtokoll() {
+  const projekt = document.getElementById('pProjekt').value || '–';
+  const datum = document.getElementById('pDatum').value;
+  const bauleiter = document.getElementById('pBauleiter').value || '–';
+  const wetter = document.getElementById('pWetter').value || '–';
+  const arbeiten = document.getElementById('pArbeiten').value || '–';
+  const abstimmungen = document.getElementById('pAbstimmungen').value || '–';
+  const maengel = document.getElementById('pMaengel').value || 'Keine';
+  const aufgaben = document.getElementById('pAufgaben').value || 'Keine';
+  const naechste = document.getElementById('pNaechste').value || '–';
+  const email = document.getElementById('pEmail').value;
+
+  // Datum formatieren
+  const dParts = datum.split('-');
+  const datumDE = dParts.length===3 ? `${dParts[2]}.${dParts[1]}.${dParts[0]}` : datum;
+
+  // Firmen-Liste
+  let firmenText = 'Keine Firmen eingetragen.';
+  if(state.firmen.length) {
+    firmenText = state.firmen.map((f,i)=>
+      `  ${i+1}. ${f.name} (${f.gewerk})${f.anzahl?' – '+f.anzahl+' MA':''}${f.ap?' – AP: '+f.ap:''}\n     ${f.leistung?'Tagesleistung: '+f.leistung:''}`
+    ).join('\n');
+  }
+
+  const s = getSettings();
+  const buero = s.sBuero || 'desch architekten+ingenieure';
+  const signatur = s.sSignatur ? `\n${s.sSignatur}` : '';
+  const stellv = s.sStellvName ? `\nStellvertretung: ${s.sStellvName}${s.sStellvMail?' · '+s.sStellvMail:''}` : '';
+
+  const lines = [
+    `╔══════════════════════════════════════════════╗`,
+    `║    BAULEITUNGSPROTOKOLL  desch architekten   ║`,
+    `╚══════════════════════════════════════════════╝`,
+    ``,
+    `Projekt:    ${projekt}`,
+    `Datum:      ${datumDE}`,
+    `Bauleiter:  ${bauleiter}`,
+    `Witterung:  ${wetter}`,
+    ``,
+    `──────────────────────────────────────────────`,
+    `1. FIRMEN VOR ORT`,
+    `──────────────────────────────────────────────`,
+    firmenText,
+    ``,
+    `──────────────────────────────────────────────`,
+    `2. AUSGEFÜHRTE ARBEITEN`,
+    `──────────────────────────────────────────────`,
+    arbeiten,
+    ``,
+    `──────────────────────────────────────────────`,
+    `3. ABSTIMMUNGEN / ENTSCHEIDUNGEN`,
+    `──────────────────────────────────────────────`,
+    abstimmungen,
+    ``,
+    `──────────────────────────────────────────────`,
+    `4. MÄNGEL / PROBLEME`,
+    `──────────────────────────────────────────────`,
+    maengel,
+    ``,
+    `──────────────────────────────────────────────`,
+    `5. AUFGABEN PLANER`,
+    `──────────────────────────────────────────────`,
+    aufgaben,
+    ``,
+    `──────────────────────────────────────────────`,
+    `6. NÄCHSTE SCHRITTE / TERMINE`,
+    `──────────────────────────────────────────────`,
+    naechste,
+    ``,
+    `──────────────────────────────────────────────`,
+    state.fotos.length ? `Fotos: ${state.fotos.length} Bild(er) angehängt` : `Fotos: keine`,
+    ``,
+    `Erstellt am: ${new Date().toLocaleString('de-DE')}`,
+    stellv,
+    signatur,
+    `──────────────────────────────────────────────`,
+    `${buero}${s.sBueroAdresse?' · '+s.sBueroAdresse:''}`,
+    `──────────────────────────────────────────────`,
+  ].filter(l => l !== '');
+
+  state.currentProtokoll = lines.join('\n');
+
+  // In Verlauf speichern
+  const eintrag = {
+    id: Date.now(),
+    datum: datumDE,
+    projekt,
+    bauleiter,
+    text: state.currentProtokoll,
+    email,
+    fotos: state.fotos.length,
+    erstellt: new Date().toISOString()
+  };
+  state.protokolle.unshift(eintrag);
+
+  // Bauleiter-Name merken
+  if(bauleiter !== '–') localStorage.setItem('bauleiterName', bauleiter);
+
+  save();
+  renderVerlauf();
+
+  document.getElementById('protokollPreview').textContent = state.currentProtokoll;
+  openModal('modalProtokoll');
+}
+
+function sendeEmail() {
+  const email = document.getElementById('pEmail').value;
+  const cc = document.getElementById('pEmailCC').value;
+  const datum = document.getElementById('pDatum').value.split('-');
+  const datumDE = datum.length===3 ? `${datum[2]}.${datum[1]}.${datum[0]}` : document.getElementById('pDatum').value;
+  const projekt = document.getElementById('pProjekt').value || 'Baustelle';
+  const subject = encodeURIComponent(`Bauleitungsprotokoll ${projekt} – ${datumDE}`);
+  const body = encodeURIComponent(state.currentProtokoll);
+  const cc_part = cc ? `&cc=${encodeURIComponent(cc)}` : '';
+  const mailto = `mailto:${encodeURIComponent(email)}?subject=${subject}${cc_part}&body=${body}`;
+  window.location.href = mailto;
+  toast('Mail-App wird geöffnet…');
+}
+
+function kopiereProtokoll() {
+  navigator.clipboard.writeText(state.currentProtokoll).then(()=>toast('Protokoll kopiert!')).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = state.currentProtokoll;
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Protokoll kopiert!');
+  });
+}
+
+function speichernEntwurf() {
+  toast('Entwurf gespeichert');
+  save();
+}
+
+function showNewProtokoll() {
+  state.firmen = [];
+  state.fotos = [];
+  renderFirmen();
+  renderPhotoGrid();
+  ['pArbeiten','pAbstimmungen','pMaengel','pAufgaben','pNaechste'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  setDatum();
+  switchTab('protokoll', document.querySelectorAll('.tab')[1]);
+}
+
+// ══════════════════════════════════
+// AUFGABEN
+// ══════════════════════════════════
+function openAufgabeModal() {
+  updateProjektSelects();
+  openModal('modalAufgabe');
+}
+
+function saveAufgabe() {
+  const text = document.getElementById('mAufgabeText').value.trim();
+  if(!text) { toast('Aufgabe beschreiben'); return; }
+  state.aufgaben.unshift({
+    text,
+    prio: document.getElementById('mAufgabePrio').value,
+    projekt: document.getElementById('mAufgabeProjekt').value,
+    datum: document.getElementById('mAufgabeDatum').value,
+    erledigt: false,
+    id: Date.now()
+  });
+  save(); renderAufgaben(); closeModal('modalAufgabe');
+  document.getElementById('mAufgabeText').value='';
+  toast('Aufgabe gespeichert');
+}
+
+function renderAufgaben() {
+  const el = document.getElementById('aufgabenListe');
+  const offen = state.aufgaben.filter(a=>!a.erledigt);
+  const erledigt = state.aufgaben.filter(a=>a.erledigt);
+  if(!state.aufgaben.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">✅</div><p>Keine Aufgaben vorhanden.</p></div>';
+    return;
+  }
+  const renderItem = (a,i) => {
+    const idx = state.aufgaben.indexOf(a);
+    const datumDE = a.datum ? a.datum.split('-').reverse().join('.') : '';
+    return `<div class="task-item">
+      <div class="task-priority ${a.prio}"></div>
+      <div style="flex:1">
+        <div class="task-text" style="${a.erledigt?'text-decoration:line-through;color:var(--ink-3)':''}">${a.text}</div>
+        <div class="task-meta">${a.projekt||''} ${datumDE ? '· bis '+datumDE : ''}</div>
+      </div>
+      <input type="checkbox" ${a.erledigt?'checked':''} onchange="toggleAufgabe(${idx})" style="width:22px;height:22px;accent-color:var(--accent);flex-shrink:0">
+    </div>`;
+  };
+  el.innerHTML = offen.map(renderItem).join('');
+  if(erledigt.length) {
+    el.innerHTML += `<p class="sec-label" style="margin-top:20px">Erledigt (${erledigt.length})</p>`;
+    el.innerHTML += erledigt.map(renderItem).join('');
+  }
+}
+
+function toggleAufgabe(i) {
+  state.aufgaben[i].erledigt = !state.aufgaben[i].erledigt;
+  save(); renderAufgaben();
+}
+
+// ══════════════════════════════════
+// VERLAUF
+// ══════════════════════════════════
+function renderVerlauf() {
+  const el = document.getElementById('verlaufListe');
+  if(!state.protokolle.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">📂</div><p>Noch keine Protokolle erstellt.</p></div>';
+    return;
+  }
+  el.innerHTML = state.protokolle.map((p,i)=>`
+    <div class="history-item" onclick="showProtokollDetail(${i})">
+      <div class="history-dot"></div>
+      <div class="history-info">
+        <div class="history-date">${p.datum} <span class="badge datum">${p.projekt||'–'}</span></div>
+        <div class="history-proj">Bauleiter: ${p.bauleiter||'–'} ${p.fotos?'· '+p.fotos+' Fotos':''}</div>
+        <div class="history-preview">${p.text.substring(200,400)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showProtokollDetail(i) {
+  state.currentProtokoll = state.protokolle[i].text;
+  document.getElementById('protokollPreview').textContent = state.currentProtokoll;
+  openModal('modalProtokoll');
+}
+
+// ══════════════════════════════════
+// EINSTELLUNGEN
+// ══════════════════════════════════
+const SETTINGS_FIELDS = ['sName','sFunktion','sMail','sTel','sStellvName','sStellvMail','sStellvTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDefaultMail','sDefaultCC','sSignatur','sLang','sProtNr'];
+
+function saveSettings() {
+  const s = {};
+  SETTINGS_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) s[id] = el.value;
+  });
+  localStorage.setItem('blpro_settings', JSON.stringify(s));
+  // Apply defaults to protocol form
+  if(s.sName) document.getElementById('pBauleiter').value = s.sName;
+  if(s.sDefaultMail) document.getElementById('pEmail').value = s.sDefaultMail;
+  if(s.sDefaultCC) document.getElementById('pEmailCC').value = s.sDefaultCC;
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('blpro_settings') || '{}');
+    SETTINGS_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if(el && s[id] !== undefined) el.value = s[id];
+    });
+    // Pre-fill protocol fields
+    if(s.sName) document.getElementById('pBauleiter').value = s.sName;
+    if(s.sDefaultMail) document.getElementById('pEmail').value = s.sDefaultMail;
+    if(s.sDefaultCC) document.getElementById('pEmailCC').value = s.sDefaultCC;
+  } catch(e){}
+}
+
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('blpro_settings') || '{}'); } catch(e){ return {}; }
+}
+
+function clearAllData() {
+  if(!confirm('Alle gespeicherten Daten (Projekte, Protokolle, Aufgaben) löschen?')) return;
+  localStorage.removeItem('blpro');
+  localStorage.removeItem('blpro_settings');
+  location.reload();
+}
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.add('hidden'); });
+});
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
