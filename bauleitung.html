@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="desch BL">
@@ -30,7 +30,7 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
   body {
     font-family: 'Arial Narrow', Arial, sans-serif;
@@ -38,11 +38,15 @@
     color: var(--ink);
     min-height: 100vh;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
   }
 
   /* ── HEADER ── */
   .sticky-top {
     position: sticky; top: 0; z-index: 100; background: #fff;
+    /* iOS Safari: prevent rubber-band scroll from moving header */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
   header {
     background: #fff;
@@ -424,14 +428,14 @@
 </svg></div><span class="pro-badge">Pro</span></div>
     <div class="header-sub"><span>Bauleitung</span><span id="headerSub"></span></div>
   </div>
-  <button class="header-btn" onclick="showNewProtokoll()">+ Protokoll</button>
+  <button class="header-btn" onclick="showNewProtokoll()" title="Neues Protokoll" style="font-size:20px;padding:6px 12px;line-height:1">＋</button>
 </header>
 <div class="tabs">
   <button class="tab active" onclick="switchTab('projekte',this)">Projekte</button>
   <button class="tab" onclick="switchTab('protokoll',this)">Protokoll</button>
   <button class="tab" onclick="switchTab('aufgaben',this)">Aufgaben</button>
   <button class="tab" onclick="switchTab('verlauf',this)">Verlauf</button>
-  <button class="tab" onclick="switchTab('einstellungen',this)">Einstellungen</button>
+  <button class="tab" onclick="switchTab('einstellungen',this)" title="Einstellungen" style="font-size:17px;padding:8px 12px 9px">⚙️</button>
 </div>
 </div>
 
@@ -1546,43 +1550,11 @@ function generiereProtokoll() {
 function sendeEmail() {
   const email = document.getElementById('pEmail').value;
   const cc = document.getElementById('pEmailCC').value;
-  const datum = document.getElementById('pDatum').value.split('-');
-  const datumDE = datum.length===3 ? `${datum[2]}.${datum[1]}.${datum[0]}` : document.getElementById('pDatum').value;
-  const projekt = document.getElementById('pProjekt').value || 'Baustelle';
-  const subject = encodeURIComponent(`Bauleitungsprotokoll ${projekt} – ${datumDE}`);
+  const { subject, body } = buildMailParts();
 
-  // Build plain text body from blocks for mailto
-  const lines = [];
-  lines.push(`BAULEITUNGSPROTOKOLL`);
-  lines.push(`Projekt: ${projekt}`);
-  lines.push(`Datum: ${datumDE}`);
-  lines.push(`Bauleiter: ${document.getElementById('pBauleiter').value || '–'}`);
-  lines.push(`Witterung: ${document.getElementById('pWetter').value || '–'}`);
-  lines.push('');
-
-  const aktiveFirmen = getAllFirmen().filter(f => f.aktiv);
-  if (aktiveFirmen.length) {
-    lines.push('FIRMEN VOR ORT');
-    aktiveFirmen.forEach(f => lines.push(`· ${f.name} (${f.gewerk})${f.ma ? ' – ' + f.ma + ' Arbeiter' : ''}`));
-    lines.push('');
-  }
-
-  SECTIONS.forEach(sec => {
-    const blocks = (state.blocks && state.blocks[sec.id]) || [];
-    const texts = blocks.filter(b => b.type === 'text' && b.text.trim());
-    const photos = blocks.filter(b => b.type === 'photo');
-    if (texts.length || photos.length) {
-      lines.push(sec.title.toUpperCase());
-      texts.forEach(b => lines.push('· ' + b.text.trim()));
-      if (photos.length) lines.push(`[${photos.length} Foto(s) – siehe HTML-Anhang]`);
-      lines.push('');
-    }
-  });
-
-  const body = encodeURIComponent(lines.join('\n'));
   const cc_part = cc ? `&cc=${encodeURIComponent(cc)}` : '';
   const toStr = email ? encodeURIComponent(email) : '';
-  window.location.href = `mailto:${toStr}?subject=${subject}${cc_part}&body=${body}`;
+  window.location.href = `mailto:${toStr}?subject=${encodeURIComponent(subject)}${cc_part}&body=${encodeURIComponent(body)}`;
   toast('Mail-App wird geöffnet…');
 }
 
@@ -1607,18 +1579,35 @@ function kopiereProtokoll() {
   });
 }
 
+function buildMailParts() {
+  const projekt = document.getElementById('pProjekt').value || 'Baustelle';
+  const datum = document.getElementById('pDatum').value.split('-');
+  const datumDE = datum.length===3 ? `${datum[2]}.${datum[1]}.${datum[0]}` : document.getElementById('pDatum').value;
+  const subject = `${projekt} – Protokoll vom ${datumDE}`;
+  const body = `Hallo,\n\nanbei das Baustellenprotokoll vom ${datumDE} – bitte beachten!\n\nMit freundlichen Grüßen`;
+  return { projekt, datumDE, subject, body };
+}
+
 function saveAsPDF() {
-  // Open in new window and trigger print (browser handles "Save as PDF")
-  const win = window.open('', '_blank');
-  if (!win) { toast('Bitte Pop-ups erlauben'); return; }
-  // Add print-trigger script to the protocol HTML
-  const printHtml = state.currentProtokoll.replace(
-    '</body>',
-    '<script>window.onload=function(){window.print();}<\/script></body>'
-  );
-  win.document.write(printHtml);
-  win.document.close();
-  toast('Druckdialog öffnet – „Als PDF" wählen');
+  const { projekt, datumDE } = buildMailParts();
+  // Inject print CSS + auto-print into protocol HTML
+  const printHtml = state.currentProtokoll
+    .replace('</style>', `
+  @media print {
+    @page { margin: 15mm; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>`)
+    .replace('</body>', '<script>window.onload=function(){window.focus();window.print();}<\/script></body>');
+
+  const blob = new Blob([printHtml], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Protokoll_${projekt.replace(/\s+/g,'-')}_${datumDE.replace(/\./g,'-')}.html`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Datei gespeichert – im Browser als PDF drucken');
 }
 
 function downloadProtokoll() {
