@@ -757,6 +757,7 @@
     <div class="modal-title">📄 Protokoll Vorschau</div>
     <div class="protokoll-box" id="protokollPreview"></div>
     <button class="big-btn success" onclick="sendeEmail()">📧 Als Mail senden</button>
+    <button class="big-btn secondary" onclick="oeffneProtokoll()">🌐 Protokoll im Browser öffnen</button>
     <button class="big-btn primary" onclick="saveAsPDF()">📄 Als PDF speichern</button>
     <button class="big-btn secondary" onclick="closeModal('modalProtokoll')">Schließen</button>
   </div>
@@ -1527,41 +1528,37 @@ function sendeEmail() {
   const cc = document.getElementById('pEmailCC').value || '';
   const { subject, datumDE, projekt } = buildMailParts();
 
-  // Build a .eml file with the HTML protocol as the mail body
-  // This opens directly in the default mail client with layout intact
-  const boundary = 'boundary_' + Date.now();
-  const emlContent = [
-    'MIME-Version: 1.0',
-    `To: ${email}`,
-    cc ? `Cc: ${cc}` : '',
-    `Subject: ${subject}`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: quoted-printable',
-    '',
-    `Bauleitungsprotokoll ${projekt} vom ${datumDE}`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: quoted-printable',
-    '',
-    state.currentProtokoll,
-    '',
-    `--${boundary}--`,
-  ].filter(l => l !== null).join('\r\n');
+  // Build plain-text summary for the mailto body
+  const lines = [];
+  lines.push(`Bauleitungsprotokoll – ${projekt}`);
+  lines.push(`Datum: ${datumDE}`);
+  lines.push(`Bauleiter: ${document.getElementById('pBauleiter').value || '–'}`);
+  lines.push(`Witterung: ${document.getElementById('pWetter').value || '–'}`);
+  lines.push('');
+  const aktiveFirmen = getAllFirmen().filter(f => f.aktiv);
+  if (aktiveFirmen.length) {
+    lines.push('FIRMEN VOR ORT');
+    aktiveFirmen.forEach(f => lines.push(`· ${f.name} (${f.gewerk})${f.ma ? ' – ' + f.ma + ' Arbeiter' : ''}`));
+    lines.push('');
+  }
+  SECTIONS.forEach(sec => {
+    const blocks = (state.blocks && state.blocks[sec.id]) || [];
+    const texts = blocks.filter(b => b.type==='text' && b.text.trim());
+    const photos = blocks.filter(b => b.type==='photo');
+    if (texts.length || photos.length) {
+      lines.push(sec.title.toUpperCase());
+      texts.forEach(b => lines.push('· ' + b.text.trim()));
+      if (photos.length) lines.push(`[${photos.length} Foto(s) im Anhang]`);
+      lines.push('');
+    }
+  });
+  lines.push(`Erstellt: ${new Date().toLocaleString('de-DE')}`);
 
-  const blob = new Blob([emlContent], { type: 'message/rfc822' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Protokoll_${projekt.replace(/\s+/g,'-')}_${datumDE.replace(/\./g,'-')}.eml`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  toast('EML-Datei gespeichert – tippe zum Öffnen');
+  const cc_part = cc ? `&cc=${encodeURIComponent(cc)}` : '';
+  const to = email ? encodeURIComponent(email) : '';
+  const body = encodeURIComponent(lines.join('\n'));
+  window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}${cc_part}&body=${body}`;
+  toast('Mail-App wird geöffnet…');
 }
 
 function kopiereProtokoll() {
@@ -1592,6 +1589,13 @@ function buildMailParts() {
   const subject = `${projekt} – Protokoll vom ${datumDE}`;
   const body = `Hallo,\n\nanbei das Baustellenprotokoll vom ${datumDE} – bitte beachten!\n\nMit freundlichen Grüßen`;
   return { projekt, datumDE, subject, body };
+}
+
+function oeffneProtokoll() {
+  const blob = new Blob([state.currentProtokoll], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 function saveAsPDF() {
