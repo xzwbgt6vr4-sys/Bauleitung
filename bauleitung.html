@@ -655,9 +655,20 @@
     <div class="field"><label>Bauherr</label><input type="text" id="mProjBauherr" placeholder="Name des Bauherrn"></div>
     <div class="field"><label>Projektnummer</label><input type="text" id="mProjNr" placeholder="2024-001"></div>
     <div class="field">
-      <label>Icon wählen</label>
-      <div class="icon-picker" id="iconPicker"></div>
+      <label>Projekt-Bild / Icon</label>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px">
+        <div id="mProjImgPreview" style="width:64px;height:64px;border-radius:10px;border:2px solid var(--paper-3);background:var(--paper-2);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden">🏗</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <button type="button" class="add-btn" style="margin:0" onclick="document.getElementById('mProjImgInput').click()">📷 Foto wählen</button>
+          <button type="button" class="add-btn" style="margin:0" onclick="toggleEmojiPicker()">😀 Emoji wählen</button>
+        </div>
+      </div>
+      <div id="iconPickerWrap" style="display:none">
+        <div class="icon-picker" id="iconPicker"></div>
+      </div>
+      <input type="file" id="mProjImgInput" accept="image/*" onchange="handleProjImg(this)" style="display:none">
       <input type="hidden" id="mProjIcon" value="🏗">
+      <input type="hidden" id="mProjImgData" value="">
     </div>
     <div class="field">
       <label>Stamm-Firmen des Projekts</label>
@@ -743,8 +754,6 @@
     <div class="protokoll-box" id="protokollPreview"></div>
     <button class="big-btn success" onclick="sendeEmail()">📧 Öffnen &amp; senden</button>
     <button class="big-btn primary" onclick="saveAsPDF()">📄 Als PDF speichern</button>
-    <button class="big-btn secondary" onclick="downloadProtokoll()">⬇️ Als HTML speichern</button>
-    <button class="big-btn secondary" onclick="kopiereProtokoll()">📋 Text kopieren</button>
     <button class="big-btn secondary" onclick="closeModal('modalProtokoll')">Schließen</button>
   </div>
 </div>
@@ -866,7 +875,7 @@ function renderProjekte() {
   }
   el.innerHTML = state.projekte.map((p,i) => `
     <div class="project-item" onclick="selectProjekt(${i})">
-      <div class="project-icon">${p.icon||'🏗'}</div>
+      <div class="project-icon">${p.imgData ? `<img src="${p.imgData}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : (p.icon||'🏗')}</div>
       <div class="project-info">
         <div class="project-name">${p.name}</div>
         <div class="project-meta">${p.ort||''} ${p.nr ? '· Nr. '+p.nr : ''}</div>
@@ -887,7 +896,26 @@ function selectProjekt(i) {
   toast('Projekt gewählt: '+p.name);
 }
 
-const PROJ_ICONS = ['🏗','🏠','🏢','🏬','🏭','🏛','🏗️','🏘','🏚','🏙','🏰','🏯','⛪','🕌','🕍','🏟','🧱','🔨','🪚','⚙️','📐','📏','🪜','🛗','🚧','🔑','🗝','📋','📁','🗂','🌳','🌿','⛰','🌊'];
+function toggleEmojiPicker() {
+  const wrap = document.getElementById('iconPickerWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+function handleProjImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('mProjImgData').value = e.target.result;
+    document.getElementById('mProjIcon').value = '';
+    const preview = document.getElementById('mProjImgPreview');
+    preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+const PROJ_ICONS = ['🏗','🏠','🏢','🏬','🏭','🏛','🏘','🏚','🏙','🏰','🏯','⛪','🕌','🕍','🏟','🧱','🔨','🪚','⚙️','📐','📏','🪜','🛗','🚧','🔑','🗝','📋','📁','🗂','🌳','🌿','⛰','🌊'];
 
 function renderIconPicker(selected) {
   const el = document.getElementById('iconPicker');
@@ -898,6 +926,10 @@ function renderIconPicker(selected) {
 
 function selectIcon(ic) {
   document.getElementById('mProjIcon').value = ic;
+  document.getElementById('mProjImgData').value = '';
+  const preview = document.getElementById('mProjImgPreview');
+  preview.innerHTML = ic;
+  preview.style.fontSize = '28px';
   document.querySelectorAll('.icon-opt').forEach(el => el.classList.toggle('selected', el.textContent === ic));
 }
 
@@ -908,6 +940,10 @@ function openNewProjektModal() {
   document.getElementById('mProjBauherr').value = '';
   document.getElementById('mProjNr').value = '';
   document.getElementById('mProjIcon').value = '🏗';
+  document.getElementById('mProjImgData').value = '';
+  document.getElementById('mProjImgPreview').innerHTML = '🏗';
+  document.getElementById('mProjImgPreview').style.fontSize = '28px';
+  document.getElementById('iconPickerWrap').style.display = 'none';
   document.getElementById('mProjEditIndex').value = '-1';
   document.getElementById('deleteProjBtn').style.display = 'none';
   mProjFirmenList = [];
@@ -924,6 +960,10 @@ function openEditProjekt(i) {
   document.getElementById('mProjBauherr').value = p.bauherr || '';
   document.getElementById('mProjNr').value = p.nr || '';
   document.getElementById('mProjIcon').value = p.icon || '🏗';
+  document.getElementById('mProjImgData').value = p.imgData || '';
+  const prev = document.getElementById('mProjImgPreview');
+  if (p.imgData) { prev.innerHTML = `<img src="${p.imgData}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`; } else { prev.innerHTML = p.icon || '🏗'; prev.style.fontSize = '28px'; }
+  document.getElementById('iconPickerWrap').style.display = 'none';
   document.getElementById('mProjEditIndex').value = i;
   mProjFirmenList = (p.firmen || []).map(f => ({...f}));
   renderMProjFirmen();
@@ -951,6 +991,7 @@ function saveProjekt() {
     bauherr: document.getElementById('mProjBauherr').value.trim(),
     nr: document.getElementById('mProjNr').value.trim(),
     icon: document.getElementById('mProjIcon').value||'🏗',
+    imgData: document.getElementById('mProjImgData').value || '',
     firmen: mProjFirmenList.map(f => ({...f, aktiv: false, ma: 0, leistung: ''})),
   };
   if(editIndex >= 0) {
@@ -1362,6 +1403,12 @@ function generiereProtokoll() {
 
   // Firmen
   const aktiveFirmen = getAllFirmen().filter(f => f.aktiv);
+  // Project image
+  const projObj = state.projekte.find(p => p.name === projekt);
+  const projImgHtml = (projObj && projObj.imgData)
+    ? `<div style="margin-bottom:20px"><img src="${projObj.imgData}" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;display:block"></div>`
+    : '';
+
   const firmenRows = aktiveFirmen.length
     ? aktiveFirmen.map(f =>
         `<tr><td>${f.name}</td><td>${f.gewerk}</td><td style="text-align:center">${f.ma||'–'}</td></tr>`
@@ -1428,6 +1475,7 @@ function generiereProtokoll() {
     </div>
   </div>
 
+  \${projImgHtml}
   <h2>Projektdaten</h2>
   <div class="meta-grid">
     <div class="meta-item"><div class="meta-label">Projekt</div>${projekt}</div>
@@ -1503,20 +1551,39 @@ function sendeEmail() {
   const projekt = document.getElementById('pProjekt').value || 'Baustelle';
   const subject = encodeURIComponent(`Bauleitungsprotokoll ${projekt} – ${datumDE}`);
 
-  // Open HTML protocol in new window for printing/sharing
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(state.currentProtokoll);
-    win.document.close();
-    toast('Protokoll geöffnet – teilen oder drucken');
+  // Build plain text body from blocks for mailto
+  const lines = [];
+  lines.push(`BAULEITUNGSPROTOKOLL`);
+  lines.push(`Projekt: ${projekt}`);
+  lines.push(`Datum: ${datumDE}`);
+  lines.push(`Bauleiter: ${document.getElementById('pBauleiter').value || '–'}`);
+  lines.push(`Witterung: ${document.getElementById('pWetter').value || '–'}`);
+  lines.push('');
+
+  const aktiveFirmen = getAllFirmen().filter(f => f.aktiv);
+  if (aktiveFirmen.length) {
+    lines.push('FIRMEN VOR ORT');
+    aktiveFirmen.forEach(f => lines.push(`· ${f.name} (${f.gewerk})${f.ma ? ' – ' + f.ma + ' Arbeiter' : ''}`));
+    lines.push('');
   }
 
-  // Also open mail with subject pre-filled
-  if (email) {
-    const cc_part = cc ? `&cc=${encodeURIComponent(cc)}` : '';
-    const body = encodeURIComponent(`Bauleitungsprotokoll ${projekt} vom ${datumDE} im Anhang.`);
-    setTimeout(() => { window.location.href = `mailto:${encodeURIComponent(email)}?subject=${subject}${cc_part}&body=${body}`; }, 300);
-  }
+  SECTIONS.forEach(sec => {
+    const blocks = (state.blocks && state.blocks[sec.id]) || [];
+    const texts = blocks.filter(b => b.type === 'text' && b.text.trim());
+    const photos = blocks.filter(b => b.type === 'photo');
+    if (texts.length || photos.length) {
+      lines.push(sec.title.toUpperCase());
+      texts.forEach(b => lines.push('· ' + b.text.trim()));
+      if (photos.length) lines.push(`[${photos.length} Foto(s) – siehe HTML-Anhang]`);
+      lines.push('');
+    }
+  });
+
+  const body = encodeURIComponent(lines.join('\n'));
+  const cc_part = cc ? `&cc=${encodeURIComponent(cc)}` : '';
+  const toStr = email ? encodeURIComponent(email) : '';
+  window.location.href = `mailto:${toStr}?subject=${subject}${cc_part}&body=${body}`;
+  toast('Mail-App wird geöffnet…');
 }
 
 function kopiereProtokoll() {
