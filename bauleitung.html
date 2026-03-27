@@ -808,6 +808,13 @@
           <option value="dark">Dunkel</option>
         </select>
       </div>
+      <div class="field">
+        <label>Projektbild im Protokoll</label>
+        <select id="sShowProjImg" onchange="saveSettings()">
+          <option value="yes">Anzeigen</option>
+          <option value="no">Nicht anzeigen</option>
+        </select>
+      </div>
       <div class="field"><label>Standardsprache Spracherkennung</label>
         <select id="sLang" onchange="saveSettings()">
           <option value="de-DE">Deutsch</option>
@@ -1648,7 +1655,8 @@ function generiereProtokoll() {
   const signaturHtml = s.sSignatur ? `<div style="margin-top:12px;white-space:pre-wrap;font-size:9pt;color:#555">${s.sSignatur}</div>` : '';
 
   const projObj = state.projekte.find(p => p.name === projekt);
-  const projImgHtml = projObj
+  const showProjImg = (s.sShowProjImg || 'yes') === 'yes';
+  const projImgHtml = (showProjImg && projObj)
     ? (projObj.imgData
         ? `<div style="margin-top:8px"><img src="${projObj.imgData}" style="max-width:180px;max-height:120px;object-fit:contain;display:block"></div>`
         : `<div style="margin-top:6px;font-size:40px;line-height:1">${projObj.icon||'🏗'}</div>`)
@@ -1983,7 +1991,7 @@ function showProtokollDetail(i) {
 // ══════════════════════════════════
 // EINSTELLUNGEN
 // ══════════════════════════════════
-const SETTINGS_FIELDS = ['sName','sFunktion','sMail','sTel','sStellvName','sStellvMail','sStellvTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDefaultMail','sDefaultCC','sSignatur','sLang','sProtNr','sAccentColor','sDarkMode','sLogoText'];
+const SETTINGS_FIELDS = ['sName','sFunktion','sMail','sTel','sStellvName','sStellvMail','sStellvTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDefaultMail','sDefaultCC','sSignatur','sLang','sProtNr','sAccentColor','sDarkMode','sLogoText','sShowProjImg'];
 
 // ══════════════════════════════════
 // CUSTOM LOGO
