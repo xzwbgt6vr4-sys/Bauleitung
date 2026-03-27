@@ -1942,6 +1942,7 @@ function renderAufgaben() {
         <div class="task-meta">${a.projekt||''} ${datumDE ? '· bis '+datumDE : ''}</div>
       </div>
       <input type="checkbox" ${a.erledigt?'checked':''} onchange="toggleAufgabe(${idx})" style="width:22px;height:22px;accent-color:var(--accent);flex-shrink:0">
+      <button onclick="deleteAufgabe(${idx})" style="background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px 2px;line-height:1;flex-shrink:0" title="Löschen">×</button>
     </div>`;
   };
   el.innerHTML = offen.map(renderItem).join('');
@@ -1956,6 +1957,17 @@ function toggleAufgabe(i) {
   save(); renderAufgaben();
 }
 
+function deleteAufgabe(i) {
+  state.aufgaben.splice(i, 1);
+  save(); renderAufgaben();
+}
+
+function deleteProtokoll(i) {
+  if (!confirm('Protokoll vom ' + state.protokolle[i].datum + ' löschen?')) return;
+  state.protokolle.splice(i, 1);
+  save(); renderVerlauf();
+}
+
 // ══════════════════════════════════
 // VERLAUF
 // ══════════════════════════════════
@@ -1966,13 +1978,14 @@ function renderVerlauf() {
     return;
   }
   el.innerHTML = state.protokolle.map((p,i)=>`
-    <div class="history-item" onclick="showProtokollDetail(${i})">
-      <div class="history-dot"></div>
-      <div class="history-info">
+    <div class="history-item">
+      <div class="history-dot" style="cursor:pointer" onclick="showProtokollDetail(${i})"></div>
+      <div class="history-info" onclick="showProtokollDetail(${i})" style="cursor:pointer">
         <div class="history-date">${p.datum} <span class="badge datum">${p.projekt||'–'}</span></div>
         <div class="history-proj">Bauleiter: ${p.bauleiter||'–'} ${p.fotos?'· '+p.fotos+' Fotos':''}</div>
         <div class="history-preview">${p.text.substring(200,400)}</div>
       </div>
+      <button onclick="deleteProtokoll(${i})" style="flex-shrink:0;background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px 6px;line-height:1" title="Löschen">×</button>
     </div>
   `).join('');
 }
