@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stundenerfassung · Architekturbüro</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0e;
+    --surface: #191917;
+    --surface2: #222220;
+    --border: #2e2e2b;
+    --border2: #3a3a36;
+    --text: #e8e6df;
+    --text2: #9a9890;
+    --text3: #5c5b57;
+    --accent: #d4a843;
+    --accent2: #b8902e;
+    --accent-dim: rgba(212,168,67,0.12);
+    --green: #6daf7a;
+    --green-dim: rgba(109,175,122,0.12);
+    --red: #c46b5a;
+    --blue: #5a8fc4;
+    --blue-dim: rgba(90,143,196,0.12);
+
+    --hoai1: #c46b5a;
+    --hoai2: #d4874a;
+    --hoai3: #d4a843;
+    --hoai4: #9ab84a;
+    --hoai5: #5aaf7a;
+    --hoai6: #4aaab0;
+    --hoai7: #5a8fc4;
+    --hoai8: #7a6fc4;
+    --hoai9: #c46aae;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .topbar-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .topbar-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+    line-height: 1.6;
+  }
+  #clock {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .topbar-nav {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--border2); color: var(--text); }
+  .nav-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  /* LAYOUT */
+  .main { display: flex; height: calc(100vh - 56px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    cursor: pointer;
+    border-radius: 2px;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .project-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .project-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+  }
+  .project-item:hover { background: var(--surface); }
+  .project-item.active { background: var(--surface); border-color: var(--border); }
+  .proj-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .proj-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .proj-phase-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  /* DAILY TOTAL SIDEBAR BOTTOM */
+  .sidebar-daily {
+    border-top: 1px solid var(--border);
+    padding: 14px 18px;
+  }
+  .daily-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .daily-bar-wrap { display: flex; flex-direction: column; gap: 5px; }
+  .daily-bar-item { display: flex; align-items: center; gap: 8px; }
+  .daily-bar-name { font-size: 11px; color: var(--text2); width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .daily-bar { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .daily-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .daily-bar-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); width: 38px; text-align: right; }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* TRACKING VIEW */
+  .tracking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 24px;
+  }
+
+  .proj-btn {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    overflow: hidden;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .proj-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    opacity: 0.7;
+    transition: width 0.2s;
+  }
+  .proj-btn:hover::before { width: 5px; }
+  .proj-btn.running::before { width: 100%; opacity: 0.06; }
+  .proj-btn:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .proj-btn.running {
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .proj-btn-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .proj-btn-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .proj-btn.running .proj-btn-name { color: var(--accent); }
+  .proj-running-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 5px;
+    animation: pulse 1.4s ease-in-out infinite;
+    display: none;
+  }
+  .proj-btn.running .proj-running-dot { display: block; }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  .proj-btn-bottom {}
+  .proj-btn-number {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 4px;
+  }
+  .proj-phase-tag {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  .proj-timer {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text3);
+    line-height: 1;
+    margin-bottom: 2px;
+    transition: color 0.2s;
+  }
+  .proj-btn.running .proj-timer { color: var(--accent); }
+  .proj-today-label {
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* PAUSE / STOP BAR */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    padding: 0 24px 0;
+    margin-bottom: 0;
+    align-items: center;
+  }
+  .action-bar-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+  }
+  .action-label { font-size: 12px; color: var(--text2); }
+  .action-project { font-size: 14px; font-weight: 600; color: var(--accent); }
+  .action-elapsed {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    margin-left: auto;
+  }
+  .stop-btn {
+    background: none;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 7px 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .stop-btn:hover { background: var(--red); color: #fff; }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 16px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+  .section-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  /* REPORT TABLE */
+  .report-wrap { padding: 0 24px 24px; }
+  .report-table { width: 100%; border-collapse: collapse; }
+  .report-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .report-table tr:last-child td { border-bottom: none; }
+  .report-table tr:hover td { background: var(--surface); }
+  .td-mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+  .td-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .total-row td { font-weight: 600; color: var(--accent); border-top: 1px solid var(--border2); padding-top: 12px; }
+
+  /* REPORT PERIOD TABS */
+  .period-tabs { display: flex; gap: 4px; padding: 0 24px; margin-bottom: 16px; }
+  .period-tab {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 5px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .period-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  /* SUMMARY CARDS */
+  .summary-row { display: flex; gap: 12px; padding: 0 24px 16px; }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 18px;
+    flex: 1;
+  }
+  .summary-card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .summary-card-value { font-family: 'DM Mono', monospace; font-size: 24px; color: var(--text); }
+  .summary-card-value span { font-size: 12px; color: var(--text3); margin-left: 4px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    width: 480px;
+    max-width: 95vw;
+  }
+  .modal-header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
+  .form-input, .form-select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 9px 12px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface); }
+  .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .color-swatch.selected { border-color: var(--text); }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 8px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn-save {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #000;
+    padding: 8px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+  .btn-save:hover { background: var(--accent2); }
+
+  /* HOAI PHASE COLORS */
+  .phase-1 { background: rgba(196,107,90,0.15); color: var(--hoai1); }
+  .phase-2 { background: rgba(212,135,74,0.15); color: var(--hoai2); }
+  .phase-3 { background: rgba(212,168,67,0.15); color: var(--hoai3); }
+  .phase-4 { background: rgba(154,184,74,0.15); color: var(--hoai4); }
+  .phase-5 { background: rgba(90,175,122,0.15); color: var(--hoai5); }
+  .phase-6 { background: rgba(74,170,176,0.15); color: var(--hoai6); }
+  .phase-7 { background: rgba(90,143,196,0.15); color: var(--hoai7); }
+  .phase-8 { background: rgba(122,111,196,0.15); color: var(--hoai8); }
+  .phase-9 { background: rgba(196,106,174,0.15); color: var(--hoai9); }
+
+  /* ENTRIES TABLE (edit mode) */
+  .entry-actions { display: flex; gap: 4px; }
+  .entry-del {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: color 0.15s;
+  }
+  .entry-del:hover { color: var(--red); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    padding: 10px 18px;
+    font-size: 13px;
+    border-radius: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s;
+    z-index: 300;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text3);
+  }
+  .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state-text { font-size: 14px; line-height: 1.6; }
+
+  /* PAUSE banner */
+  .paused-badge {
+    font-size: 10px;
+    background: rgba(196,107,90,0.15);
+    color: var(--red);
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid rgba(196,107,90,0.3);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">ZEITERFASSUNG</div>
+  <div class="topbar-nav">
+    <button class="nav-btn active" onclick="showView('tracking')">Erfassung</button>
+    <button class="nav-btn" onclick="showView('report')">Auswertung</button>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+    <div id="clock"></div>
+    <div class="topbar-meta" id="date-display"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Projekte</span>
+      <button class="icon-btn" onclick="openProjectModal()" title="Neues Projekt">+</button>
+    </div>
+    <div class="project-list" id="project-list-sidebar"></div>
+    <div class="sidebar-daily">
+      <div class="daily-label">Heute gesamt</div>
+      <div class="daily-bar-wrap" id="daily-bars"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- TRACKING VIEW -->
+    <div class="view active" id="view-tracking">
+      <div class="section-header">
+        <div class="section-title">LAUFENDE ERFASSUNG</div>
+        <div class="section-sub" id="running-status">Kein Projekt aktiv</div>
+      </div>
+
+      <div class="action-bar" id="action-bar" style="display:none;padding-bottom:16px;">
+        <div class="action-bar-inner">
+          <div>
+            <div class="action-label">Aktives Projekt</div>
+            <div class="action-project" id="active-proj-name">–</div>
+          </div>
+          <div class="action-elapsed" id="active-elapsed">00:00:00</div>
+          <button class="stop-btn" onclick="stopTracking()">■ STOPP</button>
+        </div>
+      </div>
+
+      <div class="tracking-grid" id="tracking-grid"></div>
+    </div>
+
+    <!-- REPORT VIEW -->
+    <div class="view" id="view-report">
+      <div class="section-header">
+        <div class="section-title">AUSWERTUNG</div>
+      </div>
+      <div class="period-tabs">
+        <button class="period-tab active" onclick="setPeriod('day')">Tag</button>
+        <button class="period-tab" onclick="setPeriod('week')">Woche</button>
+        <button class="period-tab" onclick="setPeriod('month')">Monat</button>
+      </div>
+      <div class="summary-row" id="summary-row"></div>
+      <div class="report-wrap">
+        <table class="report-table" id="report-table">
+          <thead>
+            <tr>
+              <th>Projekt</th>
+              <th>Nr.</th>
+              <th>HOAI-Phase</th>
+              <th>Dauer</th>
+              <th>Von</th>
+              <th>Bis</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="report-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">NEUES PROJEKT</div>
+      <button class="modal-close" onclick="closeProjectModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Projektname</label>
+        <input type="text" class="form-input" id="proj-name-input" placeholder="z.B. Neubau Wohnhaus Müller">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projektnummer</label>
+        <input type="text" class="form-input" id="proj-num-input" placeholder="z.B. 2024-012">
+      </div>
+      <div class="form-group">
+        <label class="form-label">HOAI-Leistungsphase</label>
+        <select class="form-select" id="proj-phase-input">
+          <option value="1">LP 1 – Grundlagenermittlung</option>
+          <option value="2">LP 2 – Vorplanung</option>
+          <option value="3">LP 3 – Entwurfsplanung</option>
+          <option value="4">LP 4 – Genehmigungsplanung</option>
+          <option value="5">LP 5 – Ausführungsplanung</option>
+          <option value="6">LP 6 – Vorbereitung Vergabe</option>
+          <option value="7">LP 7 – Mitwirkung Vergabe</option>
+          <option value="8">LP 8 – Objektüberwachung</option>
+          <option value="9">LP 9 – Objektbetreuung</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Farbe</label>
+        <div class="color-picker-row" id="color-picker"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProjectModal()">Abbrechen</button>
+      <button class="btn-save" onclick="saveProject()">Projekt anlegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const COLORS = [
+  '#d4a843','#c46b5a','#d4874a','#9ab84a',
+  '#5aaf7a','#4aaab0','#5a8fc4','#7a6fc4','#c46aae','#9a9890'
+];
+
+const HOAI_NAMES = {
+  1:'LP 1 – Grundlagenermittlung',
+  2:'LP 2 – Vorplanung',
+  3:'LP 3 – Entwurfsplanung',
+  4:'LP 4 – Genehmigungsplanung',
+  5:'LP 5 – Ausführungsplanung',
+  6:'LP 6 – Vorbereitung Vergabe',
+  7:'LP 7 – Mitwirkung Vergabe',
+  8:'LP 8 – Objektüberwachung',
+  9:'LP 9 – Objektbetreuung'
+};
+
+const HOAI_SHORT = {
+  1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',
+  6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'
+};
+
+let state = JSON.parse(localStorage.getItem('zeit_state') || 'null') || {
+  projects: [],
+  entries: [],    // {id, projectId, start, end, date}
+  active: null,   // {projectId, start}
+  nextProjId: 1,
+  nextEntryId: 1
+};
+
+let tickInterval = null;
+let currentView = 'tracking';
+let currentPeriod = 'day';
+let selectedColor = COLORS[0];
+let elapsedInterval = null;
+
+// ─── PERSIST ─────────────────────────────────────────────
+function save() { localStorage.setItem('zeit_state', JSON.stringify(state)); }
+
+// ─── CLOCK ───────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('date-display').textContent =
+    now.toLocaleDateString('de-DE', {weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── FORMAT ──────────────────────────────────────────────
+function fmtDuration(ms) {
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+// ─── VIEWS ───────────────────────────────────────────────
+function showView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[v==='tracking'?0:1].classList.add('active');
+  if (v==='report') renderReport();
+}
+
+// ─── COLOR PICKER ────────────────────────────────────────
+function renderColorPicker() {
+  const wrap = document.getElementById('color-picker');
+  wrap.innerHTML = COLORS.map(c =>
+    `<div class="color-swatch${c===selectedColor?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`
+  ).join('');
+}
+function selectColor(c) {
+  selectedColor = c;
+  renderColorPicker();
+}
+
+// ─── PROJECT MODAL ───────────────────────────────────────
+function openProjectModal() {
+  selectedColor = COLORS[state.projects.length % COLORS.length];
+  renderColorPicker();
+  document.getElementById('proj-name-input').value = '';
+  document.getElementById('proj-num-input').value = '';
+  document.getElementById('proj-phase-input').value = '1';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('proj-name-input').focus(), 100);
+}
+function closeProjectModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function saveProject() {
+  const name = document.getElementById('proj-name-input').value.trim();
+  const num  = document.getElementById('proj-num-input').value.trim();
+  const phase = parseInt(document.getElementById('proj-phase-input').value);
+  if (!name) { showToast('Bitte Projektname eingeben'); return; }
+  state.projects.push({ id: state.nextProjId++, name, num, phase, color: selectedColor, todaySeconds: 0 });
+  save();
+  closeProjectModal();
+  renderAll();
+  showToast(`Projekt „${name}" angelegt`);
+}
+
+// ─── TRACKING ────────────────────────────────────────────
+function startTracking(projId) {
+  if (state.active && state.active.projectId === projId) return;
+  if (state.active) finishActive();
+  state.active = { projectId: projId, start: Date.now() };
+  save();
+  renderAll();
+  startElapsedTick();
+}
+
+function stopTracking() {
+  if (!state.active) return;
+  finishActive();
+  state.active = null;
+  save();
+  clearInterval(elapsedInterval);
+  renderAll();
+  showToast('Zeiterfassung gestoppt');
+}
+
+function finishActive() {
+  const { projectId, start } = state.active;
+  const end = Date.now();
+  state.entries.push({
+    id: state.nextEntryId++,
+    projectId,
+    start,
+    end,
+    date: new Date(start).toISOString().slice(0,10)
+  });
+}
+
+function startElapsedTick() {
+  clearInterval(elapsedInterval);
+  elapsedInterval = setInterval(() => {
+    if (!state.active) return;
+    const el = document.getElementById('active-elapsed');
+    if (el) el.textContent = fmtDuration(Date.now() - state.active.start);
+    // update running project timer
+    const btn = document.querySelector('.proj-btn.running .proj-timer');
+    if (btn) btn.textContent = fmtDuration(getTodayMs(state.active.projectId));
+  }, 1000);
+}
+
+function getTodayMs(projId) {
+  const today = new Date().toISOString().slice(0,10);
+  let ms = state.entries
+    .filter(e => e.projectId===projId && e.date===today)
+    .reduce((a,e) => a + (e.end - e.start), 0);
+  if (state.active && state.active.projectId===projId) ms += Date.now() - state.active.start;
+  return ms;
+}
+
+function getPeriodMs(projId, period) {
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  let entries = state.entries.filter(e => e.projectId===projId);
+  if (period==='day') entries = entries.filter(e => e.date===today);
+  else if (period==='week') {
+    const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay()+1);
+    weekStart.setHours(0,0,0,0);
+    entries = entries.filter(e => new Date(e.start)>=weekStart);
+  } else {
+    entries = entries.filter(e => e.date.startsWith(now.toISOString().slice(0,7)));
+  }
+  let ms = entries.reduce((a,e)=>a+(e.end-e.start),0);
+  if (state.active && state.active.projectId===projId) {
+    // add ongoing for period filter
+    const start = new Date(state.active.start);
+    if (period==='day' && start.toISOString().slice(0,10)===today) ms += Date.now()-state.active.start;
+    else if (period==='week') { const ws=new Date(now);ws.setDate(now.getDate()-now.getDay()+1);ws.setHours(0,0,0,0);if(start>=ws)ms+=Date.now()-state.active.start; }
+    else if (start.toISOString().startsWith(now.toISOString().slice(0,7))) ms+=Date.now()-state.active.start;
+  }
+  return ms;
+}
+
+// ─── RENDER ALL ──────────────────────────────────────────
+function renderAll() {
+  renderSidebar();
+  renderTrackingGrid();
+  renderDailyBars();
+  renderActionBar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('project-list-sidebar');
+  list.innerHTML = state.projects.length === 0
+    ? `<div style="padding:16px 10px;font-size:12px;color:var(--text3);">Noch keine Projekte.<br>Bitte anlegen →</div>`
+    : state.projects.map(p => `
+        <div class="project-item${state.active&&state.active.projectId===p.id?' active':''}" onclick="startTracking(${p.id})">
+          <div class="proj-dot" style="background:${p.color}"></div>
+          <div class="proj-name">${p.name}</div>
+          <div class="proj-phase-badge">${HOAI_SHORT[p.phase]}</div>
+        </div>
+      `).join('');
+}
+
+function renderTrackingGrid() {
+  const grid = document.getElementById('tracking-grid');
+  if (state.projects.length===0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-state-icon">⊕</div>
+      <div class="empty-state-text">Noch keine Projekte vorhanden.<br>Klicke auf <strong>+</strong> in der Seitenleiste, um ein Projekt anzulegen.</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = state.projects.map(p => {
+    const isRunning = state.active && state.active.projectId===p.id;
+    const todayMs = getTodayMs(p.id);
+    return `
+      <button class="proj-btn${isRunning?' running':''}" onclick="startTracking(${p.id})" style="--proj-color:${p.color}">
+        <style>.proj-btn[data-id="${p.id}"]::before{background:${p.color}}</style>
+        <div class="proj-btn-top">
+          <div class="proj-btn-name">${p.name}</div>
+          <div class="proj-running-dot"></div>
+        </div>
+        <div class="proj-btn-bottom">
+          ${p.num ? `<div class="proj-btn-number">${p.num}</div>` : ''}
+          <div class="proj-phase-tag phase-${p.phase}">${HOAI_NAMES[p.phase]}</div>
+          <div class="proj-timer">${fmtDuration(todayMs)}</div>
+          <div class="proj-today-label">Heute</div>
+        </div>
+      </button>`;
+  }).join('');
+  // Inline style fix for ::before
+  state.projects.forEach(p => {
+    document.querySelectorAll('.proj-btn').forEach((btn,i) => {
+      if (state.projects[i]) btn.style.setProperty('--proj-color', state.projects[i].color);
+
+    });
+  });
+  // Fix ::before via data attribute approach
+  grid.querySelectorAll('.proj-btn').forEach((btn, i) => {
+    const p = state.projects[i];
+    if (!p) return;
+    btn.setAttribute('data-id', p.id);
+    // inject a style tag directly
+    const existing = document.getElementById('style-proj-'+p.id);
+    if (!existing) {
+      const s = document.createElement('style');
+      s.id = 'style-proj-'+p.id;
+      s.textContent = `.proj-btn[data-id="${p.id}"]::before{background:${p.color}!important}`;
+      document.head.appendChild(s);
+    }
+  });
+}
+
+function renderActionBar() {
+  const bar = document.getElementById('action-bar');
+  const status = document.getElementById('running-status');
+  if (state.active) {
+    const proj = state.projects.find(p=>p.id===state.active.projectId);
+    bar.style.display = 'flex';
+    document.getElementById('active-proj-name').textContent = proj ? proj.name : '–';
+    document.getElementById('active-elapsed').textContent = fmtDuration(Date.now()-state.active.start);
+    status.textContent = `Läuft seit ${fmtTime(state.active.start)}`;
+    if (!elapsedInterval) startElapsedTick();
+  } else {
+    bar.style.display = 'none';
+    status.textContent = 'Kein Projekt aktiv';
+    clearInterval(elapsedInterval);
+    elapsedInterval = null;
+  }
+}
+
+function renderDailyBars() {
+  const today = new Date().toISOString().slice(0,10);
+  const wrap = document.getElementById('daily-bars');
+  const data = state.projects.map(p=>({p, ms: getTodayMs(p.id)})).filter(x=>x.ms>0);
+  const total = data.reduce((a,x)=>a+x.ms,0);
+  if (!data.length) { wrap.innerHTML=`<div style="font-size:11px;color:var(--text3)">Noch keine Buchungen heute</div>`; return; }
+  wrap.innerHTML = data.map(({p,ms})=>`
+    <div class="daily-bar-item">
+      <div class="daily-bar-name" title="${p.name}">${p.name}</div>
+      <div class="daily-bar"><div class="daily-bar-fill" style="width:${total?Math.round(ms/total*100):0}%;background:${p.color}"></div></div>
+      <div class="daily-bar-time">${fmtDuration(ms).slice(0,5)}</div>
+    </div>
+  `).join('');
+}
+
+// ─── REPORT ──────────────────────────────────────────────
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderReport();
+}
+
+function renderReport() {
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  let entries = [...state.entries];
+
+  if (currentPeriod==='day') {
+    entries = entries.filter(e=>e.date===today);
+  } else if (currentPeriod==='week') {
+    const ws = new Date(now); ws.setDate(now.getDate()-now.getDay()+1); ws.setHours(0,0,0,0);
+    entries = entries.filter(e=>new Date(e.start)>=ws);
+  } else {
+    entries = entries.filter(e=>e.date.startsWith(now.toISOString().slice(0,7)));
+  }
+
+  // Add active if exists
+  let activeEntry = null;
+  if (state.active) {
+    activeEntry = {
+      id: 'live', projectId: state.active.projectId,
+      start: state.active.start, end: Date.now(),
+      date: new Date(state.active.start).toISOString().slice(0,10)
+    };
+    if (currentPeriod==='day' && activeEntry.date===today) entries.push(activeEntry);
+    else if (currentPeriod==='week') { const ws=new Date(now);ws.setDate(now.getDate()-now.getDay()+1);ws.setHours(0,0,0,0);if(new Date(activeEntry.start)>=ws)entries.push(activeEntry); }
+    else if (activeEntry.date.startsWith(now.toISOString().slice(0,7))) entries.push(activeEntry);
+  }
+
+  // Summary
+  const totalMs = entries.reduce((a,e)=>a+(e.end-e.start),0);
+  const projCount = new Set(entries.map(e=>e.projectId)).size;
+  const periodLabel = {day:'Heute',week:'Diese Woche',month:'Dieser Monat'}[currentPeriod];
+  document.getElementById('summary-row').innerHTML = `
+    <div class="summary-card">
+      <div class="summary-card-label">Gesamt ${periodLabel}</div>
+      <div class="summary-card-value">${fmtDuration(totalMs).slice(0,5)}<span>h</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Buchungen</div>
+      <div class="summary-card-value">${entries.length}<span>Eintr.</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Projekte</div>
+      <div class="summary-card-value">${projCount}<span>aktiv</span></div>
+    </div>
+  `;
+
+  // Table
+  const body = document.getElementById('report-body');
+  if (!entries.length) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Keine Buchungen in diesem Zeitraum</td></tr>`;
+    return;
+  }
+
+  const sorted = [...entries].sort((a,b)=>b.start-a.start);
+  body.innerHTML = sorted.map(e=>{
+    const proj = state.projects.find(p=>p.id===e.projectId);
+    const isLive = e.id==='live';
+    return `<tr>
+      <td style="font-weight:500">${proj ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${proj.color};margin-right:8px;vertical-align:middle"></span>${proj.name}` : '–'}</td>
+      <td class="td-mono">${proj&&proj.num?proj.num:'–'}</td>
+      <td><span class="td-badge phase-${proj?proj.phase:1}">${proj?HOAI_SHORT[proj.phase]:'–'}</span></td>
+      <td class="td-mono">${fmtDuration(e.end-e.start)}</td>
+      <td class="td-mono">${fmtTime(e.start)}</td>
+      <td class="td-mono">${isLive?'<span class="paused-badge">LÄUFT</span>':fmtTime(e.end)}</td>
+      <td>${isLive?'':
+        `<button class="entry-del" onclick="deleteEntry(${e.id})" title="Löschen">✕</button>`
+      }</td>
+    </tr>`;
+  }).join('');
+
+  // Project totals
+  const projTotals = {};
+  entries.forEach(e=>{
+    if (!projTotals[e.projectId]) projTotals[e.projectId]=0;
+    projTotals[e.projectId]+=(e.end-e.start);
+  });
+  body.innerHTML += `<tr class="total-row">
+    <td colspan="3">GESAMT</td>
+    <td class="td-mono" style="font-family:'DM Mono',monospace">${fmtDuration(totalMs)}</td>
+    <td></td><td></td><td></td>
+  </tr>`;
+}
+
+function deleteEntry(id) {
+  state.entries = state.entries.filter(e=>e.id!==id);
+  save();
+  renderAll();
+  if (currentView==='report') renderReport();
+  showToast('Buchung gelöscht');
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') closeProjectModal();
+  if (e.key==='Enter' && document.getElementById('modal-overlay').classList.contains('open')) saveProject();
+});
+
+// ─── INIT ────────────────────────────────────────────────
+// Resume active tracking if page reloaded
+if (state.active) startElapsedTick();
+renderAll();
+</script>
+</body>
+</html>
