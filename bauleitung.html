@@ -579,7 +579,6 @@
   <button class="tab active" onclick="switchTab('projekte',this)">Projekte</button>
   <button class="tab" onclick="switchTab('protokoll',this)">Protokoll</button>
   <button class="tab" onclick="switchTab('aufgaben',this)">Aufgaben</button>
-  <button class="tab" onclick="switchTab('verlauf',this)">Verlauf</button>
   <button class="tab" onclick="switchTab('einstellungen',this)" title="Einstellungen" style="font-size:17px;padding:8px 12px 9px">⚙️</button>
 </div>
 </div>
@@ -592,13 +591,18 @@
 <div id="tab-projekte" class="screen active">
   <p class="sec-label">Meine Projekte</p>
   <div class="project-list" id="projekteListe"></div>
-  <button class="big-btn secondary" onclick="openNewProjektModal()">＋ Neues Projekt anlegen</button>
+  <button class="big-btn primary" onclick="openNewProjektModal()">＋ Neues Projekt anlegen</button>
 </div>
 
 <!-- ══════════════════════════════════════════
      TAB: PROTOKOLL (Neue Eingabe)
 ══════════════════════════════════════════ -->
 <div id="tab-protokoll" class="screen">
+
+  <button onclick="goBackToProjektverlauf()" style="background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;padding:0 0 12px;cursor:pointer;display:flex;align-items:center;gap:4px">‹ Zurück zur Übersicht</button>
+  <div style="margin-bottom:10px">
+    <button id="btnZurueckVerlauf" onclick="geheZuProjektVerlauf()" style="background:none;border:none;color:var(--accent);font-size:15px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:600;cursor:pointer;padding:0;display:none">← Zur Übersicht</button>
+  </div>
 
   <!-- Datum & Wetter -->
   <div class="weather-strip" id="weatherStrip">
@@ -682,14 +686,33 @@
 <div id="tab-aufgaben" class="screen">
   <p class="sec-label">Offene Aufgaben</p>
   <div id="aufgabenListe"></div>
-  <button class="big-btn secondary" onclick="openAufgabeModal()">＋ Aufgabe hinzufügen</button>
+  <button class="big-btn primary" onclick="openAufgabeModal()">＋ Aufgabe hinzufügen</button>
 </div>
 
 <!-- ══════════════════════════════════════════
-     TAB: VERLAUF
+     TAB: PROJEKT-VERLAUF (Protokolle eines Projekts)
 ══════════════════════════════════════════ -->
+<div id="tab-projektverlauf" class="screen">
+  <button class="big-btn primary" style="margin-bottom:16px" onclick="starteNeuesProtokoll()">＋ Neues Protokoll anlegen</button>
+  <p class="sec-label" id="projektverlaufLabel">Protokolle</p>
+  <div id="projektverlaufListe"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB: VERLAUF (alle Protokolle, intern)
+══════════════════════════════════════════ -->
+<div id="tab-projektverlauf" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <button onclick="switchTab('projekte',document.querySelector('.tab'))" style="background:none;border:none;color:var(--accent);font-size:15px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:600;cursor:pointer;padding:0">← Projekte</button>
+    <p class="sec-label" style="margin:0" id="pvProjLabel">Protokolle</p>
+  </div>
+  <button class="big-btn primary" onclick="neuesProtokollFuerProjekt()" style="margin-bottom:14px">＋ Neues Protokoll</button>
+  <div id="projektVerlaufListe"></div>
+</div>
+
 <div id="tab-verlauf" class="screen">
-  <p class="sec-label">Alle Protokolle</p>
+  <button class="big-btn primary" onclick="neuesProtokollFuerProjekt()" style="margin-bottom:14px">＋ Neues Protokoll anlegen</button>
+  <p class="sec-label" id="verlaufProjLabel">Protokolle</p>
   <div id="verlaufListe"></div>
 </div>
 
@@ -1025,38 +1048,69 @@ function loadBauleiterName() {
 function switchTab(id, btn) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add('active');
+  const screen = document.getElementById('tab-'+id);
+  if (screen) screen.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
 // ══════════════════════════════════
 // WETTER
 // ══════════════════════════════════
 async function loadWeather() {
-  document.getElementById('wDesc').textContent = 'Standort wird ermittelt…';
-  if(!navigator.geolocation) { document.getElementById('wDesc').textContent = 'Standort nicht verfügbar'; return; }
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const {latitude:lat, longitude:lon} = pos.coords;
+  document.getElementById('wDesc').textContent = 'Wetter wird geladen…';
+
+  // Try to get coords from project address first
+  const projektName = document.getElementById('pProjekt').value;
+  const proj = state.projekte.find(p => p.name === projektName);
+  const adresse = proj && proj.ort ? proj.ort.trim() : '';
+
+  if (adresse) {
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&timezone=auto`;
-      const r = await fetch(url);
-      const d = await r.json();
-      const c = d.current;
-      const temp = Math.round(c.temperature_2m);
-      const code = c.weathercode;
-      const wind = Math.round(c.windspeed_10m);
-      const hum = c.relativehumidity_2m;
-      const {icon, desc} = wCode(code);
-      state.wetter = {temp, desc, wind, hum, icon};
-      save();
-      document.getElementById('wTemp').textContent = temp+'°C';
-      document.getElementById('wDesc').textContent = desc;
-      document.getElementById('wIcon').textContent = icon;
-      document.getElementById('wHumidity').textContent = '💧 '+hum+'%';
-      document.getElementById('wWind').textContent = '💨 '+wind+' km/h';
-      document.getElementById('pWetter').value = `${desc}, ${temp}°C, Wind ${wind} km/h, Luftfeuchte ${hum}%`;
-    } catch(e) { document.getElementById('wDesc').textContent = 'Wetter nicht verfügbar'; }
-  }, ()=>{ document.getElementById('wDesc').textContent = 'Zugriff verweigert'; });
+      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1`;
+      const geoResp = await fetch(geoUrl, { headers: { 'Accept-Language': 'de' } });
+      const geoData = await geoResp.json();
+      if (geoData && geoData.length > 0) {
+        const lat = parseFloat(geoData[0].lat);
+        const lon = parseFloat(geoData[0].lon);
+        await fetchWeather(lat, lon, geoData[0].display_name.split(',')[0]);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: GPS
+  if (!navigator.geolocation) {
+    document.getElementById('wDesc').textContent = 'Standort nicht verfügbar';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    async pos => { await fetchWeather(pos.coords.latitude, pos.coords.longitude, ''); },
+    () => { document.getElementById('wDesc').textContent = 'Standort-Zugriff verweigert'; }
+  );
+}
+
+async function fetchWeather(lat, lon, ortName) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&timezone=auto`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+    const temp = Math.round(c.temperature_2m);
+    const code = c.weathercode;
+    const wind = Math.round(c.windspeed_10m);
+    const hum = c.relativehumidity_2m;
+    const {icon, desc} = wCode(code);
+    state.wetter = {temp, desc, wind, hum, icon};
+    save();
+    document.getElementById('wTemp').textContent = temp+'°C';
+    document.getElementById('wDesc').textContent = desc + (ortName ? ` · ${ortName}` : '');
+    document.getElementById('wIcon').textContent = icon;
+    document.getElementById('wHumidity').textContent = '💧 '+hum+'%';
+    document.getElementById('wWind').textContent = '💨 '+wind+' km/h';
+    document.getElementById('pWetter').value = `${desc}, ${temp}°C, Wind ${wind} km/h, Luftfeuchte ${hum}%`;
+  } catch(e) {
+    document.getElementById('wDesc').textContent = 'Wetter nicht verfügbar';
+  }
 }
 
 function wCode(c) {
@@ -1093,16 +1147,86 @@ function renderProjekte() {
   `).join('');
 }
 
+let currentProjektIndex = -1;
+
 function selectProjekt(i) {
   const p = state.projekte[i];
+  currentProjektIndex = i;
   document.getElementById('pProjekt').value = p.name;
   document.getElementById('headerSub').textContent = ' – ' + p.name;
   document.querySelectorAll('.project-item').forEach((el,j)=>el.classList.toggle('selected',j===i));
-  switchTab('protokoll', document.querySelectorAll('.tab')[1]);
-  state.firmen = [];
-  renderFirmenChips();
-  toast('Projekt gewählt: '+p.name);
+
+  // Show project-specific protocol history
+  renderProjektVerlauf(p.name);
+  switchTab('projektverlauf', null);
 }
+
+function renderProjektVerlauf(projektName) {
+  const label = document.getElementById('projektverlaufLabel');
+  if (label) label.textContent = projektName;
+
+  const el = document.getElementById('projektverlaufListe');
+  const projs = state.protokolle.filter(p => p.projekt === projektName);
+
+  if (!projs.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Noch keine Protokolle für dieses Projekt.</p></div>';
+    return;
+  }
+
+  // Map back to original indices for delete/open
+  el.innerHTML = state.protokolle
+    .map((p, i) => ({p, i}))
+    .filter(({p}) => p.projekt === projektName)
+    .map(({p, i}) => `
+      <div class="history-item">
+        <div class="history-dot" style="cursor:pointer" onclick="showProtokollDetail(${i})"></div>
+        <div class="history-info" onclick="showProtokollDetail(${i})" style="cursor:pointer">
+          <div class="history-date">${p.datum}</div>
+          <div class="history-proj">Bauleiter: ${p.bauleiter||'–'}</div>
+          <div class="history-preview">${p.text.substring(200,360)}</div>
+        </div>
+        <button onclick="deleteProtokoll(${i})" style="flex-shrink:0;background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px 6px;line-height:1" title="Löschen">×</button>
+      </div>
+    `).join('');
+}
+
+function neuesProtokollFuerProjekt() {
+  // Start new protocol for current project
+  const p = currentProjektIndex >= 0 ? state.projekte[currentProjektIndex] : null;
+  state.firmen = [];
+  state.blocks = {};
+  state.projekte.forEach(pr => { if (pr.firmen) pr.firmen.forEach(f => { f.aktiv=false; f.ma=0; f.leistung=''; }); });
+  initBlocks();
+
+  if (p) {
+    document.getElementById('pProjekt').value = p.name;
+    if (p.email) document.getElementById('pEmail').value = p.email;
+    if (p.cc) document.getElementById('pEmailCC').value = p.cc;
+  }
+  renderFirmenChips();
+  renderSections();
+  setDatum();
+  save();
+
+  // Show zurück button
+  const btn = document.getElementById('btnZurueckVerlauf');
+  if (btn) btn.style.display = 'block';
+
+  switchTab('protokoll', null);
+}
+
+function starteNeuesProtokoll() { neuesProtokollFuerProjekt(); }
+
+function geheZuProjektVerlauf() {
+  if (currentProjektIndex >= 0) {
+    renderProjektVerlauf(state.projekte[currentProjektIndex].name);
+    switchTab('projektverlauf', null);
+  } else {
+    switchTab('projekte', null);
+  }
+}
+
+
 
 function toggleEmojiPicker() {
   const wrap = document.getElementById('iconPickerWrap');
@@ -1239,6 +1363,9 @@ function onProjektChange(name) {
       document.getElementById('pEmailCC').value = proj.cc;
     }
   }
+
+  // Reload weather for project location
+  loadWeather();
 }
 
 function updateProjektSelects() {
@@ -1750,6 +1877,7 @@ function generiereProtokoll() {
   if (bauleiter !== '–') localStorage.setItem('bauleiterName', bauleiter);
   save();
   renderVerlauf();
+  if (currentProjektIndex >= 0 && state.projekte[currentProjektIndex]) renderProjektVerlauf(projekt);
 
   const preview = document.getElementById('protokollPreview');
   preview.innerHTML = '';
@@ -1897,7 +2025,9 @@ function showNewProtokoll() {
   renderSections();
   setDatum();
   save();
-  switchTab('protokoll', document.querySelectorAll('.tab')[1]);
+  const btn = document.getElementById('btnZurueckVerlauf');
+  if (btn) btn.style.display = currentProjektIndex >= 0 ? 'block' : 'none';
+  switchTab('protokoll', null);
 }
 
 // ══════════════════════════════════
@@ -1965,7 +2095,12 @@ function deleteAufgabe(i) {
 function deleteProtokoll(i) {
   if (!confirm('Protokoll vom ' + state.protokolle[i].datum + ' löschen?')) return;
   state.protokolle.splice(i, 1);
-  save(); renderVerlauf();
+  save();
+  renderVerlauf();
+  // Refresh projekt verlauf if currently shown
+  if (currentProjektIndex >= 0 && state.projekte[currentProjektIndex]) {
+    renderProjektVerlauf(state.projekte[currentProjektIndex].name);
+  }
 }
 
 // ══════════════════════════════════
