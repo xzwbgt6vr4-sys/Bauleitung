@@ -2,1091 +2,464 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stundenerfassung · Architekturbüro</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="desch Zeit">
+<title>Stundenerfassung · desch architekten</title>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0f0e;
-    --surface: #191917;
-    --surface2: #222220;
-    --border: #2e2e2b;
-    --border2: #3a3a36;
-    --text: #e8e6df;
-    --text2: #9a9890;
-    --text3: #5c5b57;
-    --accent: #d4a843;
-    --accent2: #b8902e;
-    --accent-dim: rgba(212,168,67,0.12);
-    --green: #6daf7a;
-    --green-dim: rgba(109,175,122,0.12);
-    --red: #c46b5a;
-    --blue: #5a8fc4;
-    --blue-dim: rgba(90,143,196,0.12);
-
-    --hoai1: #c46b5a;
-    --hoai2: #d4874a;
-    --hoai3: #d4a843;
-    --hoai4: #9ab84a;
-    --hoai5: #5aaf7a;
-    --hoai6: #4aaab0;
-    --hoai7: #5a8fc4;
-    --hoai8: #7a6fc4;
-    --hoai9: #c46aae;
+    --ink:#1a1a1a;--ink-2:#444;--ink-3:#888;
+    --paper:#f5f2ed;--paper-2:#ece8e0;--paper-3:#e0dbd0;
+    --accent:#A80000;--accent-2:#d43333;
+    --green:#2a7a4e;--blue:#1e5a8c;--card:#faf8f4;
+    --shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+    --radius:14px;--radius-sm:8px;
+    --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* TOP BAR */
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    height: 56px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: var(--bg);
-    z-index: 100;
-  }
-  .topbar-brand {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 3px;
-    color: var(--accent);
-  }
-  .topbar-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--text3);
-    text-align: right;
-    line-height: 1.6;
-  }
-  #clock {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    color: var(--text2);
-  }
-  .topbar-nav {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-  }
-  .nav-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    padding: 6px 14px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.15s;
-  }
-  .nav-btn:hover { border-color: var(--border2); color: var(--text); }
-  .nav-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-
-  /* LAYOUT */
-  .main { display: flex; height: calc(100vh - 56px); }
-
-  /* SIDEBAR */
-  .sidebar {
-    width: 280px;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .sidebar-header {
-    padding: 16px 18px 12px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .sidebar-title {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text3);
-  }
-  .icon-btn {
-    width: 28px;
-    height: 28px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    cursor: pointer;
-    border-radius: 2px;
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .project-list { flex: 1; overflow-y: auto; padding: 8px; }
-  .project-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background 0.1s;
-    border: 1px solid transparent;
-    margin-bottom: 2px;
-  }
-  .project-item:hover { background: var(--surface); }
-  .project-item.active { background: var(--surface); border-color: var(--border); }
-  .proj-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .proj-name { font-size: 13px; font-weight: 500; flex: 1; }
-  .proj-phase-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text3);
-    background: var(--surface2);
-    padding: 2px 6px;
-    border-radius: 2px;
-  }
-
-  /* DAILY TOTAL SIDEBAR BOTTOM */
-  .sidebar-daily {
-    border-top: 1px solid var(--border);
-    padding: 14px 18px;
-  }
-  .daily-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
-  .daily-bar-wrap { display: flex; flex-direction: column; gap: 5px; }
-  .daily-bar-item { display: flex; align-items: center; gap: 8px; }
-  .daily-bar-name { font-size: 11px; color: var(--text2); width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .daily-bar { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-  .daily-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-  .daily-bar-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); width: 38px; text-align: right; }
-
-  /* CONTENT */
-  .content { flex: 1; overflow-y: auto; }
-
-  /* VIEWS */
-  .view { display: none; }
-  .view.active { display: block; }
-
-  /* TRACKING VIEW */
-  .tracking-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    padding: 24px;
-  }
-
-  .proj-btn {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 20px;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s;
-    overflow: hidden;
-    min-height: 130px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .proj-btn::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 3px;
-    height: 100%;
-    opacity: 0.7;
-    transition: width 0.2s;
-  }
-  .proj-btn:hover::before { width: 5px; }
-  .proj-btn.running::before { width: 100%; opacity: 0.06; }
-  .proj-btn:hover { border-color: var(--border2); transform: translateY(-1px); }
-  .proj-btn.running {
-    border-color: var(--accent);
-    background: var(--surface);
-  }
-  .proj-btn-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .proj-btn-name {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--text);
-  }
-  .proj-btn.running .proj-btn-name { color: var(--accent); }
-  .proj-running-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-    margin-top: 5px;
-    animation: pulse 1.4s ease-in-out infinite;
-    display: none;
-  }
-  .proj-btn.running .proj-running-dot { display: block; }
-  @keyframes pulse {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.7); }
-  }
-  .proj-btn-bottom {}
-  .proj-btn-number {
-    font-size: 10px;
-    color: var(--text3);
-    font-family: 'DM Mono', monospace;
-    margin-bottom: 4px;
-  }
-  .proj-phase-tag {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
-    border-radius: 2px;
-    display: inline-block;
-    margin-bottom: 10px;
-  }
-  .proj-timer {
-    font-family: 'DM Mono', monospace;
-    font-size: 22px;
-    font-weight: 500;
-    color: var(--text3);
-    line-height: 1;
-    margin-bottom: 2px;
-    transition: color 0.2s;
-  }
-  .proj-btn.running .proj-timer { color: var(--accent); }
-  .proj-today-label {
-    font-size: 10px;
-    color: var(--text3);
-  }
-
-  /* PAUSE / STOP BAR */
-  .action-bar {
-    display: flex;
-    gap: 10px;
-    padding: 0 24px 0;
-    margin-bottom: 0;
-    align-items: center;
-  }
-  .action-bar-inner {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 18px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
-  }
-  .action-label { font-size: 12px; color: var(--text2); }
-  .action-project { font-size: 14px; font-weight: 600; color: var(--accent); }
-  .action-elapsed {
-    font-family: 'DM Mono', monospace;
-    font-size: 20px;
-    color: var(--text);
-    margin-left: auto;
-  }
-  .stop-btn {
-    background: none;
-    border: 1px solid var(--red);
-    color: var(--red);
-    padding: 7px 18px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: 2px;
-    letter-spacing: 1px;
-    transition: all 0.15s;
-  }
-  .stop-btn:hover { background: var(--red); color: #fff; }
-
-  /* SECTION HEADER */
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px 24px 16px;
-  }
-  .section-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 3px;
-    color: var(--text);
-  }
-  .section-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--text3);
-    margin-left: auto;
-  }
-
-  /* REPORT TABLE */
-  .report-wrap { padding: 0 24px 24px; }
-  .report-table { width: 100%; border-collapse: collapse; }
-  .report-table th {
-    text-align: left;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text3);
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-  }
-  .report-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-  }
-  .report-table tr:last-child td { border-bottom: none; }
-  .report-table tr:hover td { background: var(--surface); }
-  .td-mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
-  .td-badge {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 2px;
-    display: inline-block;
-  }
-  .total-row td { font-weight: 600; color: var(--accent); border-top: 1px solid var(--border2); padding-top: 12px; }
-
-  /* REPORT PERIOD TABS */
-  .period-tabs { display: flex; gap: 4px; padding: 0 24px; margin-bottom: 16px; }
-  .period-tab {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-size: 11px;
-    font-family: 'DM Sans', sans-serif;
-    padding: 5px 14px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.15s;
-  }
-  .period-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-
-  /* SUMMARY CARDS */
-  .summary-row { display: flex; gap: 12px; padding: 0 24px 16px; }
-  .summary-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 18px;
-    flex: 1;
-  }
-  .summary-card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
-  .summary-card-value { font-family: 'DM Mono', monospace; font-size: 24px; color: var(--text); }
-  .summary-card-value span { font-size: 12px; color: var(--text3); margin-left: 4px; }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    backdrop-filter: blur(4px);
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    width: 480px;
-    max-width: 95vw;
-  }
-  .modal-header {
-    padding: 18px 22px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .modal-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 2px;
-    color: var(--accent);
-  }
-  .modal-close {
-    background: none;
-    border: none;
-    color: var(--text3);
-    font-size: 20px;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
-  .form-input, .form-select {
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    padding: 9px 12px;
-    border-radius: 2px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .form-input:focus, .form-select:focus { border-color: var(--accent); }
-  .form-select option { background: var(--surface); }
-  .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .color-swatch {
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: border-color 0.15s;
-  }
-  .color-swatch.selected { border-color: var(--text); }
-  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
-  .btn-cancel {
-    background: none;
-    border: 1px solid var(--border2);
-    color: var(--text2);
-    padding: 8px 20px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    border-radius: 2px;
-  }
-  .btn-save {
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    color: #000;
-    padding: 8px 20px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: background 0.15s;
-  }
-  .btn-save:hover { background: var(--accent2); }
-
-  /* HOAI PHASE COLORS */
-  .phase-1 { background: rgba(196,107,90,0.15); color: var(--hoai1); }
-  .phase-2 { background: rgba(212,135,74,0.15); color: var(--hoai2); }
-  .phase-3 { background: rgba(212,168,67,0.15); color: var(--hoai3); }
-  .phase-4 { background: rgba(154,184,74,0.15); color: var(--hoai4); }
-  .phase-5 { background: rgba(90,175,122,0.15); color: var(--hoai5); }
-  .phase-6 { background: rgba(74,170,176,0.15); color: var(--hoai6); }
-  .phase-7 { background: rgba(90,143,196,0.15); color: var(--hoai7); }
-  .phase-8 { background: rgba(122,111,196,0.15); color: var(--hoai8); }
-  .phase-9 { background: rgba(196,106,174,0.15); color: var(--hoai9); }
-
-  /* ENTRIES TABLE (edit mode) */
-  .entry-actions { display: flex; gap: 4px; }
-  .entry-del {
-    background: none;
-    border: none;
-    color: var(--text3);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 6px;
-    border-radius: 2px;
-    transition: color 0.15s;
-  }
-  .entry-del:hover { color: var(--red); }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-left: 3px solid var(--accent);
-    padding: 10px 18px;
-    font-size: 13px;
-    border-radius: 3px;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.3s;
-    z-index: 300;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--text3);
-  }
-  .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
-  .empty-state-text { font-size: 14px; line-height: 1.6; }
-
-  /* PAUSE banner */
-  .paused-badge {
-    font-size: 10px;
-    background: rgba(196,107,90,0.15);
-    color: var(--red);
-    padding: 2px 8px;
-    border-radius: 2px;
-    border: 1px solid rgba(196,107,90,0.3);
-    letter-spacing: 1px;
-  }
+  [data-theme="dark"]{--ink:#f0ede8;--ink-2:#c8c4bc;--ink-3:#888880;--paper:#1a1918;--paper-2:#242220;--paper-3:#2e2c28;--card:#1f1e1c;--shadow:0 2px 12px rgba(0,0,0,0.4);background:#141312}
+  [data-theme="dark"] body{background:#141312}
+  [data-theme="dark"] header,[data-theme="dark"] .tabs,[data-theme="dark"] .sticky-top{background:#1a1918!important;border-color:#2e2c28!important}
+  [data-theme="dark"] .tabs{box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+  [data-theme="dark"] .tab{color:#888880}
+  [data-theme="dark"] .tab.active{color:var(--accent)}
+  [data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{background:#242220;color:var(--ink);border-color:#2e2c28}
+  [data-theme="dark"] .modal-sheet{background:#1a1918}
+  [data-theme="dark"] .proj-track-btn,[data-theme="dark"] .card,[data-theme="dark"] .project-item,[data-theme="dark"] .summary-card,[data-theme="dark"] .running-bar{background:#1f1e1c}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  body{font-family:'Arial Narrow',Arial,sans-serif;background:#e8e4de;color:var(--ink);min-height:100vh;overflow-x:hidden;overscroll-behavior-y:none}
+  .sticky-top{position:sticky;top:0;z-index:100;background:#fff;-webkit-transform:translateZ(0);transform:translateZ(0)}
+  header{background:#fff;color:var(--ink);padding:calc(var(--safe-top) + 14px) 20px 10px;display:flex;align-items:center;justify-content:space-between}
+  .header-logo-wrap{flex:1}
+  .header-logo-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .pro-badge{font-family:'Permanent Marker','Segoe Script',cursive;font-size:22px;font-weight:900;color:#00A8A8;line-height:1;transform:rotate(-20deg);display:inline-block;margin-left:4px;margin-top:4px;letter-spacing:-0.5px;position:relative;z-index:1}
+  .header-logo{width:260px;height:32px;flex-shrink:0}
+  .header-logo svg{display:block;width:100%;height:100%}
+  .header-sub{font-size:13px;color:var(--ink-3);display:flex;align-items:center;gap:6px;padding-left:10px}
+  .header-sub span:first-child{color:var(--ink-2);font-weight:600;letter-spacing:0.3px;text-transform:uppercase}
+  .header-btn{background:var(--accent);color:#fff;border:none;padding:7px 13px;border-radius:20px;font-size:20px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;line-height:1}
+  #clockDisplay{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .tabs{display:flex;background:#fff;padding:0 12px;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid #ddd8d0;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex-shrink:0;padding:8px 14px 9px;font-size:13px;font-weight:500;color:var(--ink-3);border:none;background:transparent;cursor:pointer;transition:all 0.15s;font-family:'Arial Narrow',Arial,sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  main{padding:16px 16px calc(var(--safe-bottom) + 80px);max-width:700px;margin:0 auto}
+  .screen{display:none;animation:fadeUp 0.25s ease}
+  .screen.active{display:block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+  .card-header{padding:14px 16px;border-bottom:1px solid var(--paper-3);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-family:'Arial Narrow',Arial,sans-serif;font-size:17px;font-weight:600}
+  .card-body{padding:14px 16px}
+  .sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin:18px 0 8px}
+  .sec-label:first-child{margin-top:0}
+  .running-bar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--accent)}
+  .running-bar-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.4s ease-in-out infinite;flex-shrink:0}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+  .running-bar-info{flex:1;min-width:0}
+  .running-bar-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .running-bar-since{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .running-bar-time{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:-0.5px;flex-shrink:0}
+  .stop-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .proj-track-btn{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;cursor:pointer;border:2px solid transparent;transition:all 0.15s;text-align:left;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:8px;min-height:115px}
+  .proj-track-btn:active{transform:scale(0.97)}
+  .proj-track-btn.running{border-color:var(--accent)}
+  .proj-accent-bar{position:absolute;top:0;left:0;width:100%;height:4px}
+  .proj-track-btn-top{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}
+  .proj-track-btn-name{font-size:13px;font-weight:600;line-height:1.3;flex:1}
+  .proj-track-btn.running .proj-track-btn-name{color:var(--accent)}
+  .proj-running-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;animation:pulse 1.4s ease-in-out infinite;display:none}
+  .proj-track-btn.running .proj-running-dot{display:block}
+  .proj-track-btn-num{font-size:11px;color:var(--ink-3)}
+  .proj-phase-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
+  .proj-timer{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--ink-3);letter-spacing:-0.5px}
+  .proj-track-btn.running .proj-timer{color:var(--accent)}
+  .proj-today-label{font-size:11px;color:var(--ink-3);margin-top:-4px}
+  .phase-1{background:#fde9e8;color:#c0392b}.phase-2{background:#fdeee0;color:#d35400}.phase-3{background:#fdf5df;color:#c57b00}
+  .phase-4{background:#e9f5e4;color:#5d8a27}.phase-5{background:#e4f5ec;color:#1e8449}.phase-6{background:#e4f5f3;color:#1a7a6e}
+  .phase-7{background:#e4eef5;color:#1a5a8c}.phase-8{background:#eee9f8;color:#5b3a9e}.phase-9{background:#f5e8f5;color:#8e3090}
+  .project-list{display:flex;flex-direction:column;gap:10px}
+  .project-item{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;border:2px solid transparent}
+  .project-icon{width:44px;height:44px;border-radius:10px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .project-info{flex:1;min-width:0}
+  .project-name{font-weight:600;font-size:15px}
+  .project-meta{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .edit-proj-btn{background:var(--paper-2);border:none;border-radius:8px;padding:6px 9px;font-size:15px;cursor:pointer;flex-shrink:0}
+  .del-proj-btn{background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+  .del-proj-btn:active{color:var(--accent)}
+  .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .summary-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+  .summary-card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-3);margin-bottom:6px}
+  .summary-card-value{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-0.5px}
+  .summary-card-unit{font-size:12px;color:var(--ink-3);margin-left:3px}
+  .report-table{width:100%;border-collapse:collapse}
+  .report-table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--paper-3)}
+  .report-table td{padding:10px 10px;border-bottom:1px solid var(--paper-3);font-size:13px;vertical-align:middle}
+  .report-table tr:last-child td{border-bottom:none}
+  .report-table tr:hover td{background:var(--paper)}
+  .total-row td{font-weight:700;color:var(--accent);border-top:2px solid var(--paper-3)!important}
+  .period-row{display:flex;gap:6px;margin-bottom:14px}
+  .period-btn{padding:7px 16px;border-radius:20px;font-size:13px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:500;border:1.5px solid var(--paper-3);background:transparent;color:var(--ink-3);cursor:pointer;transition:all 0.15s}
+  .period-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+  .field{margin-bottom:12px}
+  label{font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+  input[type=text],select{width:100%;padding:12px 14px;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);font-size:16px;font-family:'Arial Narrow',Arial,sans-serif;background:#fff;color:var(--ink);outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .big-btn{width:100%;padding:15px;border-radius:var(--radius);font-size:16px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;border:none;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s}
+  .big-btn:active{transform:scale(0.98)}
+  .big-btn.primary{background:var(--accent);color:#fff}
+  .big-btn.secondary{background:var(--paper-2);color:var(--ink)}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge.live{background:#fde9e8;color:var(--accent)}
+  .color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color 0.15s}
+  .color-swatch.selected{border-color:var(--ink)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;animation:fadeIn 0.2s ease}
+  .modal-overlay.hidden{display:none}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px calc(var(--safe-bottom) + 24px);width:100%;max-height:92vh;overflow-y:auto;animation:slideUp 0.3s cubic-bezier(0.32,0.72,0,1)}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-handle{width:36px;height:4px;background:var(--paper-3);border-radius:2px;margin:0 auto 20px}
+  .modal-title{font-size:20px;font-weight:700;margin-bottom:16px}
+  .toast{position:fixed;bottom:calc(var(--safe-bottom) + 90px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--ink-3)}
+  .empty-state-icon{font-size:36px;margin-bottom:10px}
+  .empty-state-text{font-size:14px;line-height:1.6}
+  .daily-bar-wrap{display:flex;flex-direction:column;gap:8px}
+  .daily-bar-item{display:flex;align-items:center;gap:10px}
+  .daily-bar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .daily-bar-name{font-size:12px;color:var(--ink-2);width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+  .daily-bar-bg{flex:1;height:5px;background:var(--paper-3);border-radius:3px;overflow:hidden}
+  .daily-bar-fill{height:100%;border-radius:3px;transition:width 0.5s}
+  .daily-bar-time{font-size:12px;color:var(--ink-3);width:40px;text-align:right;flex-shrink:0}
+  .entry-del{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;padding:2px 6px;line-height:1}
+  .entry-del:active{color:var(--accent)}
+  @media(max-width:420px){.proj-grid{grid-template-columns:repeat(2,1fr)}.summary-card-value{font-size:20px}}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="topbar-brand">ZEITERFASSUNG</div>
-  <div class="topbar-nav">
-    <button class="nav-btn active" onclick="showView('tracking')">Erfassung</button>
-    <button class="nav-btn" onclick="showView('report')">Auswertung</button>
+<div class="sticky-top">
+<header>
+  <div class="header-logo-wrap">
+    <div class="header-logo-row">
+      <div class="header-logo" id="appLogoWrap"><svg width="100%" height="100%" style="display:block;" viewBox="0 0 5438 575" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g transform="matrix(3.250146,0,0,1,276.767972,0)"><rect x="-123" y="-72" width="1711" height="947" style="fill:white;"/></g><g transform="matrix(4.166667,0,0,4.166667,0,0)"><g transform="matrix(4.171943,0,0,4.171943,0.250145,0)"><g transform="matrix(1,0,0,1,-435.9013,-427.6508)"><path d="M435.901,427.651L512.274,427.651L512.274,460.921L435.901,460.921L435.901,427.651" style="fill:rgb(168,0,0);"/></g><g transform="matrix(1,0,0,1,-435.9013,-381.0785)"><g transform="matrix(21.99062,0,0,21.99062,447.9831,410.78878)"><path d="M0.064,-0.322C0.064,-0.346 0.07,-0.367 0.082,-0.387C0.106,-0.43 0.143,-0.451 0.193,-0.451L0.322,-0.451L0.322,-0.612C0.322,-0.634 0.333,-0.645 0.354,-0.645C0.376,-0.645 0.387,-0.634 0.387,-0.612L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322ZM0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387L0.193,-0.387Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,461.216849,410.78878)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,474.450598,410.78878)"><path d="M0.322,-0.113C0.322,-0.133 0.313,-0.148 0.295,-0.157L0.129,-0.236C0.086,-0.257 0.064,-0.291 0.064,-0.338C0.064,-0.375 0.08,-0.404 0.11,-0.424C0.137,-0.442 0.17,-0.451 0.209,-0.451C0.257,-0.451 0.3,-0.439 0.337,-0.415C0.349,-0.408 0.354,-0.398 0.354,-0.387C0.354,-0.378 0.351,-0.37 0.345,-0.364C0.339,-0.358 0.331,-0.354 0.322,-0.354C0.316,-0.354 0.311,-0.356 0.307,-0.358C0.276,-0.377 0.243,-0.386 0.209,-0.386C0.156,-0.386 0.129,-0.37 0.129,-0.338C0.129,-0.318 0.138,-0.304 0.155,-0.295L0.322,-0.215C0.365,-0.194 0.387,-0.16 0.387,-0.113C0.387,-0.074 0.371,-0.044 0.34,-0.025C0.314,-0.008 0.28,-0 0.238,-0C0.176,-0 0.125,-0.012 0.083,-0.036C0.07,-0.042 0.064,-0.052 0.064,-0.064C0.064,-0.073 0.068,-0.081 0.074,-0.087C0.08,-0.094 0.088,-0.097 0.097,-0.097C0.101,-0.097 0.105,-0.096 0.109,-0.094C0.119,-0.09 0.135,-0.084 0.155,-0.076C0.184,-0.068 0.213,-0.064 0.24,-0.064C0.295,-0.064 0.322,-0.081 0.322,-0.113Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,487.684347,410.78878)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,499.500732,410.78878)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,522.2775,410.97808)"><path d="M0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129C0.064,-0.152 0.07,-0.174 0.082,-0.194C0.106,-0.236 0.143,-0.258 0.193,-0.258L0.322,-0.258L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387C0.107,-0.387 0.097,-0.397 0.097,-0.419C0.097,-0.44 0.107,-0.451 0.129,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0ZM0.322,-0.193L0.193,-0.193C0.175,-0.193 0.16,-0.187 0.148,-0.175C0.135,-0.162 0.129,-0.147 0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,533.529575,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,543.622843,410.97808)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,553.716111,410.97808)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,564.968186,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,571.585033,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,581.678301,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,592.930376,410.97808)"><path d="M0.129,-0.209L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.291L0.335,-0.445C0.34,-0.449 0.347,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419C0.387,-0.408 0.382,-0.399 0.374,-0.393L0.249,-0.299L0.383,-0.047C0.386,-0.043 0.387,-0.038 0.387,-0.032C0.387,-0.023 0.384,-0.016 0.377,-0.01C0.371,-0.003 0.363,-0 0.354,-0C0.342,-0 0.332,-0.006 0.326,-0.017L0.197,-0.26L0.129,-0.209Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,604.182451,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,614.275719,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,625.527794,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,636.779869,410.97808)"><path d="M0.193,-0.193L0.097,-0.193C0.075,-0.193 0.064,-0.204 0.064,-0.226C0.064,-0.247 0.075,-0.258 0.097,-0.258L0.193,-0.258L0.193,-0.354C0.193,-0.376 0.204,-0.387 0.226,-0.387C0.247,-0.387 0.258,-0.376 0.258,-0.354L0.258,-0.258L0.354,-0.258C0.376,-0.258 0.387,-0.247 0.387,-0.226C0.387,-0.204 0.376,-0.193 0.354,-0.193L0.258,-0.193L0.258,-0.097C0.258,-0.075 0.247,-0.064 0.226,-0.064C0.204,-0.064 0.193,-0.075 0.193,-0.097L0.193,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,648.031945,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,654.648791,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,665.900866,410.97808)"><path d="M0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419L0.387,0.064C0.387,0.101 0.374,0.131 0.349,0.156C0.324,0.181 0.294,0.193 0.258,0.193L0.129,0.193C0.107,0.193 0.097,0.183 0.097,0.161C0.097,0.14 0.107,0.129 0.129,0.129L0.258,0.129C0.276,0.129 0.291,0.123 0.303,0.11C0.316,0.098 0.322,0.082 0.322,0.064L0.322,-0L0.193,-0C0.143,-0 0.106,-0.021 0.082,-0.064C0.07,-0.084 0.064,-0.105 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.354,-0.451ZM0.322,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,677.152941,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,688.405016,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,699.657092,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,706.273938,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,717.526013,410.97808)"><path d="M0.387,-0.419L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.419C0.322,-0.44 0.333,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,728.778088,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,738.871356,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill-rule:nonzero;"/></g></g></g></g></svg></div>
+      <span class="pro-badge">Zeit</span>
+    </div>
+    <div class="header-sub">
+      <span>Stundenerfassung</span>
+      <span id="clockDisplay"></span>
+    </div>
   </div>
-  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-    <div id="clock"></div>
-    <div class="topbar-meta" id="date-display"></div>
+  <button class="header-btn" onclick="openProjektModal()" title="Neues Projekt">＋</button>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('erfassung',this)">Erfassung</button>
+  <button class="tab" onclick="switchTab('projekte',this)">Projekte</button>
+  <button class="tab" onclick="switchTab('auswertung',this)">Auswertung</button>
+</div>
+</div>
+
+<main>
+
+<!-- TAB: ERFASSUNG -->
+<div id="tab-erfassung" class="screen active">
+  <div class="running-bar" id="runningBar" style="display:none">
+    <div class="running-bar-dot"></div>
+    <div class="running-bar-info">
+      <div class="running-bar-name" id="runningName">–</div>
+      <div class="running-bar-since" id="runningSince"></div>
+    </div>
+    <div class="running-bar-time" id="runningTime">00:00:00</div>
+    <button class="stop-btn" onclick="stopTracking()">■ Stopp</button>
+  </div>
+  <p class="sec-label">Projekte – Tippen zum Starten</p>
+  <div class="proj-grid" id="projGrid"></div>
+  <div class="card" id="dailySummaryCard" style="display:none">
+    <div class="card-header">
+      <span class="card-title">Heute</span>
+      <span id="dailyTotal" style="font-size:22px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--accent)"></span>
+    </div>
+    <div class="card-body"><div class="daily-bar-wrap" id="dailyBars"></div></div>
   </div>
 </div>
 
-<div class="main">
-
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Projekte</span>
-      <button class="icon-btn" onclick="openProjectModal()" title="Neues Projekt">+</button>
-    </div>
-    <div class="project-list" id="project-list-sidebar"></div>
-    <div class="sidebar-daily">
-      <div class="daily-label">Heute gesamt</div>
-      <div class="daily-bar-wrap" id="daily-bars"></div>
-    </div>
-  </div>
-
-  <!-- CONTENT -->
-  <div class="content">
-
-    <!-- TRACKING VIEW -->
-    <div class="view active" id="view-tracking">
-      <div class="section-header">
-        <div class="section-title">LAUFENDE ERFASSUNG</div>
-        <div class="section-sub" id="running-status">Kein Projekt aktiv</div>
-      </div>
-
-      <div class="action-bar" id="action-bar" style="display:none;padding-bottom:16px;">
-        <div class="action-bar-inner">
-          <div>
-            <div class="action-label">Aktives Projekt</div>
-            <div class="action-project" id="active-proj-name">–</div>
-          </div>
-          <div class="action-elapsed" id="active-elapsed">00:00:00</div>
-          <button class="stop-btn" onclick="stopTracking()">■ STOPP</button>
-        </div>
-      </div>
-
-      <div class="tracking-grid" id="tracking-grid"></div>
-    </div>
-
-    <!-- REPORT VIEW -->
-    <div class="view" id="view-report">
-      <div class="section-header">
-        <div class="section-title">AUSWERTUNG</div>
-      </div>
-      <div class="period-tabs">
-        <button class="period-tab active" onclick="setPeriod('day')">Tag</button>
-        <button class="period-tab" onclick="setPeriod('week')">Woche</button>
-        <button class="period-tab" onclick="setPeriod('month')">Monat</button>
-      </div>
-      <div class="summary-row" id="summary-row"></div>
-      <div class="report-wrap">
-        <table class="report-table" id="report-table">
-          <thead>
-            <tr>
-              <th>Projekt</th>
-              <th>Nr.</th>
-              <th>HOAI-Phase</th>
-              <th>Dauer</th>
-              <th>Von</th>
-              <th>Bis</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="report-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
+<!-- TAB: PROJEKTE -->
+<div id="tab-projekte" class="screen">
+  <p class="sec-label">Meine Projekte</p>
+  <div class="project-list" id="projekteListe"></div>
+  <button class="big-btn primary" style="margin-top:8px" onclick="openProjektModal()">＋ Neues Projekt anlegen</button>
 </div>
 
-<!-- PROJECT MODAL -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">NEUES PROJEKT</div>
-      <button class="modal-close" onclick="closeProjectModal()">×</button>
+<!-- TAB: AUSWERTUNG -->
+<div id="tab-auswertung" class="screen">
+  <div class="period-row">
+    <button class="period-btn active" onclick="setPeriod('day',this)">Tag</button>
+    <button class="period-btn" onclick="setPeriod('week',this)">Woche</button>
+    <button class="period-btn" onclick="setPeriod('month',this)">Monat</button>
+  </div>
+  <div class="summary-row" id="summaryRow"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title" id="reportTitle">Buchungen heute</span></div>
+    <div class="card-body" style="padding:0">
+      <table class="report-table">
+        <thead><tr><th>Projekt</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th></th></tr></thead>
+        <tbody id="reportBody"></tbody>
+      </table>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Projektname</label>
-        <input type="text" class="form-input" id="proj-name-input" placeholder="z.B. Neubau Wohnhaus Müller">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Projektnummer</label>
-        <input type="text" class="form-input" id="proj-num-input" placeholder="z.B. 2024-012">
-      </div>
-      <div class="form-group">
-        <label class="form-label">HOAI-Leistungsphase</label>
-        <select class="form-select" id="proj-phase-input">
-          <option value="1">LP 1 – Grundlagenermittlung</option>
-          <option value="2">LP 2 – Vorplanung</option>
-          <option value="3">LP 3 – Entwurfsplanung</option>
-          <option value="4">LP 4 – Genehmigungsplanung</option>
-          <option value="5">LP 5 – Ausführungsplanung</option>
-          <option value="6">LP 6 – Vorbereitung Vergabe</option>
-          <option value="7">LP 7 – Mitwirkung Vergabe</option>
-          <option value="8">LP 8 – Objektüberwachung</option>
-          <option value="9">LP 9 – Objektbetreuung</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Farbe</label>
-        <div class="color-picker-row" id="color-picker"></div>
-      </div>
+  </div>
+</div>
+</main>
+
+<!-- MODAL: NEUES PROJEKT -->
+<div class="modal-overlay hidden" id="modalProjekt">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalProjektTitle">Neues Projekt</div>
+    <div class="field"><label>Projektname *</label><input type="text" id="pName" placeholder="z.B. Neubau Wohnhaus Müller"></div>
+    <div class="field"><label>Projektnummer</label><input type="text" id="pNum" placeholder="z.B. 2024-012"></div>
+    <div class="field"><label>HOAI-Leistungsphase</label>
+      <select id="pPhase">
+        <option value="1">LP 1 – Grundlagenermittlung</option><option value="2">LP 2 – Vorplanung</option>
+        <option value="3">LP 3 – Entwurfsplanung</option><option value="4">LP 4 – Genehmigungsplanung</option>
+        <option value="5">LP 5 – Ausführungsplanung</option><option value="6">LP 6 – Vorbereitung Vergabe</option>
+        <option value="7">LP 7 – Mitwirkung Vergabe</option><option value="8">LP 8 – Objektüberwachung</option>
+        <option value="9">LP 9 – Objektbetreuung</option>
+      </select>
     </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeProjectModal()">Abbrechen</button>
-      <button class="btn-save" onclick="saveProject()">Projekt anlegen</button>
-    </div>
+    <div class="field"><label>Icon</label><div style="display:flex;gap:8px;flex-wrap:wrap" id="iconPicker"></div></div>
+    <div class="field"><label>Farbe</label><div class="color-row" id="colorPicker"></div></div>
+    <button class="big-btn primary" onclick="saveProjekt()" style="margin-top:8px">Speichern</button>
+    <button class="big-btn secondary" onclick="closeModal('modalProjekt')">Abbrechen</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── DATA ───────────────────────────────────────────────
-const COLORS = [
-  '#d4a843','#c46b5a','#d4874a','#9ab84a',
-  '#5aaf7a','#4aaab0','#5a8fc4','#7a6fc4','#c46aae','#9a9890'
-];
+const COLORS=['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#555'];
+const ICONS=['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
+const HOAI_NAMES={1:'LP 1 – Grundlagenermittlung',2:'LP 2 – Vorplanung',3:'LP 3 – Entwurfsplanung',4:'LP 4 – Genehmigungsplanung',5:'LP 5 – Ausführungsplanung',6:'LP 6 – Vorbereitung Vergabe',7:'LP 7 – Mitwirkung Vergabe',8:'LP 8 – Objektüberwachung',9:'LP 9 – Objektbetreuung'};
+const HOAI_SHORT={1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
 
-const HOAI_NAMES = {
-  1:'LP 1 – Grundlagenermittlung',
-  2:'LP 2 – Vorplanung',
-  3:'LP 3 – Entwurfsplanung',
-  4:'LP 4 – Genehmigungsplanung',
-  5:'LP 5 – Ausführungsplanung',
-  6:'LP 6 – Vorbereitung Vergabe',
-  7:'LP 7 – Mitwirkung Vergabe',
-  8:'LP 8 – Objektüberwachung',
-  9:'LP 9 – Objektbetreuung'
-};
+let state=JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
+let elapsedInterval=null,currentPeriod='day',editingProjId=null,selectedIcon=ICONS[0],selectedColor=COLORS[0];
+function save(){localStorage.setItem('zeit2_state',JSON.stringify(state));}
 
-const HOAI_SHORT = {
-  1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',
-  6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'
-};
+// clock
+setInterval(()=>{document.getElementById('clockDisplay').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+document.getElementById('clockDisplay').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-let state = JSON.parse(localStorage.getItem('zeit_state') || 'null') || {
-  projects: [],
-  entries: [],    // {id, projectId, start, end, date}
-  active: null,   // {projectId, start}
-  nextProjId: 1,
-  nextEntryId: 1
-};
+function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+function todayStr(){return new Date().toISOString().slice(0,10);}
 
-let tickInterval = null;
-let currentView = 'tracking';
-let currentPeriod = 'day';
-let selectedColor = COLORS[0];
-let elapsedInterval = null;
-
-// ─── PERSIST ─────────────────────────────────────────────
-function save() { localStorage.setItem('zeit_state', JSON.stringify(state)); }
-
-// ─── CLOCK ───────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  document.getElementById('date-display').textContent =
-    now.toLocaleDateString('de-DE', {weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ─── FORMAT ──────────────────────────────────────────────
-function fmtDuration(ms) {
-  const s = Math.floor(ms/1000);
-  const h = Math.floor(s/3600);
-  const m = Math.floor((s%3600)/60);
-  const sec = s%60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-}
-function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+function switchTab(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  if(id==='auswertung')renderReport();
+  if(id==='erfassung')renderErf();
+  if(id==='projekte')renderProjekte();
 }
 
-// ─── VIEWS ───────────────────────────────────────────────
-function showView(v) {
-  currentView = v;
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-'+v).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.nav-btn')[v==='tracking'?0:1].classList.add('active');
-  if (v==='report') renderReport();
+function startTracking(projId){
+  if(state.active&&state.active.projectId===projId)return;
+  if(state.active)finishActive();
+  state.active={projectId:projId,start:Date.now()};
+  save();renderErf();startTick();
 }
-
-// ─── COLOR PICKER ────────────────────────────────────────
-function renderColorPicker() {
-  const wrap = document.getElementById('color-picker');
-  wrap.innerHTML = COLORS.map(c =>
-    `<div class="color-swatch${c===selectedColor?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`
-  ).join('');
+function stopTracking(){
+  if(!state.active)return;
+  finishActive();state.active=null;save();
+  clearInterval(elapsedInterval);elapsedInterval=null;
+  renderErf();toast('Zeiterfassung gestoppt');
 }
-function selectColor(c) {
-  selectedColor = c;
-  renderColorPicker();
+function finishActive(){
+  const{projectId,start}=state.active;
+  state.entries.push({id:state.nextEntryId++,projectId,start,end:Date.now(),date:new Date(start).toISOString().slice(0,10)});
 }
-
-// ─── PROJECT MODAL ───────────────────────────────────────
-function openProjectModal() {
-  selectedColor = COLORS[state.projects.length % COLORS.length];
-  renderColorPicker();
-  document.getElementById('proj-name-input').value = '';
-  document.getElementById('proj-num-input').value = '';
-  document.getElementById('proj-phase-input').value = '1';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('proj-name-input').focus(), 100);
-}
-function closeProjectModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-function saveProject() {
-  const name = document.getElementById('proj-name-input').value.trim();
-  const num  = document.getElementById('proj-num-input').value.trim();
-  const phase = parseInt(document.getElementById('proj-phase-input').value);
-  if (!name) { showToast('Bitte Projektname eingeben'); return; }
-  state.projects.push({ id: state.nextProjId++, name, num, phase, color: selectedColor, todaySeconds: 0 });
-  save();
-  closeProjectModal();
-  renderAll();
-  showToast(`Projekt „${name}" angelegt`);
-}
-
-// ─── TRACKING ────────────────────────────────────────────
-function startTracking(projId) {
-  if (state.active && state.active.projectId === projId) return;
-  if (state.active) finishActive();
-  state.active = { projectId: projId, start: Date.now() };
-  save();
-  renderAll();
-  startElapsedTick();
-}
-
-function stopTracking() {
-  if (!state.active) return;
-  finishActive();
-  state.active = null;
-  save();
+function startTick(){
   clearInterval(elapsedInterval);
-  renderAll();
-  showToast('Zeiterfassung gestoppt');
+  elapsedInterval=setInterval(()=>{
+    if(!state.active)return;
+    document.getElementById('runningTime').textContent=fmtDur(Date.now()-state.active.start);
+    const btn=document.querySelector('.proj-track-btn.running .proj-timer');
+    if(btn)btn.textContent=fmtDur(getTodayMs(state.active.projectId));
+    renderDailyBars();
+  },1000);
 }
-
-function finishActive() {
-  const { projectId, start } = state.active;
-  const end = Date.now();
-  state.entries.push({
-    id: state.nextEntryId++,
-    projectId,
-    start,
-    end,
-    date: new Date(start).toISOString().slice(0,10)
-  });
-}
-
-function startElapsedTick() {
-  clearInterval(elapsedInterval);
-  elapsedInterval = setInterval(() => {
-    if (!state.active) return;
-    const el = document.getElementById('active-elapsed');
-    if (el) el.textContent = fmtDuration(Date.now() - state.active.start);
-    // update running project timer
-    const btn = document.querySelector('.proj-btn.running .proj-timer');
-    if (btn) btn.textContent = fmtDuration(getTodayMs(state.active.projectId));
-  }, 1000);
-}
-
-function getTodayMs(projId) {
-  const today = new Date().toISOString().slice(0,10);
-  let ms = state.entries
-    .filter(e => e.projectId===projId && e.date===today)
-    .reduce((a,e) => a + (e.end - e.start), 0);
-  if (state.active && state.active.projectId===projId) ms += Date.now() - state.active.start;
+function getTodayMs(projId){
+  const today=todayStr();
+  let ms=state.entries.filter(e=>e.projectId===projId&&e.date===today).reduce((a,e)=>a+(e.end-e.start),0);
+  if(state.active&&state.active.projectId===projId)ms+=Date.now()-state.active.start;
   return ms;
 }
-
-function getPeriodMs(projId, period) {
-  const now = new Date();
-  const today = now.toISOString().slice(0,10);
-  let entries = state.entries.filter(e => e.projectId===projId);
-  if (period==='day') entries = entries.filter(e => e.date===today);
-  else if (period==='week') {
-    const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay()+1);
-    weekStart.setHours(0,0,0,0);
-    entries = entries.filter(e => new Date(e.start)>=weekStart);
-  } else {
-    entries = entries.filter(e => e.date.startsWith(now.toISOString().slice(0,7)));
+function getPeriodEntries(){
+  const now=new Date(),today=todayStr();
+  let entries=[...state.entries];
+  if(currentPeriod==='day')entries=entries.filter(e=>e.date===today);
+  else if(currentPeriod==='week'){const ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()||7)-1));ws.setHours(0,0,0,0);entries=entries.filter(e=>new Date(e.start)>=ws);}
+  else entries=entries.filter(e=>e.date.startsWith(now.toISOString().slice(0,7)));
+  if(state.active){
+    const ae={id:'live',projectId:state.active.projectId,start:state.active.start,end:Date.now(),date:new Date(state.active.start).toISOString().slice(0,10)};
+    let inc=false;
+    if(currentPeriod==='day'&&ae.date===today)inc=true;
+    else if(currentPeriod==='week'){const ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()||7)-1));ws.setHours(0,0,0,0);if(new Date(ae.start)>=ws)inc=true;}
+    else if(ae.date.startsWith(now.toISOString().slice(0,7)))inc=true;
+    if(inc)entries.push(ae);
   }
-  let ms = entries.reduce((a,e)=>a+(e.end-e.start),0);
-  if (state.active && state.active.projectId===projId) {
-    // add ongoing for period filter
-    const start = new Date(state.active.start);
-    if (period==='day' && start.toISOString().slice(0,10)===today) ms += Date.now()-state.active.start;
-    else if (period==='week') { const ws=new Date(now);ws.setDate(now.getDate()-now.getDay()+1);ws.setHours(0,0,0,0);if(start>=ws)ms+=Date.now()-state.active.start; }
-    else if (start.toISOString().startsWith(now.toISOString().slice(0,7))) ms+=Date.now()-state.active.start;
-  }
-  return ms;
+  return entries;
 }
 
-// ─── RENDER ALL ──────────────────────────────────────────
-function renderAll() {
-  renderSidebar();
-  renderTrackingGrid();
-  renderDailyBars();
-  renderActionBar();
-}
-
-function renderSidebar() {
-  const list = document.getElementById('project-list-sidebar');
-  list.innerHTML = state.projects.length === 0
-    ? `<div style="padding:16px 10px;font-size:12px;color:var(--text3);">Noch keine Projekte.<br>Bitte anlegen →</div>`
-    : state.projects.map(p => `
-        <div class="project-item${state.active&&state.active.projectId===p.id?' active':''}" onclick="startTracking(${p.id})">
-          <div class="proj-dot" style="background:${p.color}"></div>
-          <div class="proj-name">${p.name}</div>
-          <div class="proj-phase-badge">${HOAI_SHORT[p.phase]}</div>
-        </div>
-      `).join('');
-}
-
-function renderTrackingGrid() {
-  const grid = document.getElementById('tracking-grid');
-  if (state.projects.length===0) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-state-icon">⊕</div>
-      <div class="empty-state-text">Noch keine Projekte vorhanden.<br>Klicke auf <strong>+</strong> in der Seitenleiste, um ein Projekt anzulegen.</div>
-    </div>`;
-    return;
-  }
-  grid.innerHTML = state.projects.map(p => {
-    const isRunning = state.active && state.active.projectId===p.id;
-    const todayMs = getTodayMs(p.id);
-    return `
-      <button class="proj-btn${isRunning?' running':''}" onclick="startTracking(${p.id})" style="--proj-color:${p.color}">
-        <style>.proj-btn[data-id="${p.id}"]::before{background:${p.color}}</style>
-        <div class="proj-btn-top">
-          <div class="proj-btn-name">${p.name}</div>
+function renderErf(){
+  const bar=document.getElementById('runningBar');
+  if(state.active){
+    const proj=state.projects.find(p=>p.id===state.active.projectId);
+    bar.style.display='flex';
+    document.getElementById('runningName').textContent=proj?proj.name:'–';
+    document.getElementById('runningSince').textContent='Läuft seit '+fmtTime(state.active.start);
+    document.getElementById('runningTime').textContent=fmtDur(Date.now()-state.active.start);
+    if(!elapsedInterval)startTick();
+  }else{bar.style.display='none';}
+  const grid=document.getElementById('projGrid');
+  if(!state.projects.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">🏗️</div><div class="empty-state-text">Noch keine Projekte.<br>Oben auf <strong>＋</strong> tippen.</div></div>`;
+  }else{
+    grid.innerHTML=state.projects.map(p=>{
+      const isRun=state.active&&state.active.projectId===p.id;
+      return`<button class="proj-track-btn${isRun?' running':''}" onclick="startTracking(${p.id})">
+        <div class="proj-accent-bar" style="background:${p.color}"></div>
+        <div class="proj-track-btn-top">
+          <div class="proj-track-btn-name">${p.icon||'🏗️'} ${p.name}</div>
           <div class="proj-running-dot"></div>
         </div>
-        <div class="proj-btn-bottom">
-          ${p.num ? `<div class="proj-btn-number">${p.num}</div>` : ''}
-          <div class="proj-phase-tag phase-${p.phase}">${HOAI_NAMES[p.phase]}</div>
-          <div class="proj-timer">${fmtDuration(todayMs)}</div>
-          <div class="proj-today-label">Heute</div>
-        </div>
+        <div>${p.num?`<div class="proj-track-btn-num">${p.num}</div>`:''}<span class="proj-phase-badge phase-${p.phase}">${HOAI_SHORT[p.phase]}</span></div>
+        <div><div class="proj-timer">${fmtDur(getTodayMs(p.id))}</div><div class="proj-today-label">heute</div></div>
       </button>`;
-  }).join('');
-  // Inline style fix for ::before
-  state.projects.forEach(p => {
-    document.querySelectorAll('.proj-btn').forEach((btn,i) => {
-      if (state.projects[i]) btn.style.setProperty('--proj-color', state.projects[i].color);
-
-    });
-  });
-  // Fix ::before via data attribute approach
-  grid.querySelectorAll('.proj-btn').forEach((btn, i) => {
-    const p = state.projects[i];
-    if (!p) return;
-    btn.setAttribute('data-id', p.id);
-    // inject a style tag directly
-    const existing = document.getElementById('style-proj-'+p.id);
-    if (!existing) {
-      const s = document.createElement('style');
-      s.id = 'style-proj-'+p.id;
-      s.textContent = `.proj-btn[data-id="${p.id}"]::before{background:${p.color}!important}`;
-      document.head.appendChild(s);
-    }
-  });
-}
-
-function renderActionBar() {
-  const bar = document.getElementById('action-bar');
-  const status = document.getElementById('running-status');
-  if (state.active) {
-    const proj = state.projects.find(p=>p.id===state.active.projectId);
-    bar.style.display = 'flex';
-    document.getElementById('active-proj-name').textContent = proj ? proj.name : '–';
-    document.getElementById('active-elapsed').textContent = fmtDuration(Date.now()-state.active.start);
-    status.textContent = `Läuft seit ${fmtTime(state.active.start)}`;
-    if (!elapsedInterval) startElapsedTick();
-  } else {
-    bar.style.display = 'none';
-    status.textContent = 'Kein Projekt aktiv';
-    clearInterval(elapsedInterval);
-    elapsedInterval = null;
+    }).join('');
   }
+  renderDailyBars();
 }
 
-function renderDailyBars() {
-  const today = new Date().toISOString().slice(0,10);
-  const wrap = document.getElementById('daily-bars');
-  const data = state.projects.map(p=>({p, ms: getTodayMs(p.id)})).filter(x=>x.ms>0);
-  const total = data.reduce((a,x)=>a+x.ms,0);
-  if (!data.length) { wrap.innerHTML=`<div style="font-size:11px;color:var(--text3)">Noch keine Buchungen heute</div>`; return; }
-  wrap.innerHTML = data.map(({p,ms})=>`
+function renderDailyBars(){
+  const data=state.projects.map(p=>({p,ms:getTodayMs(p.id)})).filter(x=>x.ms>0);
+  const total=data.reduce((a,x)=>a+x.ms,0);
+  const card=document.getElementById('dailySummaryCard');
+  if(!data.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById('dailyTotal').textContent=fmtDur(total).slice(0,5)+' h';
+  document.getElementById('dailyBars').innerHTML=data.map(({p,ms})=>`
     <div class="daily-bar-item">
-      <div class="daily-bar-name" title="${p.name}">${p.name}</div>
-      <div class="daily-bar"><div class="daily-bar-fill" style="width:${total?Math.round(ms/total*100):0}%;background:${p.color}"></div></div>
-      <div class="daily-bar-time">${fmtDuration(ms).slice(0,5)}</div>
-    </div>
-  `).join('');
+      <div class="daily-bar-dot" style="background:${p.color}"></div>
+      <div class="daily-bar-name">${p.name}</div>
+      <div class="daily-bar-bg"><div class="daily-bar-fill" style="width:${total?Math.round(ms/total*100):0}%;background:${p.color}"></div></div>
+      <div class="daily-bar-time">${fmtDur(ms).slice(0,5)}</div>
+    </div>`).join('');
 }
 
-// ─── REPORT ──────────────────────────────────────────────
-function setPeriod(p) {
-  currentPeriod = p;
-  document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderReport();
+function renderProjekte(){
+  const list=document.getElementById('projekteListe');
+  if(!state.projects.length){list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🏗️</div><div class="empty-state-text">Noch keine Projekte angelegt.</div></div>`;return;}
+  list.innerHTML=state.projects.map(p=>`
+    <div class="project-item">
+      <div class="project-icon" style="border-color:${p.color}">${p.icon||'🏗️'}</div>
+      <div class="project-info"><div class="project-name">${p.name}</div><div class="project-meta">${p.num?p.num+' · ':''}${HOAI_NAMES[p.phase]}</div></div>
+      <button class="edit-proj-btn" onclick="openProjektModal(${p.id})">✏️</button>
+      <button class="del-proj-btn" onclick="deleteProjekt(${p.id})">×</button>
+    </div>`).join('');
 }
 
-function renderReport() {
-  const now = new Date();
-  const today = now.toISOString().slice(0,10);
-  let entries = [...state.entries];
-
-  if (currentPeriod==='day') {
-    entries = entries.filter(e=>e.date===today);
-  } else if (currentPeriod==='week') {
-    const ws = new Date(now); ws.setDate(now.getDate()-now.getDay()+1); ws.setHours(0,0,0,0);
-    entries = entries.filter(e=>new Date(e.start)>=ws);
-  } else {
-    entries = entries.filter(e=>e.date.startsWith(now.toISOString().slice(0,7)));
-  }
-
-  // Add active if exists
-  let activeEntry = null;
-  if (state.active) {
-    activeEntry = {
-      id: 'live', projectId: state.active.projectId,
-      start: state.active.start, end: Date.now(),
-      date: new Date(state.active.start).toISOString().slice(0,10)
-    };
-    if (currentPeriod==='day' && activeEntry.date===today) entries.push(activeEntry);
-    else if (currentPeriod==='week') { const ws=new Date(now);ws.setDate(now.getDate()-now.getDay()+1);ws.setHours(0,0,0,0);if(new Date(activeEntry.start)>=ws)entries.push(activeEntry); }
-    else if (activeEntry.date.startsWith(now.toISOString().slice(0,7))) entries.push(activeEntry);
-  }
-
-  // Summary
-  const totalMs = entries.reduce((a,e)=>a+(e.end-e.start),0);
-  const projCount = new Set(entries.map(e=>e.projectId)).size;
-  const periodLabel = {day:'Heute',week:'Diese Woche',month:'Dieser Monat'}[currentPeriod];
-  document.getElementById('summary-row').innerHTML = `
-    <div class="summary-card">
-      <div class="summary-card-label">Gesamt ${periodLabel}</div>
-      <div class="summary-card-value">${fmtDuration(totalMs).slice(0,5)}<span>h</span></div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-card-label">Buchungen</div>
-      <div class="summary-card-value">${entries.length}<span>Eintr.</span></div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-card-label">Projekte</div>
-      <div class="summary-card-value">${projCount}<span>aktiv</span></div>
-    </div>
-  `;
-
-  // Table
-  const body = document.getElementById('report-body');
-  if (!entries.length) {
-    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Keine Buchungen in diesem Zeitraum</td></tr>`;
-    return;
-  }
-
-  const sorted = [...entries].sort((a,b)=>b.start-a.start);
-  body.innerHTML = sorted.map(e=>{
-    const proj = state.projects.find(p=>p.id===e.projectId);
-    const isLive = e.id==='live';
-    return `<tr>
-      <td style="font-weight:500">${proj ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${proj.color};margin-right:8px;vertical-align:middle"></span>${proj.name}` : '–'}</td>
-      <td class="td-mono">${proj&&proj.num?proj.num:'–'}</td>
-      <td><span class="td-badge phase-${proj?proj.phase:1}">${proj?HOAI_SHORT[proj.phase]:'–'}</span></td>
-      <td class="td-mono">${fmtDuration(e.end-e.start)}</td>
-      <td class="td-mono">${fmtTime(e.start)}</td>
-      <td class="td-mono">${isLive?'<span class="paused-badge">LÄUFT</span>':fmtTime(e.end)}</td>
+function renderReport(){
+  const entries=getPeriodEntries();
+  const totalMs=entries.reduce((a,e)=>a+(e.end-e.start),0);
+  const projCount=new Set(entries.map(e=>e.projectId)).size;
+  const labels={day:'Heute',week:'Diese Woche',month:'Dieser Monat'};
+  document.getElementById('reportTitle').textContent='Buchungen · '+labels[currentPeriod];
+  document.getElementById('summaryRow').innerHTML=`
+    <div class="summary-card"><div class="summary-card-label">Gesamt</div><div class="summary-card-value">${fmtDur(totalMs).slice(0,5)}<span class="summary-card-unit">h</span></div></div>
+    <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.length}</div></div>
+    <div class="summary-card"><div class="summary-card-label">Projekte</div><div class="summary-card-value">${projCount}</div></div>`;
+  const body=document.getElementById('reportBody');
+  if(!entries.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:24px">Keine Buchungen in diesem Zeitraum</td></tr>`;return;}
+  const sorted=[...entries].sort((a,b)=>b.start-a.start);
+  body.innerHTML=sorted.map(e=>{
+    const p=state.projects.find(x=>x.id===e.projectId);
+    const isLive=e.id==='live';
+    return`<tr>
+      <td style="font-weight:600">${p?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>${p.name}`:'–'}</td>
+      <td><span class="proj-phase-badge phase-${p?p.phase:1}">${p?HOAI_SHORT[p.phase]:'–'}</span></td>
+      <td style="font-size:12px;color:var(--ink-3)">${fmtTime(e.start)}</td>
+      <td style="font-size:12px;color:var(--ink-3)">${isLive?'<span class="badge live">Läuft</span>':fmtTime(e.end)}</td>
+      <td style="font-variant-numeric:tabular-nums">${fmtDur(e.end-e.start)}</td>
       <td>${isLive?'':
-        `<button class="entry-del" onclick="deleteEntry(${e.id})" title="Löschen">✕</button>`
+        `<button class="entry-del" onclick="deleteEntry(${e.id})">×</button>`
       }</td>
     </tr>`;
   }).join('');
-
-  // Project totals
-  const projTotals = {};
-  entries.forEach(e=>{
-    if (!projTotals[e.projectId]) projTotals[e.projectId]=0;
-    projTotals[e.projectId]+=(e.end-e.start);
-  });
-  body.innerHTML += `<tr class="total-row">
-    <td colspan="3">GESAMT</td>
-    <td class="td-mono" style="font-family:'DM Mono',monospace">${fmtDuration(totalMs)}</td>
-    <td></td><td></td><td></td>
-  </tr>`;
+  body.innerHTML+=`<tr class="total-row"><td colspan="4">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
 }
 
-function deleteEntry(id) {
-  state.entries = state.entries.filter(e=>e.id!==id);
-  save();
-  renderAll();
-  if (currentView==='report') renderReport();
-  showToast('Buchung gelöscht');
+function setPeriod(p,btn){
+  currentPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderReport();
 }
+function deleteEntry(id){state.entries=state.entries.filter(e=>e.id!==id);save();renderReport();renderErf();toast('Buchung gelöscht');}
 
-// ─── TOAST ───────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2500);
+function buildIconPicker(){
+  document.getElementById('iconPicker').innerHTML=ICONS.map(ic=>`<span style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${ic===selectedIcon?'var(--accent)':'transparent'};transition:border-color 0.15s" onclick="selectIcon('${ic}')">${ic}</span>`).join('');
 }
+function selectIcon(ic){selectedIcon=ic;buildIconPicker();}
+function buildColorPicker(){
+  document.getElementById('colorPicker').innerHTML=COLORS.map(c=>`<div class="color-swatch${c===selectedColor?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+}
+function selectColor(c){selectedColor=c;buildColorPicker();}
 
-// ─── KEYBOARD ────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key==='Escape') closeProjectModal();
-  if (e.key==='Enter' && document.getElementById('modal-overlay').classList.contains('open')) saveProject();
-});
-
-// ─── INIT ────────────────────────────────────────────────
-// Resume active tracking if page reloaded
-if (state.active) startElapsedTick();
+function openProjektModal(projId){
+  editingProjId=projId||null;
+  const p=projId?state.projects.find(x=>x.id===projId):null;
+  document.getElementById('modalProjektTitle').textContent=p?'Projekt bearbeiten':'Neues Projekt';
+  document.getElementById('pName').value=p?p.name:'';
+  document.getElementById('pNum').value=p?p.num:'';
+  document.getElementById('pPhase').value=p?p.phase:1;
+  selectedIcon=p?p.icon:ICONS[state.projects.length%ICONS.length];
+  selectedColor=p?p.color:COLORS[state.projects.length%COLORS.length];
+  buildIconPicker();buildColorPicker();
+  openModal('modalProjekt');
+  setTimeout(()=>document.getElementById('pName').focus(),200);
+}
+function saveProjekt(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){toast('Bitte Projektname eingeben');return;}
+  const data={name,num:document.getElementById('pNum').value.trim(),phase:parseInt(document.getElementById('pPhase').value),icon:selectedIcon,color:selectedColor};
+  if(editingProjId){const idx=state.projects.findIndex(p=>p.id===editingProjId);if(idx>-1)state.projects[idx]={...state.projects[idx],...data};toast('Projekt aktualisiert');}
+  else{state.projects.push({id:state.nextProjId++,...data});toast('Projekt angelegt');}
+  save();closeModal('modalProjekt');renderAll();
+}
+function deleteProjekt(id){
+  if(!confirm('Projekt und alle Buchungen löschen?'))return;
+  state.projects=state.projects.filter(p=>p.id!==id);
+  state.entries=state.entries.filter(e=>e.projectId!==id);
+  if(state.active&&state.active.projectId===id){state.active=null;clearInterval(elapsedInterval);elapsedInterval=null;}
+  save();renderAll();toast('Projekt gelöscht');
+}
+function renderAll(){renderErf();renderProjekte();}
+function openModal(id){document.getElementById(id).classList.remove('hidden');}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden');}));
+let toastTimer=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));});
+const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+if(prefersDark)document.documentElement.setAttribute('data-theme','dark');
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{e.matches?document.documentElement.setAttribute('data-theme','dark'):document.documentElement.removeAttribute('data-theme');});
+if(state.active)startTick();
 renderAll();
 </script>
 </body>
