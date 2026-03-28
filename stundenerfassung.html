@@ -8,9 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="desch Zeit">
 <title>Stundenerfassung · desch architekten</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
     --ink:#1a1a1a;--ink-2:#444;--ink-3:#888;
@@ -765,358 +762,286 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));});
 
 // ══════════════════════════════════════════
-// EINSTELLUNGEN
-// ══════════════════════════════════════════
-const SETTINGS_FIELDS=['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText'];
-
-function saveSettings(){
-  const s={};
-  SETTINGS_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value;});
-  localStorage.setItem('zeit2_settings',JSON.stringify(s));
-}
-
-function loadSettings(){
-  try{
-    const s=JSON.parse(localStorage.getItem('zeit2_settings')||'{}');
-    SETTINGS_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&s[id]!==undefined)el.value=s[id];});
-    if(s.sAccentColor)applyAccent(s.sAccentColor);
-    applyDarkMode(s.sDarkMode||'auto');
-    if(s.sLogoText)applyLogoText(s.sLogoText);
-  }catch(e){}
-  applyCustomLogo();
-}
-
-function getSettings(){try{return JSON.parse(localStorage.getItem('zeit2_settings')||'{}');}catch(e){return{};}}
-
-// ── Dark Mode ──
-function applyDarkMode(mode){
-  const root=document.documentElement;
-  if(mode==='dark'){root.setAttribute('data-theme','dark');}
-  else if(mode==='light'){root.removeAttribute('data-theme');}
-  else{
-    const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if(prefersDark)root.setAttribute('data-theme','dark');
-    else root.removeAttribute('data-theme');
-  }
-}
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-  const s=getSettings();if(!s.sDarkMode||s.sDarkMode==='auto')applyDarkMode('auto');
-});
-
-// ── Accent Color ──
-function applyAccent(color){
-  if(!color)return;
-  document.documentElement.style.setProperty('--accent',color);
-  document.documentElement.style.setProperty('--accent-2',color+'aa');
-  const preview=document.getElementById('sAccentPreview');
-  if(preview)preview.style.color=color;
-}
-function previewAccent(color){applyAccent(color);}
-function resetAccent(){
-  const defaultColor='#A80000';
-  const el=document.getElementById('sAccentColor');
-  if(el)el.value=defaultColor;
-  applyAccent(defaultColor);
-  saveSettings();
-  toast('Farbe zurückgesetzt');
-}
-
-// ── Custom Logo ──
-function handleCustomLogo(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{localStorage.setItem('zeit2_logo',e.target.result);applyCustomLogo();saveSettings();toast('Logo gespeichert');};
-  reader.readAsDataURL(file);input.value='';
-}
-function clearCustomLogo(){
-  localStorage.removeItem('zeit2_logo');
-  const el=document.getElementById('sLogoText');if(el)el.value='';
-  applyCustomLogo();saveSettings();toast('Standard-Logo wiederhergestellt');
-}
-function applyLogoText(text){
-  if(text.trim())localStorage.removeItem('zeit2_logo');
-  applyCustomLogo();
-}
-function applyCustomLogo(){
-  const imgData=localStorage.getItem('zeit2_logo');
-  const textEl=document.getElementById('sLogoText');
-  const text=textEl?textEl.value:'';
-  const logoWrap=document.getElementById('appLogoWrap');
-  const preview=document.getElementById('sLogoPreview');
-  if(imgData){
-    const imgTag=`<img src="${imgData}" style="height:32px;max-width:240px;object-fit:contain;display:block">`;
-    if(logoWrap)logoWrap.innerHTML=imgTag;
-    if(preview)preview.innerHTML=`<img src="${imgData}" style="height:28px;max-width:160px;object-fit:contain">`;
-  }else if(text.trim()){
-    const textTag=`<span style="font-family:'Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-0.5px;white-space:nowrap">${text}</span>`;
-    if(logoWrap)logoWrap.innerHTML=textTag;
-    if(preview)preview.innerHTML=`<span style="font-size:13px;font-weight:700;color:var(--ink)">${text}</span>`;
-  }else{
-    const backup=document.getElementById('logoSvgBackup');
-    if(logoWrap&&backup){logoWrap.innerHTML=backup.innerHTML;}
-    if(preview)preview.innerHTML='<span style="font-size:12px;color:var(--ink-3)">desch architekten (Standard)</span>';
-  }
-}
-
-// ── Clear All Data ──
-function clearAllData(){
-  if(!confirm('Alle gespeicherten Daten (Projekte, Buchungen, Einstellungen) löschen?'))return;
-  localStorage.removeItem('zeit2_state');
-  localStorage.removeItem('zeit2_settings');
-  localStorage.removeItem('zeit2_logo');
-  location.reload();
-}
-
-// ── INIT ──
-loadSettings();
-if(state.active)startTick();
-renderAll();
-
-// ══════════════════════════════════════════
-// EXPORT: EXCEL
+// EXPORT: EXCEL (natives XML-XLSX, kein CDN)
 // ══════════════════════════════════════════
 function exportExcel() {
-  const entries = getPeriodEntries();
+  const entries = getPeriodEntries().filter(e => e.id !== 'live');
+  if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
+
+  const s = getSettings();
+  const labels = {day:'Tag', week:'Woche', month:'Monat'};
+  const dateStr = new Date().toLocaleDateString('de-DE').replace(/\./g, '-');
+
+  const sorted = [...entries].sort((a,b) => b.start - a.start);
+
+  // --- Buchungen-Sheet ---
+  const bookRows = sorted.map(e => {
+    const p = state.projects.find(x => x.id === e.projectId);
+    const dur = e.end - e.start;
+    const h = Math.floor(dur / 3600000);
+    const m = Math.floor((dur % 3600000) / 60000);
+    return [
+      new Date(e.start).toLocaleDateString('de-DE'),
+      p ? p.name : '–',
+      p ? (p.num || '–') : '–',
+      p ? HOAI_NAMES[p.phase] : '–',
+      fmtTime(e.start),
+      fmtTime(e.end),
+      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,
+      (Math.round(dur / 360000) / 10).toFixed(1)
+    ];
+  });
+  const bookHeaders = ['Datum','Projekt','Projektnummer','HOAI-Phase','Von','Bis','Dauer (h:mm)','Dauer (Dez.)'];
+
+  // --- Zusammenfassung-Sheet ---
+  const projTotals = {};
+  sorted.forEach(e => {
+    const p = state.projects.find(x => x.id === e.projectId);
+    const key = p ? p.name : '–';
+    if (!projTotals[key]) projTotals[key] = 0;
+    projTotals[key] += (e.end - e.start);
+  });
+  const totalAllMs = sorted.reduce((a,e) => a + (e.end - e.start), 0);
+  const sumRows = Object.entries(projTotals).map(([name, ms]) => {
+    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+    return [name, `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, (Math.round(ms/360000)/10).toFixed(1)];
+  });
+  const tH = Math.floor(totalAllMs/3600000), tM = Math.floor((totalAllMs%3600000)/60000);
+  sumRows.push(['GESAMT', `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`, (Math.round(totalAllMs/360000)/10).toFixed(1)]);
+  const sumHeaders = ['Projekt','Gesamt (h:mm)','Gesamt (Dezimal h)'];
+
+  function escXml(v) {
+    return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function sheetXml(headers, rows, sheetName) {
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
+    xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n`;
+    xml += `<Worksheet ss:Name="${escXml(sheetName)}"><Table>\n`;
+    // Header row
+    xml += '<Row>';
+    headers.forEach(h => {
+      xml += `<Cell><Data ss:Type="String">${escXml(h)}</Data></Cell>`;
+    });
+    xml += '</Row>\n';
+    // Data rows
+    rows.forEach(row => {
+      xml += '<Row>';
+      row.forEach(cell => {
+        const isNum = typeof cell === 'number' || (!isNaN(parseFloat(cell)) && !cell.includes(':') && !cell.includes('.') && cell !== '–');
+        xml += `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escXml(cell)}</Data></Cell>`;
+      });
+      xml += '</Row>\n';
+    });
+    xml += '</Table></Worksheet>\n</Workbook>';
+    return xml;
+  }
+
+  // Build multi-sheet workbook via SpreadsheetML
+  function fullWorkbook(sheets) {
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
+    xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" `;
+    xml += `xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
+    xml += `<Styles><Style ss:ID="h"><Font ss:Bold="1"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/><Font ss:Color="#FFFFFF" ss:Bold="1"/></Style>`;
+    xml += `<Style ss:ID="total"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
+    sheets.forEach(({name, headers, rows, totalRow}) => {
+      xml += `<Worksheet ss:Name="${escXml(name)}"><Table>\n`;
+      xml += '<Row>';
+      headers.forEach(h => xml += `<Cell ss:StyleID="h"><Data ss:Type="String">${escXml(h)}</Data></Cell>`);
+      xml += '</Row>\n';
+      rows.forEach(row => {
+        xml += '<Row>';
+        row.forEach(cell => {
+          const s = String(cell);
+          const isNum = /^\d+\.\d+$/.test(s);
+          xml += `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escXml(s)}</Data></Cell>`;
+        });
+        xml += '</Row>\n';
+      });
+      if (totalRow) {
+        xml += '<Row>';
+        totalRow.forEach(cell => xml += `<Cell ss:StyleID="total"><Data ss:Type="String">${escXml(String(cell))}</Data></Cell>`);
+        xml += '</Row>\n';
+      }
+      xml += '</Table></Worksheet>\n';
+    });
+    xml += '</Workbook>';
+    return xml;
+  }
+
+  const tAllH = Math.floor(totalAllMs/3600000), tAllM = Math.floor((totalAllMs%3600000)/60000);
+  const totalBookRow = ['','','','','','GESAMT',
+    `${String(tAllH).padStart(2,'0')}:${String(tAllM).padStart(2,'0')}`,
+    (Math.round(totalAllMs/360000)/10).toFixed(1)
+  ];
+
+  const xml = fullWorkbook([
+    { name:'Buchungen', headers:bookHeaders, rows:bookRows, totalRow:totalBookRow },
+    { name:'Zusammenfassung', headers:sumHeaders, rows:Object.entries(projTotals).map(([name,ms])=>{
+        const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
+        return [name,`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,(Math.round(ms/360000)/10).toFixed(1)];
+      }),
+      totalRow:['GESAMT',`${String(tAllH).padStart(2,'0')}:${String(tAllM).padStart(2,'0')}`,(Math.round(totalAllMs/360000)/10).toFixed(1)]
+    }
+  ]);
+
+  const blob = new Blob([xml], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Stundenerfassung_${labels[currentPeriod]}_${dateStr}.xls`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Excel exportiert ✓');
+}
+
+// ══════════════════════════════════════════
+// EXPORT: PDF (Print-Window mit desch-Stil)
+// ══════════════════════════════════════════
+function exportPDF() {
+  const entries = getPeriodEntries().filter(e => e.id !== 'live');
   if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
 
   const s = getSettings();
   const buero = s.sBuero || 'desch architekten';
-  const labels = {day:'Tag',week:'Woche',month:'Monat'};
-  const periodLabel = labels[currentPeriod];
+  const adresse = s.sBueroAdresse || '';
+  const person = s.sName || '';
+  const funktion = s.sFunktion || '';
+  const periodLabels = {day:'Tagesübersicht', week:'Wochenübersicht', month:'Monatsübersicht'};
+  const shortLabels = {day:'Tag', week:'Woche', month:'Monat'};
+  const periodLabel = periodLabels[currentPeriod];
   const now = new Date();
-  const dateStr = now.toLocaleDateString('de-DE');
+  const dateStr = now.toLocaleDateString('de-DE', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  const fileDate = now.toLocaleDateString('de-DE').replace(/\./g,'-');
 
-  // Build data rows
-  const rows = entries
-    .filter(e => e.id !== 'live')
-    .sort((a,b) => b.start - a.start)
-    .map(e => {
-      const p = state.projects.find(x => x.id === e.projectId);
-      const dur = e.end - e.start;
-      const h = Math.floor(dur/3600000);
-      const m = Math.floor((dur%3600000)/60000);
-      const hDec = Math.round(dur/360000) / 10; // decimal hours
-      return {
-        'Datum': new Date(e.start).toLocaleDateString('de-DE'),
-        'Projekt': p ? p.name : '–',
-        'Projektnummer': p ? (p.num || '–') : '–',
-        'HOAI-Phase': p ? HOAI_NAMES[p.phase] : '–',
-        'Von': fmtTime(e.start),
-        'Bis': fmtTime(e.end),
-        'Dauer (h:mm)': `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,
-        'Dauer (Dezimal)': hDec
-      };
-    });
+  const sorted = [...entries].sort((a,b) => b.start - a.start);
+  const totalMs = sorted.reduce((a,e) => a + (e.end - e.start), 0);
+  const tH = Math.floor(totalMs/3600000), tM = Math.floor((totalMs%3600000)/60000);
+  const projCount = new Set(sorted.map(e=>e.projectId)).size;
 
-  // Add totals per project
+  // Per-project totals
   const projTotals = {};
-  entries.filter(e=>e.id!=='live').forEach(e => {
+  sorted.forEach(e => {
     const p = state.projects.find(x=>x.id===e.projectId);
-    const name = p ? p.name : '–';
-    if (!projTotals[name]) projTotals[name] = 0;
-    projTotals[name] += (e.end - e.start);
+    const key = p ? p.name : '–';
+    if (!projTotals[key]) projTotals[key] = {ms:0, phase: p?HOAI_SHORT[p.phase]:'–', num: p?p.num:'–'};
+    projTotals[key].ms += (e.end - e.start);
   });
 
-  const summaryRows = Object.entries(projTotals).map(([name, ms]) => {
-    const h = Math.floor(ms/3600000);
-    const m = Math.floor((ms%3600000)/60000);
-    return { 'Projekt': name, 'Gesamt (h:mm)': `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, 'Gesamt (Dezimal)': Math.round(ms/360000)/10 };
-  });
+  const tableRows = sorted.map(e => {
+    const p = state.projects.find(x=>x.id===e.projectId);
+    const dur = e.end - e.start;
+    const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
+    return `<tr>
+      <td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td>
+      <td class="td-main">${p ? p.name : '–'}</td>
+      <td>${p ? (p.num||'–') : '–'}</td>
+      <td><span class="phase-badge">${p ? HOAI_SHORT[p.phase] : '–'}</span></td>
+      <td>${fmtTime(e.start)}</td>
+      <td>${fmtTime(e.end)}</td>
+      <td class="td-num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
+      <td class="td-num">${(Math.round(dur/360000)/10).toFixed(1)}</td>
+    </tr>`;
+  }).join('');
 
-  const wb = XLSX.utils.book_new();
+  const summaryRows = Object.entries(projTotals).map(([name, {ms, phase, num}]) => {
+    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+    return `<tr>
+      <td class="td-main">${name}</td>
+      <td>${num||'–'}</td>
+      <td><span class="phase-badge">${phase}</span></td>
+      <td class="td-num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
+      <td class="td-num">${(Math.round(ms/360000)/10).toFixed(1)}</td>
+    </tr>`;
+  }).join('');
 
-  // Sheet 1: Buchungen
-  const ws1 = XLSX.utils.json_to_sheet(rows);
-  ws1['!cols'] = [
-    {wch:12},{wch:28},{wch:14},{wch:32},{wch:8},{wch:8},{wch:10},{wch:14}
-  ];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Buchungen');
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>Stundenerfassung – ${periodLabel}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
+  .header{background:#A80000;color:#fff;padding:10mm 14mm 8mm;display:flex;justify-content:space-between;align-items:flex-start}
+  .header-left .brand{font-size:18pt;font-weight:700;letter-spacing:-0.5px;line-height:1}
+  .header-left .sub{font-size:8pt;opacity:0.8;margin-top:2px}
+  .header-right{text-align:right}
+  .header-right .doc-title{font-size:13pt;font-weight:700;letter-spacing:1px}
+  .header-right .doc-sub{font-size:8pt;opacity:0.85;margin-top:3px}
+  .body{padding:8mm 14mm 6mm}
+  .section-title{font-size:15pt;font-weight:700;margin-bottom:1mm}
+  .meta{font-size:8pt;color:#888;margin-bottom:5mm}
+  .cards{display:flex;gap:4mm;margin-bottom:6mm}
+  .card{flex:1;background:#ece8e0;border-radius:4px;padding:3mm 4mm}
+  .card-label{font-size:6.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:1.5mm}
+  .card-value{font-size:14pt;font-weight:300;letter-spacing:-0.5px}
+  h3{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin:5mm 0 2mm;border-bottom:1px solid #e0dbd0;padding-bottom:1.5mm}
+  table{width:100%;border-collapse:collapse;font-size:8pt}
+  thead tr{background:#A80000;color:#fff}
+  thead th{padding:2.5mm 2mm;text-align:left;font-weight:600;font-size:7.5pt;white-space:nowrap}
+  tbody tr:nth-child(even){background:#f8f5f0}
+  tbody tr:hover{background:#ede9e0}
+  td{padding:2mm 2mm;vertical-align:middle;border-bottom:1px solid #ede8e0}
+  .td-main{font-weight:600}
+  .td-num{font-variant-numeric:tabular-nums;text-align:right}
+  tfoot tr{background:#ece8e0;font-weight:700}
+  tfoot td{padding:2.5mm 2mm;border-top:2px solid #c8c4b8}
+  .phase-badge{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:10px;background:#fde9e8;color:#A80000;white-space:nowrap}
+  .footer{margin-top:6mm;padding-top:3mm;border-top:1px solid #e0dbd0;display:flex;justify-content:space-between;font-size:7pt;color:#aaa}
+  @media print{
+    @page{size:A4 portrait;margin:0}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .no-print{display:none}
+  }
+</style></head><body>
+<div class="header">
+  <div class="header-left">
+    <div class="brand">desch</div>
+    <div class="sub">architekten</div>
+  </div>
+  <div class="header-right">
+    <div class="doc-title">STUNDENERFASSUNG</div>
+    <div class="doc-sub">${periodLabel.toUpperCase()} &nbsp;·&nbsp; ${dateStr}</div>
+  </div>
+</div>
+<div class="body">
+  <div class="section-title">${periodLabel}</div>
+  <div class="meta">${person}${person && funktion ? ' · ' : ''}${funktion}${(person||funktion) && buero ? ' · ' : ''}${buero}</div>
+  <div class="cards">
+    <div class="card"><div class="card-label">Gesamt</div><div class="card-value">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')} h</div></div>
+    <div class="card"><div class="card-label">Buchungen</div><div class="card-value">${sorted.length}</div></div>
+    <div class="card"><div class="card-label">Projekte</div><div class="card-value">${projCount}</div></div>
+    <div class="card"><div class="card-label">Ø pro Tag</div><div class="card-value">${((Math.round(totalMs/360000)/10)/Math.max(1,new Set(sorted.map(e=>e.date)).size)).toFixed(1)} h</div></div>
+  </div>
+  <h3>Alle Buchungen</h3>
+  <table>
+    <thead><tr><th>Datum</th><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Dez.</th></tr></thead>
+    <tbody>${tableRows}</tbody>
+    <tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="td-num">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}</td><td class="td-num">${(Math.round(totalMs/360000)/10).toFixed(1)}</td></tr></tfoot>
+  </table>
+  <h3>Zusammenfassung nach Projekt</h3>
+  <table>
+    <thead><tr><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Gesamt</th><th>Dez. h</th></tr></thead>
+    <tbody>${summaryRows}</tbody>
+  </table>
+  <div class="footer">
+    <span>${buero}${adresse ? ' · ' + adresse : ''}</span>
+    <span>Exportiert am ${new Date().toLocaleString('de-DE')}</span>
+  </div>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
 
-  // Sheet 2: Zusammenfassung
-  const ws2 = XLSX.utils.json_to_sheet(summaryRows);
-  ws2['!cols'] = [{wch:28},{wch:14},{wch:16}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Zusammenfassung');
-
-  const filename = `Stundenerfassung_${periodLabel}_${dateStr.replace(/\./g,'-')}.xlsx`;
-  XLSX.writeFile(wb, filename);
-  toast('Excel exportiert ✓');
+  const w = window.open('', '_blank', 'width=850,height=1100');
+  if (!w) { toast('Bitte Pop-ups erlauben'); return; }
+  w.document.write(html);
+  w.document.close();
+  toast('PDF-Druckdialog geöffnet ✓');
 }
 
 // ══════════════════════════════════════════
 // EXPORT: PDF
 // ══════════════════════════════════════════
-function exportPDF() {
-  const entries = getPeriodEntries();
-  if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
-
-  const s = getSettings();
-  const buero = s.sBuero || 'desch architekten';
-  const person = s.sName || '';
-  const labels = {day:'Tagesübersicht','week':'Wochenübersicht','month':'Monatsübersicht'};
-  const periodLabel = labels[currentPeriod] || 'Auswertung';
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-  const RED = [168, 0, 0];
-  const DARK = [26, 26, 26];
-  const GRAY = [120, 120, 120];
-  const LIGHTGRAY = [240, 236, 230];
-  const W = 210; // A4 width mm
-
-  // ── Header bar (red) ──
-  doc.setFillColor(...RED);
-  doc.rect(0, 0, W, 18, 'F');
-
-  // desch text in header
-  doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(13);
-  doc.text('desch', 14, 11.5);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.text('architekten', 14, 16.5);
-
-  // Title right
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text('STUNDENERFASSUNG', W - 14, 8, {align:'right'});
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8);
-  doc.text(periodLabel.toUpperCase(), W - 14, 13, {align:'right'});
-  doc.text(dateStr, W - 14, 17, {align:'right'});
-
-  // ── Meta info block ──
-  let y = 26;
-  doc.setTextColor(...DARK);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(14);
-  doc.text(periodLabel, 14, y);
-  y += 5;
-
-  if (person) {
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...GRAY);
-    doc.text(person + (buero ? '  ·  ' + buero : ''), 14, y);
-    y += 5;
-  }
-
-  // ── Summary cards ──
-  y += 2;
-  const totalMs = entries.filter(e=>e.id!=='live').reduce((a,e)=>a+(e.end-e.start),0);
-  const totalH = Math.floor(totalMs/3600000);
-  const totalM = Math.floor((totalMs%3600000)/60000);
-  const projCount = new Set(entries.map(e=>e.projectId)).size;
-  const bookingCount = entries.filter(e=>e.id!=='live').length;
-
-  const cards = [
-    { label: 'GESAMT', value: `${String(totalH).padStart(2,'0')}:${String(totalM).padStart(2,'0')} h` },
-    { label: 'BUCHUNGEN', value: String(bookingCount) },
-    { label: 'PROJEKTE', value: String(projCount) },
-  ];
-  const cardW = (W - 28 - 8) / 3;
-  cards.forEach((c, i) => {
-    const x = 14 + i * (cardW + 4);
-    doc.setFillColor(...LIGHTGRAY);
-    doc.roundedRect(x, y, cardW, 16, 2, 2, 'F');
-    doc.setTextColor(...GRAY);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(7);
-    doc.text(c.label, x + cardW/2, y + 5.5, {align:'center'});
-    doc.setTextColor(...DARK);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(12);
-    doc.text(c.value, x + cardW/2, y + 13, {align:'center'});
-  });
-  y += 22;
-
-  // ── Bookings table ──
-  const sorted = entries.filter(e=>e.id!=='live').sort((a,b)=>b.start-a.start);
-  const tableRows = sorted.map(e => {
-    const p = state.projects.find(x=>x.id===e.projectId);
-    const dur = e.end - e.start;
-    const h = Math.floor(dur/3600000);
-    const m = Math.floor((dur%3600000)/60000);
-    return [
-      new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),
-      p ? p.name : '–',
-      p ? HOAI_SHORT[p.phase] : '–',
-      fmtTime(e.start),
-      fmtTime(e.end),
-      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-    ];
-  });
-
-  doc.autoTable({
-    startY: y,
-    head: [['Datum','Projekt','Phase','Von','Bis','Dauer']],
-    body: tableRows,
-    foot: [[
-      { content: 'GESAMT', colSpan: 5, styles: { fontStyle:'bold', halign:'right' } },
-      { content: `${String(totalH).padStart(2,'0')}:${String(totalM).padStart(2,'0')}`, styles: { fontStyle:'bold' } }
-    ]],
-    theme: 'plain',
-    styles: { font:'helvetica', fontSize:8, cellPadding:3, textColor:DARK },
-    headStyles: { fillColor:RED, textColor:[255,255,255], fontStyle:'bold', fontSize:7.5 },
-    footStyles: { fillColor:LIGHTGRAY, textColor:DARK, fontStyle:'bold' },
-    alternateRowStyles: { fillColor:[248,245,240] },
-    columnStyles: {
-      0: { cellWidth:16 },
-      1: { cellWidth:'auto' },
-      2: { cellWidth:22 },
-      3: { cellWidth:14 },
-      4: { cellWidth:14 },
-      5: { cellWidth:18 }
-    },
-    margin: { left:14, right:14 }
-  });
-
-  // ── Project summary ──
-  const finalY = doc.lastAutoTable.finalY + 8;
-  const projTotals = {};
-  sorted.forEach(e => {
-    const p = state.projects.find(x=>x.id===e.projectId);
-    const key = p ? p.name : '–';
-    if (!projTotals[key]) projTotals[key] = 0;
-    projTotals[key] += (e.end-e.start);
-  });
-
-  doc.autoTable({
-    startY: finalY,
-    head: [['Projekt','Gesamt (h:mm)','Gesamt (Dezimal h)']],
-    body: Object.entries(projTotals).map(([name, ms]) => {
-      const h = Math.floor(ms/3600000);
-      const m = Math.floor((ms%3600000)/60000);
-      return [name, `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, (Math.round(ms/360000)/10).toFixed(1)];
-    }),
-    theme: 'plain',
-    styles: { font:'helvetica', fontSize:8, cellPadding:3, textColor:DARK },
-    headStyles: { fillColor:[68,68,68], textColor:[255,255,255], fontStyle:'bold', fontSize:7.5 },
-    alternateRowStyles: { fillColor:[248,245,240] },
-    margin: { left:14, right:14 }
-  });
-
-  // ── Footer ──
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setDrawColor(...LIGHTGRAY);
-    doc.line(14, 287, W-14, 287);
-    doc.setTextColor(...GRAY);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
-    doc.text(`${buero}${s.sBueroAdresse ? '  ·  '+s.sBueroAdresse : ''}`, 14, 291);
-    doc.text(`Seite ${i} / ${pageCount}`, W-14, 291, {align:'right'});
-  }
-
-  const labels2 = {day:'Tag',week:'Woche',month:'Monat'};
-  const filename = `Stundenerfassung_${labels2[currentPeriod]}_${dateStr.replace(/\./g,'-')}.pdf`;
-  doc.save(filename);
-  toast('PDF exportiert ✓');
-}
 </script>
 </body>
 </html>
