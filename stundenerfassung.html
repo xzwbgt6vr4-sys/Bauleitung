@@ -9,151 +9,198 @@
 <title>Stundenerfassung · desch architekten</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --ink:#1a1a1a;--ink-2:#444;--ink-3:#888;
-    --paper:#f5f2ed;--paper-2:#ece8e0;--paper-3:#e0dbd0;
-    --accent:#A80000;--accent-2:#d43333;
-    --green:#2a7a4e;--blue:#1e5a8c;--card:#faf8f4;
-    --shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 32px rgba(0,0,0,0.12);
-    --radius:14px;--radius-sm:8px;
-    --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
-  }
-  [data-theme="dark"]{--ink:#f0ede8;--ink-2:#c8c4bc;--ink-3:#888880;--paper:#1a1918;--paper-2:#242220;--paper-3:#2e2c28;--card:#1f1e1c;--shadow:0 2px 12px rgba(0,0,0,0.4);background:#141312}
-  [data-theme="dark"] body{background:#141312}
-  [data-theme="dark"] header,[data-theme="dark"] .tabs,[data-theme="dark"] .sticky-top{background:#1a1918!important;border-color:#2e2c28!important}
-  [data-theme="dark"] .tabs{box-shadow:0 2px 8px rgba(0,0,0,0.4)}
-  [data-theme="dark"] .tab{color:#888880}
-  [data-theme="dark"] .tab.active{color:var(--accent)}
-  [data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{background:#242220;color:var(--ink);border-color:#2e2c28}
-  [data-theme="dark"] .modal-sheet{background:#1a1918}
-  [data-theme="dark"] .proj-track-btn,[data-theme="dark"] .card,[data-theme="dark"] .project-item,[data-theme="dark"] .summary-card,[data-theme="dark"] .running-bar{background:#1f1e1c}
-  [data-theme="dark"] .header-logo rect{fill:#1a1918!important}
-  [data-theme="dark"] .header-logo svg{filter:invert(0)}
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-  body{font-family:'Arial Narrow',Arial,sans-serif;background:#e8e4de;color:var(--ink);min-height:100vh;overflow-x:hidden;overscroll-behavior-y:none}
-  .sticky-top{position:sticky;top:0;z-index:100;background:#fff;-webkit-transform:translateZ(0);transform:translateZ(0)}
-  header{background:#fff;color:var(--ink);padding:calc(var(--safe-top) + 14px) 20px 10px;display:flex;align-items:center;justify-content:space-between}
-  .header-logo-wrap{flex:1}
-  .header-logo-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-  .pro-badge{font-family:'Permanent Marker','Segoe Script',cursive;font-size:22px;font-weight:900;color:#00A8A8;line-height:1;transform:rotate(-20deg);display:inline-block;margin-left:4px;margin-top:4px;letter-spacing:-0.5px;position:relative;z-index:1}
-  .header-logo{width:260px;height:32px;flex-shrink:0}
-  .header-logo svg{display:block;width:100%;height:100%}
-  .header-sub{font-size:13px;color:var(--ink-3);display:flex;align-items:center;gap:6px;padding-left:10px}
-  .header-sub span:first-child{color:var(--ink-2);font-weight:600;letter-spacing:0.3px;text-transform:uppercase}
-  .header-btn{background:var(--accent);color:#fff;border:none;padding:7px 13px;border-radius:20px;font-size:20px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;line-height:1}
-  #clockDisplay{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-  .tabs{display:flex;background:#fff;padding:0 12px;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid #ddd8d0;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{flex-shrink:0;padding:8px 14px 9px;font-size:13px;font-weight:500;color:var(--ink-3);border:none;background:transparent;cursor:pointer;transition:all 0.15s;font-family:'Arial Narrow',Arial,sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-  main{padding:16px 16px calc(var(--safe-bottom) + 80px);max-width:700px;margin:0 auto}
-  .screen{display:none;animation:fadeUp 0.25s ease}
-  .screen.active{display:block}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
-  .card-header{padding:14px 16px;border-bottom:1px solid var(--paper-3);display:flex;align-items:center;justify-content:space-between}
-  .card-title{font-family:'Arial Narrow',Arial,sans-serif;font-size:17px;font-weight:600}
-  .card-body{padding:14px 16px}
-  .sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin:18px 0 8px}
-  .sec-label:first-child{margin-top:0}
-  .running-bar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--accent)}
-  .running-bar-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.4s ease-in-out infinite;flex-shrink:0}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
-  .running-bar-info{flex:1;min-width:0}
-  .running-bar-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .running-bar-since{font-size:12px;color:var(--ink-3);margin-top:2px}
-  .running-bar-time{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:-0.5px;flex-shrink:0}
-  .stop-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0}
-  .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
-  .proj-track-btn{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;cursor:pointer;border:2px solid transparent;transition:all 0.15s;text-align:left;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:8px;min-height:115px}
-  .proj-track-btn:active{transform:scale(0.97)}
-  .proj-track-btn.running{border-color:var(--accent)}
-  .proj-accent-bar{position:absolute;top:0;left:0;width:100%;height:4px}
-  .proj-track-btn-top{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}
-  .proj-track-btn-name{font-size:13px;font-weight:600;line-height:1.3;flex:1}
-  .proj-track-btn.running .proj-track-btn-name{color:var(--accent)}
-  .proj-running-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;animation:pulse 1.4s ease-in-out infinite;display:none}
-  .proj-track-btn.running .proj-running-dot{display:block}
-  .proj-track-btn-num{font-size:11px;color:var(--ink-3)}
-  .proj-phase-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
-  .proj-timer{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--ink-3);letter-spacing:-0.5px}
-  .proj-track-btn.running .proj-timer{color:var(--accent)}
-  .proj-today-label{font-size:11px;color:var(--ink-3);margin-top:-4px}
-  .phase-1{background:#fde9e8;color:#c0392b}.phase-2{background:#fdeee0;color:#d35400}.phase-3{background:#fdf5df;color:#c57b00}
-  .phase-4{background:#e9f5e4;color:#5d8a27}.phase-5{background:#e4f5ec;color:#1e8449}.phase-6{background:#e4f5f3;color:#1a7a6e}
-  .phase-7{background:#e4eef5;color:#1a5a8c}.phase-8{background:#eee9f8;color:#5b3a9e}.phase-9{background:#f5e8f5;color:#8e3090}
-  .project-list{display:flex;flex-direction:column;gap:10px}
-  .project-item{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;border:2px solid transparent}
-  .project-icon{width:44px;height:44px;border-radius:10px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-  .project-info{flex:1;min-width:0}
-  .project-name{font-weight:600;font-size:15px}
-  .project-meta{font-size:12px;color:var(--ink-3);margin-top:2px}
-  .edit-proj-btn{background:var(--paper-2);border:none;border-radius:8px;padding:6px 9px;font-size:15px;cursor:pointer;flex-shrink:0}
-  .del-proj-btn{background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px;line-height:1}
-  .del-proj-btn:active{color:var(--accent)}
-  .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-  .summary-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
-  .summary-card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-3);margin-bottom:6px}
-  .summary-card-value{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-0.5px}
-  .summary-card-unit{font-size:12px;color:var(--ink-3);margin-left:3px}
-  .report-table{width:100%;border-collapse:collapse}
-  .report-table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--paper-3)}
-  .report-table td{padding:10px 10px;border-bottom:1px solid var(--paper-3);font-size:13px;vertical-align:middle}
-  .report-table tr:last-child td{border-bottom:none}
-  .report-table tr:hover td{background:var(--paper)}
-  .total-row td{font-weight:700;color:var(--accent);border-top:2px solid var(--paper-3)!important}
-  .period-row{display:flex;gap:6px;margin-bottom:14px}
-  .period-btn{padding:7px 16px;border-radius:20px;font-size:13px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:500;border:1.5px solid var(--paper-3);background:transparent;color:var(--ink-3);cursor:pointer;transition:all 0.15s}
-  .period-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
-  .field{margin-bottom:12px}
-  label{font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
-  input[type=text],select{width:100%;padding:12px 14px;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);font-size:16px;font-family:'Arial Narrow',Arial,sans-serif;background:#fff;color:var(--ink);outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none}
-  input:focus,select:focus{border-color:var(--accent)}
-  .big-btn{width:100%;padding:15px;border-radius:var(--radius);font-size:16px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;border:none;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s}
-  .big-btn:active{transform:scale(0.98)}
-  .big-btn.primary{background:var(--accent);color:#fff}
-  .big-btn.secondary{background:var(--paper-2);color:var(--ink)}
-  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
-  .badge.live{background:#fde9e8;color:var(--accent)}
-  .color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-  .color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color 0.15s}
-  .color-swatch.selected{border-color:var(--ink)}
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;animation:fadeIn 0.2s ease}
-  .modal-overlay.hidden{display:none}
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  .modal-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px calc(var(--safe-bottom) + 24px);width:100%;max-height:92vh;overflow-y:auto;animation:slideUp 0.3s cubic-bezier(0.32,0.72,0,1)}
-  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-  .modal-handle{width:36px;height:4px;background:var(--paper-3);border-radius:2px;margin:0 auto 20px}
-  .modal-title{font-size:20px;font-weight:700;margin-bottom:16px}
-  .toast{position:fixed;bottom:calc(var(--safe-bottom) + 90px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;pointer-events:none}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .empty-state{text-align:center;padding:40px 20px;color:var(--ink-3)}
-  .empty-state-icon{font-size:36px;margin-bottom:10px}
-  .empty-state-text{font-size:14px;line-height:1.6}
-  .daily-bar-wrap{display:flex;flex-direction:column;gap:8px}
-  .daily-bar-item{display:flex;align-items:center;gap:10px}
-  .daily-bar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-  .daily-bar-name{font-size:12px;color:var(--ink-2);width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
-  .daily-bar-bg{flex:1;height:5px;background:var(--paper-3);border-radius:3px;overflow:hidden}
-  .daily-bar-fill{height:100%;border-radius:3px;transition:width 0.5s}
-  .daily-bar-time{font-size:12px;color:var(--ink-3);width:40px;text-align:right;flex-shrink:0}
-  .entry-del{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;padding:2px 6px;line-height:1}
-  .entry-del:active{color:var(--accent)}
-  @media(max-width:420px){.proj-grid{grid-template-columns:repeat(2,1fr)}.summary-card-value{font-size:20px}}
+:root{
+  --ink:#1a1a1a;--ink-2:#444;--ink-3:#888;
+  --paper:#f5f2ed;--paper-2:#ece8e0;--paper-3:#e0dbd0;
+  --accent:#A80000;--card:#faf8f4;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);
+  --radius:14px;--radius-sm:8px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+[data-theme="dark"]{
+  --ink:#f0ede8;--ink-2:#c8c4bc;--ink-3:#888880;
+  --paper:#1a1918;--paper-2:#242220;--paper-3:#2e2c28;--card:#1f1e1c;
+  --shadow:0 2px 12px rgba(0,0,0,0.4);
+}
+[data-theme="dark"] body{background:#141312}
+[data-theme="dark"] header,[data-theme="dark"] .tabs,[data-theme="dark"] .sticky-top{background:#1a1918!important;border-color:#2e2c28!important}
+[data-theme="dark"] .tabs{box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+[data-theme="dark"] .tab{color:#888880}
+[data-theme="dark"] .tab.active{color:var(--accent)}
+[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:#242220;color:var(--ink);border-color:#2e2c28}
+[data-theme="dark"] .modal-sheet{background:#1a1918}
+[data-theme="dark"] .card,[data-theme="dark"] .proj-track-btn,[data-theme="dark"] .project-item,
+[data-theme="dark"] .summary-card,[data-theme="dark"] .running-bar,[data-theme="dark"] .export-btn{background:#1f1e1c}
+[data-theme="dark"] .header-logo rect{fill:#1a1918!important}
 
-  .export-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-  .export-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;border:1.5px solid var(--paper-3);background:var(--card);color:var(--ink);transition:all 0.15s;box-shadow:var(--shadow)}
-  .export-btn:active{transform:scale(0.97)}
-  .export-btn.excel{border-color:#1d6f42;color:#1d6f42}
-  .export-btn.excel:hover{background:#1d6f42;color:#fff}
-  .export-btn.pdf{border-color:var(--accent);color:var(--accent)}
-  .export-btn.pdf:hover{background:var(--accent);color:#fff}
-  .export-btn-icon{font-size:16px;line-height:1}
-  [data-theme="dark"] .export-btn{background:#1f1e1c}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{font-family:'Arial Narrow',Arial,sans-serif;background:#e8e4de;color:var(--ink);min-height:100vh;overflow-x:hidden;overscroll-behavior-y:none}
+
+/* ── HEADER ── */
+.sticky-top{position:sticky;top:0;z-index:100;background:#fff;-webkit-transform:translateZ(0);transform:translateZ(0)}
+header{background:#fff;padding:calc(var(--safe-top) + 14px) 20px 10px;display:flex;align-items:center;justify-content:space-between}
+.header-logo-wrap{flex:1}
+.header-logo-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.pro-badge{font-family:'Permanent Marker',cursive;font-size:22px;font-weight:900;color:#00A8A8;line-height:1;transform:rotate(-20deg);display:inline-block;margin-left:4px;margin-top:4px;position:relative;z-index:1}
+.header-logo{width:260px;height:32px;flex-shrink:0}
+.header-logo svg{display:block;width:100%;height:100%}
+.header-sub{font-size:13px;color:var(--ink-3);display:flex;align-items:center;gap:6px;padding-left:10px}
+.header-sub span:first-child{color:var(--ink-2);font-weight:600;letter-spacing:0.3px;text-transform:uppercase}
+.header-btn{background:var(--accent);color:#fff;border:none;padding:7px 13px;border-radius:20px;font-size:20px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;line-height:1}
+#clockDisplay{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ── TABS ── */
+.tabs{display:flex;background:#fff;padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid #ddd8d0;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:8px 14px 9px;font-size:13px;font-weight:500;color:var(--ink-3);border:none;background:transparent;cursor:pointer;font-family:'Arial Narrow',Arial,sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* ── LAYOUT ── */
+main{padding:16px 16px calc(var(--safe-bottom) + 80px);max-width:700px;margin:0 auto}
+.screen{display:none;animation:fadeUp .25s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.card-header{padding:14px 16px;border-bottom:1px solid var(--paper-3);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:17px;font-weight:600}
+.card-body{padding:14px 16px}
+.sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-3);margin:18px 0 8px}
+.sec-label:first-child{margin-top:0}
+
+/* ── RUNNING BAR ── */
+.running-bar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--accent)}
+.running-bar-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.4s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.running-bar-info{flex:1;min-width:0}
+.running-bar-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.running-bar-since{font-size:12px;color:var(--ink-3);margin-top:2px}
+.running-bar-time{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:-.5px;flex-shrink:0}
+.stop-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0}
+
+/* ── PROJECT GRID ── */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.proj-track-btn{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;cursor:pointer;border:2px solid transparent;transition:all .15s;text-align:left;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:8px;min-height:115px}
+.proj-track-btn:active{transform:scale(.97)}
+.proj-track-btn.running{border-color:var(--accent)}
+.proj-accent-bar{position:absolute;top:0;left:0;width:100%;height:4px}
+.proj-track-btn-top{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}
+.proj-track-btn-name{font-size:13px;font-weight:600;line-height:1.3;flex:1}
+.proj-track-btn.running .proj-track-btn-name{color:var(--accent)}
+.proj-running-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;animation:pulse 1.4s ease-in-out infinite;display:none}
+.proj-track-btn.running .proj-running-dot{display:block}
+.proj-track-btn-num{font-size:11px;color:var(--ink-3)}
+.proj-phase-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
+.proj-timer{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;color:var(--ink-3);letter-spacing:-.5px}
+.proj-track-btn.running .proj-timer{color:var(--accent)}
+.proj-today-label{font-size:11px;color:var(--ink-3);margin-top:-4px}
+
+/* ── HOAI PHASE COLORS ── */
+.phase-1{background:#fde9e8;color:#c0392b}.phase-2{background:#fdeee0;color:#d35400}
+.phase-3{background:#fdf5df;color:#c57b00}.phase-4{background:#e9f5e4;color:#5d8a27}
+.phase-5{background:#e4f5ec;color:#1e8449}.phase-6{background:#e4f5f3;color:#1a7a6e}
+.phase-7{background:#e4eef5;color:#1a5a8c}.phase-8{background:#eee9f8;color:#5b3a9e}
+.phase-9{background:#f5e8f5;color:#8e3090}
+
+/* ── PROJECT LIST ── */
+.project-list{display:flex;flex-direction:column;gap:10px}
+.project-item{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;border:2px solid transparent}
+.project-icon{width:44px;height:44px;border-radius:10px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.project-info{flex:1;min-width:0}
+.project-name{font-weight:600;font-size:15px}
+.project-meta{font-size:12px;color:var(--ink-3);margin-top:2px}
+.edit-proj-btn{background:var(--paper-2);border:none;border-radius:8px;padding:6px 9px;font-size:15px;cursor:pointer;flex-shrink:0}
+.del-proj-btn{background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+
+/* ── SUMMARY ── */
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.summary-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.summary-card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);margin-bottom:6px}
+.summary-card-value{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.summary-card-unit{font-size:12px;color:var(--ink-3);margin-left:3px}
+
+/* ── REPORT TABLE ── */
+.report-table{width:100%;border-collapse:collapse}
+.report-table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--paper-3)}
+.report-table td{padding:10px;border-bottom:1px solid var(--paper-3);font-size:13px;vertical-align:middle}
+.report-table tr:last-child td{border-bottom:none}
+.report-table tr:hover td{background:var(--paper)}
+.total-row td{font-weight:700;color:var(--accent);border-top:2px solid var(--paper-3)!important}
+
+/* ── PERIOD & EXPORT ── */
+.period-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.period-btn{padding:7px 16px;border-radius:20px;font-size:13px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:500;border:1.5px solid var(--paper-3);background:transparent;color:var(--ink-3);cursor:pointer;transition:all .15s}
+.period-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.export-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.export-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;border:1.5px solid var(--paper-3);background:var(--card);color:var(--ink);transition:all .15s;box-shadow:var(--shadow)}
+.export-btn:active{transform:scale(.97)}
+.export-btn.excel{border-color:#1d6f42;color:#1d6f42}
+.export-btn.excel:hover{background:#1d6f42;color:#fff}
+.export-btn.pdf{border-color:var(--accent);color:var(--accent)}
+.export-btn.pdf:hover{background:var(--accent);color:#fff}
+
+/* ── DAILY BARS ── */
+.daily-bar-wrap{display:flex;flex-direction:column;gap:8px}
+.daily-bar-item{display:flex;align-items:center;gap:10px}
+.daily-bar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.daily-bar-name{font-size:12px;color:var(--ink-2);width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.daily-bar-bg{flex:1;height:5px;background:var(--paper-3);border-radius:3px;overflow:hidden}
+.daily-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.daily-bar-time{font-size:12px;color:var(--ink-3);width:40px;text-align:right;flex-shrink:0}
+
+/* ── FORM ── */
+.field{margin-bottom:12px}
+label{font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=date],input[type=color],select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);font-size:16px;font-family:'Arial Narrow',Arial,sans-serif;background:#fff;color:var(--ink);outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.hint{font-size:11px;color:var(--ink-3);margin-top:4px}
+.big-btn{width:100%;padding:15px;border-radius:var(--radius);font-size:16px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;border:none;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.big-btn:active{transform:scale(.98)}
+.big-btn.primary{background:var(--accent);color:#fff}
+.big-btn.secondary{background:var(--paper-2);color:var(--ink)}
+
+/* ── COLOR SWATCHES ── */
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
+.color-swatch.selected{border-color:var(--ink)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;animation:fadeIn .2s ease}
+.modal-overlay.hidden{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px calc(var(--safe-bottom) + 24px);width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.32,.72,0,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--paper-3);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-size:20px;font-weight:700;margin-bottom:16px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 90px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--ink-3)}
+.empty-state-icon{font-size:36px;margin-bottom:10px}
+.empty-state-text{font-size:14px;line-height:1.6}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.live{background:#fde9e8;color:var(--accent)}
+
+/* ── SETTINGS extra ── */
+.logo-preview-wrap{height:36px;min-width:120px;display:flex;align-items:center;background:var(--paper-2);border-radius:var(--radius-sm);padding:4px 10px;overflow:hidden;border:1.5px solid var(--paper-3)}
+.settings-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.settings-btn{background:var(--paper-2);border:1.5px dashed var(--paper-3);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;color:var(--ink)}
+
+.entry-del{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;padding:2px 6px;line-height:1}
+.entry-del:active{color:var(--accent)}
+@media(max-width:420px){.proj-grid{grid-template-columns:repeat(2,1fr)}.summary-card-value{font-size:20px}}
 </style>
 </head>
 <body>
 
+<!-- STICKY TOP: HEADER + TABS -->
 <div class="sticky-top">
 <header>
   <div class="header-logo-wrap">
@@ -361,12 +408,13 @@
   <button class="tab active" onclick="switchTab('erfassung',this)">Erfassung</button>
   <button class="tab" onclick="switchTab('projekte',this)">Projekte</button>
   <button class="tab" onclick="switchTab('auswertung',this)">Auswertung</button>
-  <button class="tab" onclick="switchTab('einstellungen',this)" title="Einstellungen" style="font-size:17px;padding:8px 12px 9px">⚙️</button>
+  <button class="tab" onclick="switchTab('einstellungen',this)" style="font-size:17px;padding:8px 12px 9px">⚙️</button>
+</div>
 </div>
 
 <main>
 
-<!-- TAB: ERFASSUNG -->
+<!-- ══ ERFASSUNG ══ -->
 <div id="tab-erfassung" class="screen active">
   <div class="running-bar" id="runningBar" style="display:none">
     <div class="running-bar-dot"></div>
@@ -388,14 +436,14 @@
   </div>
 </div>
 
-<!-- TAB: PROJEKTE -->
+<!-- ══ PROJEKTE ══ -->
 <div id="tab-projekte" class="screen">
   <p class="sec-label">Meine Projekte</p>
   <div class="project-list" id="projekteListe"></div>
   <button class="big-btn primary" style="margin-top:8px" onclick="openProjektModal()">＋ Neues Projekt anlegen</button>
 </div>
 
-<!-- TAB: AUSWERTUNG -->
+<!-- ══ AUSWERTUNG ══ -->
 <div id="tab-auswertung" class="screen">
   <div class="period-row">
     <button class="period-btn active" onclick="setPeriod('day',this)">Tag</button>
@@ -413,33 +461,21 @@
     </div>
   </div>
   <div class="export-row">
-    <button class="export-btn excel" onclick="exportExcel()">
-      <span class="export-btn-icon">📊</span> Als Excel exportieren
-    </button>
-    <button class="export-btn pdf" onclick="exportPDF()">
-      <span class="export-btn-icon">📄</span> Als PDF exportieren
-    </button>
+    <button class="export-btn excel" onclick="exportExcel()">📊 Excel exportieren</button>
+    <button class="export-btn pdf" onclick="exportPDF()">📄 PDF exportieren</button>
   </div>
 </div>
 
-<!-- TAB: EINSTELLUNGEN -->
+<!-- ══ EINSTELLUNGEN ══ -->
 <div id="tab-einstellungen" class="screen">
 
   <div class="card">
     <div class="card-header"><span class="card-title">👤 Projektleitung</span></div>
     <div class="card-body">
-      <div class="field"><label>Vollständiger Name</label>
-        <input type="text" id="sName" placeholder="Dipl.-Ing. Max Mustermann" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>Titel / Funktion</label>
-        <input type="text" id="sFunktion" placeholder="Architekt / Projektleiter" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>E-Mail</label>
-        <input type="text" id="sMail" placeholder="m.mustermann@desch.de" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>Telefon</label>
-        <input type="text" id="sTel" placeholder="+49 931 …" oninput="saveSettings()">
-      </div>
+      <div class="field"><label>Vollständiger Name</label><input type="text" id="sName" placeholder="Dipl.-Ing. Max Mustermann" oninput="saveSettings()"></div>
+      <div class="field"><label>Titel / Funktion</label><input type="text" id="sFunktion" placeholder="Architekt / Projektleiter" oninput="saveSettings()"></div>
+      <div class="field"><label>E-Mail</label><input type="text" id="sMail" placeholder="m.mustermann@desch.de" oninput="saveSettings()"></div>
+      <div class="field"><label>Telefon</label><input type="text" id="sTel" placeholder="+49 931 …" oninput="saveSettings()"></div>
     </div>
   </div>
 
@@ -448,34 +484,41 @@
     <div class="card-body">
       <div class="field">
         <label>Logo</label>
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-          <div id="sLogoPreview" style="height:36px;min-width:120px;display:flex;align-items:center;background:var(--paper-2);border-radius:var(--radius-sm);padding:4px 10px;overflow:hidden;border:1.5px solid var(--paper-3)">
-            <span style="font-size:12px;color:var(--ink-3)">desch architekten (Standard)</span>
-          </div>
-          <button type="button" style="background:var(--paper-2);border:1.5px dashed var(--paper-3);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap" onclick="document.getElementById('sLogoImgInput').click()">📷 Bild</button>
-          <button type="button" style="background:var(--paper-2);border:1.5px dashed var(--paper-3);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer" onclick="clearCustomLogo()">✕ Reset</button>
+        <div class="settings-row" style="margin-bottom:8px">
+          <div class="logo-preview-wrap" id="sLogoPreview"><span style="font-size:12px;color:var(--ink-3)">desch architekten (Standard)</span></div>
+          <button class="settings-btn" onclick="document.getElementById('sLogoImgInput').click()">📷 Bild</button>
+          <button class="settings-btn" onclick="clearCustomLogo()">✕ Reset</button>
         </div>
         <input type="file" id="sLogoImgInput" accept="image/*" onchange="handleCustomLogo(this)" style="display:none">
         <div class="field" style="margin-bottom:0">
           <label>Oder: Logo-Text</label>
           <input type="text" id="sLogoText" placeholder="Mein Architekturbüro" oninput="saveSettings();applyLogoText(this.value)">
         </div>
-        <p style="font-size:11px;color:var(--ink-3);margin-top:6px">Bild hat Vorrang vor Text. Leer = desch-Logo.</p>
+        <p class="hint">Bild hat Vorrang vor Text. Leer = desch-Logo.</p>
       </div>
-      <div class="field"><label>Büroname</label>
-        <input type="text" id="sBuero" placeholder="desch architekten+ingenieure" oninput="saveSettings()">
+      <div class="field"><label>Büroname</label><input type="text" id="sBuero" placeholder="desch architekten+ingenieure" oninput="saveSettings()"></div>
+      <div class="field"><label>Adresse</label><input type="text" id="sBueroAdresse" placeholder="Musterstraße 1, 97070 Würzburg" oninput="saveSettings()"></div>
+      <div class="field"><label>Büro-Telefon</label><input type="text" id="sBueroTel" placeholder="+49 931 …" oninput="saveSettings()"></div>
+      <div class="field"><label>Büro-E-Mail</label><input type="text" id="sBueroMail" placeholder="info@desch.de" oninput="saveSettings()"></div>
+      <div class="field"><label>Website</label><input type="text" id="sBueroWeb" placeholder="www.desch.de" oninput="saveSettings()"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📤 Export</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>Export-Ziel (iPhone / iPad)</label>
+        <select id="sExportTarget" onchange="saveSettings()">
+          <option value="share">Share-Sheet (Dateien, Mail, AirDrop …)</option>
+          <option value="mail">Direkt per E-Mail senden</option>
+        </select>
+        <p class="hint">Auf iPhone/iPad: "Share-Sheet" öffnet das iOS-Teilen-Menü. "E-Mail" öffnet die Mail-App direkt.</p>
       </div>
-      <div class="field"><label>Adresse</label>
-        <input type="text" id="sBueroAdresse" placeholder="Musterstraße 1, 97070 Würzburg" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>Büro-Telefon</label>
-        <input type="text" id="sBueroTel" placeholder="+49 931 …" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>Büro-E-Mail</label>
-        <input type="text" id="sBueroMail" placeholder="info@desch.de" oninput="saveSettings()">
-      </div>
-      <div class="field"><label>Website</label>
-        <input type="text" id="sBueroWeb" placeholder="www.desch.de" oninput="saveSettings()">
+      <div class="field" id="exportMailField">
+        <label>E-Mail-Adresse für Export</label>
+        <input type="text" id="sExportMail" placeholder="buero@desch.de" oninput="saveSettings()">
+        <p class="hint">Dateien werden als Anhang an diese Adresse geschickt.</p>
       </div>
     </div>
   </div>
@@ -486,26 +529,18 @@
       <div class="field">
         <label>Systemfarbe</label>
         <div style="display:flex;align-items:center;gap:12px">
-          <input type="color" id="sAccentColor" value="#A80000"
-            oninput="previewAccent(this.value)"
-            onchange="saveSettings()"
-            style="width:48px;height:40px;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);padding:2px;cursor:pointer;background:#fff">
+          <input type="color" id="sAccentColor" value="#A80000" oninput="applyAccent(this.value)" onchange="saveSettings()" style="width:48px;height:40px;padding:2px;cursor:pointer">
           <div>
             <div style="font-size:13px;font-weight:600" id="sAccentPreview">●●● Vorschau</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:2px">Betrifft Buttons, aktive Tabs, Akzente</div>
+            <div class="hint" style="margin-top:2px">Betrifft Buttons, aktive Tabs, Akzente</div>
           </div>
-          <button style="background:var(--paper-2);border:1.5px dashed var(--paper-3);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer" onclick="resetAccent()">Zurücksetzen</button>
+          <button class="settings-btn" onclick="resetAccent()">Zurücksetzen</button>
         </div>
-      </div>
-      <div class="field">
-        <label>Export – E-Mail-Empfänger (iOS)</label>
-        <input type="text" id="sExportMail" placeholder="z.B. buero@desch.de" oninput="saveSettings()">
-        <p style="font-size:11px;color:var(--ink-3);margin-top:4px">Auf iPhone/iPad: Dateien werden per Mail an diese Adresse gesendet. Leer = nur Share-Sheet.</p>
       </div>
       <div class="field">
         <label>Erscheinungsbild</label>
         <select id="sDarkMode" onchange="applyDarkMode(this.value);saveSettings()">
-          <option value="auto">Automatisch (Systemeinstellung)</option>
+          <option value="auto">Automatisch (System)</option>
           <option value="light">Hell</option>
           <option value="dark">Dunkel</option>
         </select>
@@ -523,7 +558,7 @@
 </div>
 </main>
 
-<!-- MODAL: NEUES PROJEKT -->
+<!-- MODAL: PROJEKT -->
 <div class="modal-overlay hidden" id="modalProjekt">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -549,23 +584,30 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const COLORS=['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#555'];
-const ICONS=['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
-const HOAI_NAMES={1:'LP 1 – Grundlagenermittlung',2:'LP 2 – Vorplanung',3:'LP 3 – Entwurfsplanung',4:'LP 4 – Genehmigungsplanung',5:'LP 5 – Ausführungsplanung',6:'LP 6 – Vorbereitung Vergabe',7:'LP 7 – Mitwirkung Vergabe',8:'LP 8 – Objektüberwachung',9:'LP 9 – Objektbetreuung'};
-const HOAI_SHORT={1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
+// ══ KONSTANTEN ══
+const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#555'];
+const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
+const HOAI_NAMES = {1:'LP 1 – Grundlagenermittlung',2:'LP 2 – Vorplanung',3:'LP 3 – Entwurfsplanung',4:'LP 4 – Genehmigungsplanung',5:'LP 5 – Ausführungsplanung',6:'LP 6 – Vorbereitung Vergabe',7:'LP 7 – Mitwirkung Vergabe',8:'LP 8 – Objektüberwachung',9:'LP 9 – Objektbetreuung'};
+const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
+const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail'];
 
-let state=JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
-let elapsedInterval=null,currentPeriod='day',editingProjId=null,selectedIcon=ICONS[0],selectedColor=COLORS[0];
+// ══ STATE ══
+let state = JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
+let elapsedInterval=null, currentPeriod='day', editingProjId=null, selectedIcon=ICONS[0], selectedColor=COLORS[0];
 function save(){localStorage.setItem('zeit2_state',JSON.stringify(state));}
 
-// clock
+// ══ CLOCK ══
 setInterval(()=>{document.getElementById('clockDisplay').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
 document.getElementById('clockDisplay').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;}
+// ══ HELPERS ══
+function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;'';}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
 function todayStr(){return new Date().toISOString().slice(0,10);}
+function fmtHM(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;'';}
+function fmtDec(ms){return(Math.round(ms/360000)/10).toFixed(1);}
 
+// ══ TABS ══
 function switchTab(id,btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
@@ -574,8 +616,10 @@ function switchTab(id,btn){
   if(id==='auswertung')renderReport();
   if(id==='erfassung')renderErf();
   if(id==='projekte')renderProjekte();
+  if(id==='einstellungen')updateExportMailVisibility();
 }
 
+// ══ TRACKING ══
 function startTracking(projId){
   if(state.active&&state.active.projectId===projId)return;
   if(state.active)finishActive();
@@ -625,6 +669,7 @@ function getPeriodEntries(){
   return entries;
 }
 
+// ══ RENDER: ERFASSUNG ══
 function renderErf(){
   const bar=document.getElementById('runningBar');
   if(state.active){
@@ -654,47 +699,48 @@ function renderErf(){
   }
   renderDailyBars();
 }
-
 function renderDailyBars(){
   const data=state.projects.map(p=>({p,ms:getTodayMs(p.id)})).filter(x=>x.ms>0);
   const total=data.reduce((a,x)=>a+x.ms,0);
   const card=document.getElementById('dailySummaryCard');
   if(!data.length){card.style.display='none';return;}
   card.style.display='block';
-  document.getElementById('dailyTotal').textContent=fmtDur(total).slice(0,5)+' h';
+  document.getElementById('dailyTotal').textContent=fmtHM(total)+' h';
   document.getElementById('dailyBars').innerHTML=data.map(({p,ms})=>`
     <div class="daily-bar-item">
       <div class="daily-bar-dot" style="background:${p.color}"></div>
       <div class="daily-bar-name">${p.name}</div>
       <div class="daily-bar-bg"><div class="daily-bar-fill" style="width:${total?Math.round(ms/total*100):0}%;background:${p.color}"></div></div>
-      <div class="daily-bar-time">${fmtDur(ms).slice(0,5)}</div>
+      <div class="daily-bar-time">${fmtHM(ms)}</div>
     </div>`).join('');
 }
 
+// ══ RENDER: PROJEKTE ══
 function renderProjekte(){
   const list=document.getElementById('projekteListe');
   if(!state.projects.length){list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🏗️</div><div class="empty-state-text">Noch keine Projekte angelegt.</div></div>`;return;}
   list.innerHTML=state.projects.map(p=>`
     <div class="project-item">
       <div class="project-icon" style="border-color:${p.color}">${p.icon||'🏗️'}</div>
-      <div class="project-info"><div class="project-name">${p.name}</div><div class="project-meta">${p.num?p.num+' · ':''}${HOAI_NAMES[p.phase]}</div></div>
+      <div class="project-info"><div class="project-name">${p.name}</div><div class="project-meta">${p.num?p.num+' · ':''} ${HOAI_NAMES[p.phase]}</div></div>
       <button class="edit-proj-btn" onclick="openProjektModal(${p.id})">✏️</button>
       <button class="del-proj-btn" onclick="deleteProjekt(${p.id})">×</button>
     </div>`).join('');
 }
 
+// ══ RENDER: REPORT ══
 function renderReport(){
   const entries=getPeriodEntries();
-  const totalMs=entries.reduce((a,e)=>a+(e.end-e.start),0);
+  const totalMs=entries.filter(e=>e.id!=='live').reduce((a,e)=>a+(e.end-e.start),0);
   const projCount=new Set(entries.map(e=>e.projectId)).size;
   const labels={day:'Heute',week:'Diese Woche',month:'Dieser Monat'};
   document.getElementById('reportTitle').textContent='Buchungen · '+labels[currentPeriod];
   document.getElementById('summaryRow').innerHTML=`
-    <div class="summary-card"><div class="summary-card-label">Gesamt</div><div class="summary-card-value">${fmtDur(totalMs).slice(0,5)}<span class="summary-card-unit">h</span></div></div>
-    <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.length}</div></div>
+    <div class="summary-card"><div class="summary-card-label">Gesamt</div><div class="summary-card-value">${fmtHM(totalMs)}<span class="summary-card-unit">h</span></div></div>
+    <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.filter(e=>e.id!=='live').length}</div></div>
     <div class="summary-card"><div class="summary-card-label">Projekte</div><div class="summary-card-value">${projCount}</div></div>`;
   const body=document.getElementById('reportBody');
-  if(!entries.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:24px">Keine Buchungen in diesem Zeitraum</td></tr>`;return;}
+  if(!entries.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:24px">Keine Buchungen</td></tr>`;return;}
   const sorted=[...entries].sort((a,b)=>b.start-a.start);
   body.innerHTML=sorted.map(e=>{
     const p=state.projects.find(x=>x.id===e.projectId);
@@ -704,15 +750,12 @@ function renderReport(){
       <td><span class="proj-phase-badge phase-${p?p.phase:1}">${p?HOAI_SHORT[p.phase]:'–'}</span></td>
       <td style="font-size:12px;color:var(--ink-3)">${fmtTime(e.start)}</td>
       <td style="font-size:12px;color:var(--ink-3)">${isLive?'<span class="badge live">Läuft</span>':fmtTime(e.end)}</td>
-      <td style="font-variant-numeric:tabular-nums">${fmtDur(e.end-e.start)}</td>
-      <td>${isLive?'':
-        `<button class="entry-del" onclick="deleteEntry(${e.id})">×</button>`
-      }</td>
+      <td style="font-variant-numeric:tabular-nums">${isLive?'–':fmtDur(e.end-e.start)}</td>
+      <td>${isLive?'':`<button class="entry-del" onclick="deleteEntry(${e.id})">×</button>`}</td>
     </tr>`;
   }).join('');
   body.innerHTML+=`<tr class="total-row"><td colspan="4">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
 }
-
 function setPeriod(p,btn){
   currentPeriod=p;
   document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
@@ -721,15 +764,15 @@ function setPeriod(p,btn){
 }
 function deleteEntry(id){state.entries=state.entries.filter(e=>e.id!==id);save();renderReport();renderErf();toast('Buchung gelöscht');}
 
+// ══ PROJEKT MODAL ══
 function buildIconPicker(){
-  document.getElementById('iconPicker').innerHTML=ICONS.map(ic=>`<span style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${ic===selectedIcon?'var(--accent)':'transparent'};transition:border-color 0.15s" onclick="selectIcon('${ic}')">${ic}</span>`).join('');
+  document.getElementById('iconPicker').innerHTML=ICONS.map(ic=>`<span style="font-size:24px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${ic===selectedIcon?'var(--accent)':'transparent'};transition:border-color .15s" onclick="selectIcon('${ic}')">${ic}</span>`).join('');
 }
 function selectIcon(ic){selectedIcon=ic;buildIconPicker();}
 function buildColorPicker(){
   document.getElementById('colorPicker').innerHTML=COLORS.map(c=>`<div class="color-swatch${c===selectedColor?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
 }
 function selectColor(c){selectedColor=c;buildColorPicker();}
-
 function openProjektModal(projId){
   editingProjId=projId||null;
   const p=projId?state.projects.find(x=>x.id===projId):null;
@@ -762,229 +805,241 @@ function renderAll(){renderErf();renderProjekte();}
 function openModal(id){document.getElementById(id).classList.remove('hidden');}
 function closeModal(id){document.getElementById(id).classList.add('hidden');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));});
 let toastTimer=null;
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));});
 
-// ══════════════════════════════════════════
-// iOS-KOMPATIBLES SHARE / DOWNLOAD
-// ══════════════════════════════════════════
-function isIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent) || 
-         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// ══ EINSTELLUNGEN ══
+function saveSettings(){
+  const s={};
+  SFIELDS.forEach(id=>{const el=document.getElementById(id);if(el)s[id]=el.value;});
+  localStorage.setItem('zeit2_settings',JSON.stringify(s));
+  updateExportMailVisibility();
+}
+function loadSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{};
+    SFIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&s[id]!==undefined)el.value=s[id];});
+    if(s.sAccentColor)applyAccent(s.sAccentColor);
+    applyDarkMode(s.sDarkMode||'auto');
+  }catch(e){}
+  applyCustomLogo();
+  updateExportMailVisibility();
+}
+function getSettings(){try{return JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{};}catch(e){return{};}}
+function updateExportMailVisibility(){
+  const sel=document.getElementById('sExportTarget');
+  const field=document.getElementById('exportMailField');
+  if(sel&&field)field.style.display=sel.value==='mail'?'block':'none';
 }
 
-async function shareOrDownload(blob, filename, mimeType) {
-  const s = getSettings();
+// ── Dark Mode ──
+function applyDarkMode(mode){
+  const root=document.documentElement;
+  if(mode==='dark'){root.setAttribute('data-theme','dark');}
+  else if(mode==='light'){root.removeAttribute('data-theme');}
+  else{window.matchMedia('(prefers-color-scheme: dark)').matches?root.setAttribute('data-theme','dark'):root.removeAttribute('data-theme');}
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  const s=getSettings();if(!s.sDarkMode||s.sDarkMode==='auto')applyDarkMode('auto');
+});
 
-  // iOS: navigator.share mit File (iOS 15+)
-  if (isIOS() && navigator.share && navigator.canShare) {
-    try {
-      const file = new File([blob], filename, { type: mimeType });
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: filename });
-        toast('Geteilt ✓');
-        return;
+// ── Accent ──
+function applyAccent(color){
+  if(!color)return;
+  document.documentElement.style.setProperty('--accent',color);
+  const p=document.getElementById('sAccentPreview');
+  if(p)p.style.color=color;
+}
+function resetAccent(){
+  const c='#A80000';
+  const el=document.getElementById('sAccentColor');
+  if(el)el.value=c;
+  applyAccent(c);saveSettings();toast('Farbe zurückgesetzt');
+}
+
+// ── Logo ──
+function handleCustomLogo(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{localStorage.setItem('zeit2_logo',e.target.result);applyCustomLogo();saveSettings();toast('Logo gespeichert');};
+  r.readAsDataURL(file);input.value='';
+}
+function clearCustomLogo(){
+  localStorage.removeItem('zeit2_logo');
+  const el=document.getElementById('sLogoText');if(el)el.value='';
+  applyCustomLogo();saveSettings();toast('Standard-Logo wiederhergestellt');
+}
+function applyLogoText(text){if(text.trim())localStorage.removeItem('zeit2_logo');applyCustomLogo();}
+function applyCustomLogo(){
+  const imgData=localStorage.getItem('zeit2_logo');
+  const textEl=document.getElementById('sLogoText');
+  const text=textEl?textEl.value:'';
+  const wrap=document.getElementById('appLogoWrap');
+  const prev=document.getElementById('sLogoPreview');
+  if(imgData){
+    if(wrap)wrap.innerHTML=`<img src="${imgData}" style="height:32px;max-width:240px;object-fit:contain;display:block">`;
+    if(prev)prev.innerHTML=`<img src="${imgData}" style="height:28px;max-width:160px;object-fit:contain">`;
+  }else if(text.trim()){
+    if(wrap)wrap.innerHTML=`<span style="font-family:'Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.5px;white-space:nowrap">${text}</span>`;
+    if(prev)prev.innerHTML=`<span style="font-size:13px;font-weight:700;color:var(--ink)">${text}</span>`;
+  }else{
+    const backup=document.getElementById('logoSvgBackup');
+    if(wrap&&backup){wrap.innerHTML=backup.innerHTML;}
+    if(prev)prev.innerHTML='<span style="font-size:12px;color:var(--ink-3)">desch architekten (Standard)</span>';
+  }
+}
+function clearAllData(){
+  if(!confirm('Alle Daten löschen?'))return;
+  ['zeit2_state','zeit2_settings','zeit2_logo'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+// ══ iOS DETECTION ══
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
+
+// ══ SHARE / DOWNLOAD (iOS-kompatibel) ══
+async function shareOrDownload(blob, filename, mimeType){
+  const s=getSettings();
+
+  // iOS 15+: natives Share-Sheet mit File
+  if(isIOS()&&navigator.share&&navigator.canShare){
+    try{
+      const file=new File([blob],filename,{type:mimeType});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:filename});
+        toast('Geteilt ✓');return;
       }
-    } catch(e) {
-      if (e.name !== 'AbortError') console.warn('share failed:', e);
-      else { toast('Abgebrochen'); return; }
+    }catch(e){
+      if(e.name==='AbortError'){toast('Abgebrochen');return;}
     }
   }
 
-  // iOS-Fallback: data:-URI in neuem Tab öffnen (Safari zeigt Vorschau + Teilen-Button)
-  if (isIOS()) {
-    const reader = new FileReader();
-    reader.onload = function() {
-      const dataUrl = reader.result;
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = filename;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast('Datei wird geöffnet – Teilen zum Speichern');
+  // iOS Mail-Direktversand (falls eingestellt)
+  if(isIOS()&&s.sExportTarget==='mail'&&s.sExportMail){
+    const r=new FileReader();
+    r.onload=function(){
+      // Öffne Mail-App mit mailto: – Anhang geht via mailto nicht direkt,
+      // daher öffnen wir die Datei als data-URI in Safari und hinweisen den User
+      const a=document.createElement('a');
+      a.href=r.result;a.download=filename;a.target='_blank';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      toast('Datei geöffnet – über Teilen versenden');
     };
-    reader.readAsDataURL(blob);
-    return;
+    r.readAsDataURL(blob);return;
   }
 
-  // Desktop: normaler Blob-Download
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  // iOS Fallback: data-URI öffnen (Safari zeigt Vorschau + Teilen-Button)
+  if(isIOS()){
+    const r=new FileReader();
+    r.onload=function(){
+      const a=document.createElement('a');
+      a.href=r.result;a.download=filename;a.target='_blank';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      toast('Datei öffnen → Teilen → Speichern');
+    };
+    r.readAsDataURL(blob);return;
+  }
+
+  // Desktop: Blob-Download
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
   toast('Download gestartet ✓');
 }
 
-// ══════════════════════════════════════════
-// EXPORT: EXCEL (SpreadsheetML, kein CDN)
-// ══════════════════════════════════════════
-function exportExcel() {
-  const entries = getPeriodEntries().filter(e => e.id !== 'live');
-  if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
+// ══ EXPORT: EXCEL ══
+function exportExcel(){
+  const entries=getPeriodEntries().filter(e=>e.id!=='live');
+  if(!entries.length){toast('Keine Buchungen zum Exportieren');return;}
+  const periodShort={day:'Tag',week:'Woche',month:'Monat'}[currentPeriod];
+  const dateStr=new Date().toLocaleDateString('de-DE').replace(/\./g,'-');
+  const sorted=[...entries].sort((a,b)=>b.start-a.start);
 
-  const s = getSettings();
-  const periodShort = {day:'Tag', week:'Woche', month:'Monat'}[currentPeriod];
-  const dateStr = new Date().toLocaleDateString('de-DE').replace(/\./g, '-');
-  const sorted = [...entries].sort((a, b) => b.start - a.start);
+  function escXml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-  function escXml(v) {
-    return String(v)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // Buchungen
+  const bHdr=['Datum','Projekt','Projektnummer','HOAI-Phase','Von','Bis','Dauer (h:mm)','Dezimal (h)'];
+  const bRows=sorted.map(e=>{
+    const p=state.projects.find(x=>x.id===e.projectId);
+    const dur=e.end-e.start;
+    return[new Date(e.start).toLocaleDateString('de-DE'),p?p.name:'–',p?p.num||'–':'–',p?HOAI_NAMES[p.phase]:'–',fmtTime(e.start),fmtTime(e.end),fmtHM(dur),fmtDec(dur)];
+  });
+  const totalMs=sorted.reduce((a,e)=>a+(e.end-e.start),0);
+  const bTotal=['','','','','','GESAMT',fmtHM(totalMs),fmtDec(totalMs)];
+
+  // Zusammenfassung
+  const pt={};
+  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'–';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'–',num:p?p.num||'–':'–'};pt[k].ms+=e.end-e.start;});
+  const sHdr=['Projekt','Projektnummer','HOAI-Phase','Gesamt (h:mm)','Dezimal (h)'];
+  const sRows=Object.entries(pt).map(([n,{ms,phase,num}])=>[n,num,phase,fmtHM(ms),fmtDec(ms)]);
+  const sTotal=['GESAMT','','',fmtHM(totalMs),fmtDec(totalMs)];
+
+  function mkSheet(name,hdr,rows,tot){
+    let x=`<Worksheet ss:Name="${escXml(name)}"><Table>\n`;
+    x+='<Row>'+hdr.map(h=>`<Cell ss:StyleID="h"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')+'</Row>\n';
+    rows.forEach(r=>{x+='<Row>'+r.map(c=>`<Cell><Data ss:Type="String">${escXml(String(c))}</Data></Cell>`).join('')+'</Row>\n';});
+    if(tot){x+='<Row>'+tot.map(c=>`<Cell ss:StyleID="t"><Data ss:Type="String">${escXml(String(c))}</Data></Cell>`).join('')+'</Row>\n';}
+    return x+'</Table></Worksheet>\n';
   }
+  let xml=`<?xml version="1.0" encoding="UTF-8"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
+  xml+=`<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/></Style><Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
+  xml+=mkSheet('Buchungen',bHdr,bRows,bTotal);
+  xml+=mkSheet('Zusammenfassung',sHdr,sRows,sTotal);
+  xml+='</Workbook>';
 
-  // ── Buchungen ──
-  const bookHeaders = ['Datum','Projekt','Projektnummer','HOAI-Phase','Von','Bis','Dauer (h:mm)','Dezimal (h)'];
-  const bookRows = sorted.map(e => {
-    const p = state.projects.find(x => x.id === e.projectId);
-    const dur = e.end - e.start;
-    const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
-    return [
-      new Date(e.start).toLocaleDateString('de-DE'),
-      p ? p.name : '–',
-      p ? (p.num || '–') : '–',
-      p ? HOAI_NAMES[p.phase] : '–',
-      fmtTime(e.start), fmtTime(e.end),
-      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,
-      (Math.round(dur/360000)/10).toFixed(1)
-    ];
-  });
-  const totalAllMs = sorted.reduce((a, e) => a + (e.end - e.start), 0);
-  const tH = Math.floor(totalAllMs/3600000), tM = Math.floor((totalAllMs%3600000)/60000);
-  const bookTotal = ['','','','','','GESAMT',
-    `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`,
-    (Math.round(totalAllMs/360000)/10).toFixed(1)
-  ];
-
-  // ── Zusammenfassung ──
-  const projTotals = {};
-  sorted.forEach(e => {
-    const p = state.projects.find(x => x.id === e.projectId);
-    const key = p ? p.name : '–';
-    if (!projTotals[key]) projTotals[key] = { ms:0, phase: p ? HOAI_SHORT[p.phase] : '–', num: p ? (p.num||'–') : '–' };
-    projTotals[key].ms += (e.end - e.start);
-  });
-  const sumHeaders = ['Projekt','Projektnummer','HOAI-Phase','Gesamt (h:mm)','Dezimal (h)'];
-  const sumRows = Object.entries(projTotals).map(([name, {ms, phase, num}]) => {
-    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
-    return [name, num, phase, `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, (Math.round(ms/360000)/10).toFixed(1)];
-  });
-  const sumTotal = ['GESAMT','','', `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`, (Math.round(totalAllMs/360000)/10).toFixed(1)];
-
-  // ── Build SpreadsheetML XML ──
-  function buildSheet(name, headers, rows, totalRow) {
-    let x = `<Worksheet ss:Name="${escXml(name)}"><Table>\n`;
-    x += '<Row>' + headers.map(h => `<Cell ss:StyleID="hdr"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('') + '</Row>\n';
-    rows.forEach(row => {
-      x += '<Row>' + row.map(cell => {
-        const s = String(cell);
-        const isNum = /^\d+(\.\d+)?$/.test(s);
-        return `<Cell><Data ss:Type="${isNum?'Number':'String'}">${escXml(s)}</Data></Cell>`;
-      }).join('') + '</Row>\n';
-    });
-    if (totalRow) {
-      x += '<Row>' + totalRow.map(cell => `<Cell ss:StyleID="tot"><Data ss:Type="String">${escXml(String(cell))}</Data></Cell>`).join('') + '</Row>\n';
-    }
-    x += '</Table></Worksheet>\n';
-    return x;
-  }
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
-  xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" `;
-  xml += `xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
-  xml += `<Styles>`;
-  xml += `<Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/></Style>`;
-  xml += `<Style ss:ID="tot"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style>`;
-  xml += `</Styles>\n`;
-  xml += buildSheet('Buchungen', bookHeaders, bookRows, bookTotal);
-  xml += buildSheet('Zusammenfassung', sumHeaders, sumRows, sumTotal);
-  xml += `</Workbook>`;
-
-  const filename = `Stundenerfassung_${periodShort}_${dateStr}.xls`;
-  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  shareOrDownload(blob, filename, 'application/vnd.ms-excel');
+  const filename=`Stundenerfassung_${periodShort}_${dateStr}.xls`;
+  shareOrDownload(new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8'}),filename,'application/vnd.ms-excel');
 }
 
-// ══════════════════════════════════════════
-// EXPORT: PDF (Print-Fenster mit desch-Stil)
-// ══════════════════════════════════════════
-function exportPDF() {
-  const entries = getPeriodEntries().filter(e => e.id !== 'live');
-  if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
+// ══ EXPORT: PDF ══
+function exportPDF(){
+  const entries=getPeriodEntries().filter(e=>e.id!=='live');
+  if(!entries.length){toast('Keine Buchungen zum Exportieren');return;}
+  const s=getSettings();
+  const buero=s.sBuero||'desch architekten';
+  const adresse=s.sBueroAdresse||'';
+  const metaLine=[s.sName,s.sFunktion,buero].filter(Boolean).join(' · ');
+  const pLabels={day:'Tagesübersicht',week:'Wochenübersicht',month:'Monatsübersicht'};
+  const pShort={day:'Tag',week:'Woche',month:'Monat'};
+  const label=pLabels[currentPeriod];
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const fileDate=now.toLocaleDateString('de-DE').replace(/\./g,'-');
 
-  const s = getSettings();
-  const buero   = s.sBuero || 'desch architekten';
-  const adresse = s.sBueroAdresse || '';
-  const person  = s.sName || '';
-  const funk    = s.sFunktion || '';
-  const periodLabels = { day:'Tagesübersicht', week:'Wochenübersicht', month:'Monatsübersicht' };
-  const periodShort  = { day:'Tag', week:'Woche', month:'Monat' };
-  const label   = periodLabels[currentPeriod];
-  const now     = new Date();
-  const dateStr = now.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-  const fileDate = now.toLocaleDateString('de-DE').replace(/\./g,'-');
+  const sorted=[...entries].sort((a,b)=>b.start-a.start);
+  const totalMs=sorted.reduce((a,e)=>a+(e.end-e.start),0);
+  const tH=Math.floor(totalMs/3600000),tM=Math.floor((totalMs%3600000)/60000);
+  const projCount=new Set(sorted.map(e=>e.projectId)).size;
+  const dayCount=Math.max(1,new Set(sorted.map(e=>e.date)).size);
 
-  const sorted = [...entries].sort((a,b) => b.start - a.start);
-  const totalMs = sorted.reduce((a,e) => a+(e.end-e.start), 0);
-  const tH = Math.floor(totalMs/3600000), tM = Math.floor((totalMs%3600000)/60000);
-  const projCount = new Set(sorted.map(e=>e.projectId)).size;
-  const dayCount = Math.max(1, new Set(sorted.map(e=>e.date)).size);
-  const avgH = (Math.round(totalMs/360000)/10/dayCount).toFixed(1);
+  const pt={};
+  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'–';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'–',num:p?p.num||'–':'–'};pt[k].ms+=e.end-e.start;});
 
-  const projTotals = {};
-  sorted.forEach(e => {
-    const p = state.projects.find(x=>x.id===e.projectId);
-    const key = p ? p.name : '–';
-    if (!projTotals[key]) projTotals[key] = { ms:0, phase:p?HOAI_SHORT[p.phase]:'–', num:p?p.num||'–':'–' };
-    projTotals[key].ms += (e.end-e.start);
-  });
-
-  const tableRows = sorted.map(e => {
-    const p = state.projects.find(x=>x.id===e.projectId);
-    const dur = e.end-e.start;
-    const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
-    return `<tr>
-      <td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td>
-      <td class="bold">${p?p.name:'–'}</td>
-      <td>${p?p.num||'–':'–'}</td>
-      <td><span class="ph">${p?HOAI_SHORT[p.phase]:'–'}</span></td>
-      <td>${fmtTime(e.start)}</td><td>${fmtTime(e.end)}</td>
-      <td class="num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
-      <td class="num">${(Math.round(dur/360000)/10).toFixed(1)}</td>
-    </tr>`;
+  const tableRows=sorted.map(e=>{
+    const p=state.projects.find(x=>x.id===e.projectId);
+    const dur=e.end-e.start;
+    return`<tr><td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td><td class="b">${p?p.name:'–'}</td><td>${p?p.num||'–':'–'}</td><td><span class="ph">${p?HOAI_SHORT[p.phase]:'–'}</span></td><td>${fmtTime(e.start)}</td><td>${fmtTime(e.end)}</td><td class="n">${fmtHM(dur)}</td><td class="n">${fmtDec(dur)}</td></tr>`;
   }).join('');
 
-  const sumRows = Object.entries(projTotals).map(([name,{ms,phase,num}]) => {
-    const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
-    return `<tr>
-      <td class="bold">${name}</td><td>${num}</td>
-      <td><span class="ph">${phase}</span></td>
-      <td class="num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
-      <td class="num">${(Math.round(ms/360000)/10).toFixed(1)}</td>
-    </tr>`;
-  }).join('');
+  const sumRows=Object.entries(pt).map(([n,{ms,phase,num}])=>
+    `<tr><td class="b">${n}</td><td>${num}</td><td><span class="ph">${phase}</span></td><td class="n">${fmtHM(ms)}</td><td class="n">${fmtDec(ms)}</td></tr>`
+  ).join('');
 
-  const metaLine = [person, funk, buero].filter(Boolean).join(' · ');
-
-  const printHTML = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-<title>${label} – Stundenerfassung</title>
-<style>
+  const printHTML=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${label}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
 .hdr{background:#A80000;color:#fff;padding:9mm 14mm 7mm;display:flex;justify-content:space-between;align-items:flex-end}
-.hdr-l .brand{font-size:17pt;font-weight:700;letter-spacing:-.5px;line-height:1.1}
-.hdr-l .sub{font-size:8pt;opacity:.8;margin-top:1px}
-.hdr-r{text-align:right}
-.hdr-r .title{font-size:12pt;font-weight:700;letter-spacing:1px}
-.hdr-r .sub2{font-size:7.5pt;opacity:.85;margin-top:2px}
+.hl .brand{font-size:17pt;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.hl .sub{font-size:8pt;opacity:.8;margin-top:1px}
+.hr{text-align:right}
+.hr .title{font-size:12pt;font-weight:700;letter-spacing:1px}
+.hr .sub2{font-size:7.5pt;opacity:.85;margin-top:2px}
 .body{padding:7mm 14mm 5mm}
 .h1{font-size:14pt;font-weight:700;margin-bottom:1mm}
 .meta{font-size:8pt;color:#888;margin-bottom:5mm}
@@ -997,82 +1052,57 @@ table{width:100%;border-collapse:collapse;font-size:8pt}
 thead th{background:#A80000;color:#fff;padding:2mm;text-align:left;font-size:7.5pt;font-weight:600;white-space:nowrap}
 tbody tr:nth-child(even){background:#f8f5f0}
 td{padding:1.8mm 2mm;border-bottom:1px solid #ede8e0;vertical-align:middle}
-.bold{font-weight:600}
-.num{text-align:right;font-variant-numeric:tabular-nums}
+.b{font-weight:600}.n{text-align:right;font-variant-numeric:tabular-nums}
 .ph{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:8px;background:#fde9e8;color:#A80000}
 tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #c8c4b8}
 .footer{margin-top:5mm;padding-top:2.5mm;border-top:1px solid #ddd8d0;display:flex;justify-content:space-between;font-size:7pt;color:#bbb}
-@media print{
-  @page{size:A4 portrait;margin:0}
-  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-}
+@media print{@page{size:A4 portrait;margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
-<div class="hdr">
-  <div class="hdr-l"><div class="brand">desch</div><div class="sub">architekten</div></div>
-  <div class="hdr-r"><div class="title">STUNDENERFASSUNG</div><div class="sub2">${label.toUpperCase()} · ${dateStr}</div></div>
-</div>
+<div class="hdr"><div class="hl"><div class="brand">desch</div><div class="sub">architekten</div></div><div class="hr"><div class="title">STUNDENERFASSUNG</div><div class="sub2">${label.toUpperCase()} · ${dateStr}</div></div></div>
 <div class="body">
-  <div class="h1">${label}</div>
-  <div class="meta">${metaLine}</div>
-  <div class="cards">
-    <div class="card"><div class="cl">Gesamt</div><div class="cv">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')} h</div></div>
-    <div class="card"><div class="cl">Buchungen</div><div class="cv">${sorted.length}</div></div>
-    <div class="card"><div class="cl">Projekte</div><div class="cv">${projCount}</div></div>
-    <div class="card"><div class="cl">Ø / Tag</div><div class="cv">${avgH} h</div></div>
-  </div>
-  <h3>Buchungen</h3>
-  <table>
-    <thead><tr><th>Datum</th><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Dez.</th></tr></thead>
-    <tbody>${tableRows}</tbody>
-    <tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="num">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}</td><td class="num">${(Math.round(totalMs/360000)/10).toFixed(1)}</td></tr></tfoot>
-  </table>
-  <h3>Zusammenfassung nach Projekt</h3>
-  <table>
-    <thead><tr><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Gesamt</th><th>Dez. h</th></tr></thead>
-    <tbody>${sumRows}</tbody>
-  </table>
-  <div class="footer">
-    <span>${buero}${adresse?' · '+adresse:''}</span>
-    <span>Exportiert ${now.toLocaleString('de-DE')}</span>
-  </div>
+<div class="h1">${label}</div><div class="meta">${metaLine}</div>
+<div class="cards">
+  <div class="card"><div class="cl">Gesamt</div><div class="cv">${fmtHM(totalMs)} h</div></div>
+  <div class="card"><div class="cl">Buchungen</div><div class="cv">${sorted.length}</div></div>
+  <div class="card"><div class="cl">Projekte</div><div class="cv">${projCount}</div></div>
+  <div class="card"><div class="cl">Ø / Tag</div><div class="cv">${(Math.round(totalMs/360000)/10/dayCount).toFixed(1)} h</div></div>
 </div>
-<script>
-  // Auto-print after load
-  window.addEventListener('load', function() {
-    setTimeout(function(){ window.print(); }, 400);
-  });
-<\/script>
+<h3>Buchungen</h3>
+<table><thead><tr><th>Datum</th><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Dez.</th></tr></thead>
+<tbody>${tableRows}</tbody>
+<tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="n">${fmtHM(totalMs)}</td><td class="n">${fmtDec(totalMs)}</td></tr></tfoot></table>
+<h3>Zusammenfassung nach Projekt</h3>
+<table><thead><tr><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Gesamt</th><th>Dez. h</th></tr></thead><tbody>${sumRows}</tbody></table>
+<div class="footer"><span>${buero}${adresse?' · '+adresse:''}</span><span>Exportiert ${now.toLocaleString('de-DE')}</span></div>
+</div>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},400);});<\/script>
 </body></html>`;
 
-  // iOS: share as HTML blob → Safari zeigt Drucken-Option im Share-Sheet
-  if (isIOS()) {
-    const blob = new Blob([printHTML], { type: 'text/html;charset=utf-8' });
-    const filename = `Stundenerfassung_${periodShort[currentPeriod]}_${fileDate}.html`;
-    // data URI for iOS Safari direct open
-    const reader = new FileReader();
-    reader.onload = function() {
-      const w = window.open(reader.result, '_blank');
-      if (!w) {
-        // fallback: share
-        const file = new File([blob], filename, {type:'text/html'});
-        if (navigator.share && navigator.canShare({files:[file]})) {
-          navigator.share({files:[file], title:filename}).catch(()=>{});
-        }
-      }
-      toast('PDF-Vorschau geöffnet – Drucken/Teilen');
+  if(isIOS()){
+    // iOS: data-URI öffnen → Safari zeigt Drucken im Share-Sheet
+    const blob=new Blob([printHTML],{type:'text/html;charset=utf-8'});
+    const r=new FileReader();
+    r.onload=function(){
+      const w=window.open(r.result,'_blank');
+      if(!w){toast('Pop-ups erlauben oder Safari-Browser nutzen');}
+      else{toast('Vorschau geöffnet – Drucken/Teilen zum Speichern');}
     };
-    reader.readAsDataURL(blob);
+    r.readAsDataURL(blob);
     return;
   }
 
-  // Desktop: open print window
-  const w = window.open('', '_blank', 'width=900,height=1100');
-  if (!w) { toast('Bitte Pop-ups erlauben'); return; }
+  // Desktop
+  const w=window.open('','_blank','width=900,height=1100');
+  if(!w){toast('Bitte Pop-ups erlauben');return;}
   w.document.write(printHTML);
   w.document.close();
   toast('PDF-Druckdialog geöffnet ✓');
 }
 
+// ══ INIT ══
+loadSettings();
+if(state.active)startTick();
+renderAll();
 </script>
 </body>
 </html>
