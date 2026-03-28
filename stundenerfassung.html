@@ -196,6 +196,24 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .entry-del{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;padding:2px 6px;line-height:1}
 .entry-del:active{color:var(--accent)}
 @media(max-width:420px){.proj-grid{grid-template-columns:repeat(2,1fr)}.summary-card-value{font-size:20px}}
+
+/* ── PERIOD NAV ── */
+.period-nav{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 14px;margin-bottom:14px}
+.period-nav-btn{width:34px;height:34px;border:1.5px solid var(--paper-3);background:transparent;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;color:var(--ink)}
+.period-nav-btn:active{background:var(--paper-2)}
+.period-nav-btn:disabled{opacity:.3;cursor:default}
+.period-nav-label{flex:1;text-align:center;font-size:14px;font-weight:600;cursor:pointer;user-select:none}
+.period-nav-today{font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--paper-3);background:transparent;color:var(--ink-3);cursor:pointer;font-family:'Arial Narrow',Arial,sans-serif;transition:all .15s;white-space:nowrap}
+.period-nav-today:active{background:var(--paper-2)}
+[data-theme="dark"] .period-nav-btn,[data-theme="dark"] .period-nav-today{border-color:#3a3a36;color:var(--ink)}
+
+/* ── SORTABLE PROJECTS ── */
+.project-item{cursor:grab;transition:all .15s}
+.project-item:active{cursor:grabbing}
+.project-item.dragging{opacity:.4;transform:scale(.98)}
+.project-item.drag-over{border-color:var(--accent)!important;background:var(--paper)!important}
+.drag-handle{color:var(--ink-3);font-size:18px;cursor:grab;padding:4px 6px;flex-shrink:0;user-select:none;touch-action:none}
+.drag-handle:active{cursor:grabbing}
 </style>
 </head>
 <body>
@@ -450,6 +468,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     <button class="period-btn" onclick="setPeriod('week',this)">Woche</button>
     <button class="period-btn" onclick="setPeriod('month',this)">Monat</button>
   </div>
+  <div class="period-nav">
+    <button class="period-nav-btn" onclick="navPeriod(-1)" title="Zurück">‹</button>
+    <div class="period-nav-label" id="periodNavLabel" onclick="navToToday()">–</div>
+    <button class="period-nav-btn" onclick="navPeriod(1)" id="periodNavNext" title="Vor">›</button>
+    <button class="period-nav-today" onclick="navToToday()">Heute</button>
+  </div>
   <div class="summary-row" id="summaryRow"></div>
   <div class="card">
     <div class="card-header"><span class="card-title" id="reportTitle">Buchungen heute</span></div>
@@ -652,22 +676,52 @@ function getTodayMs(projId){
   if(state.active&&state.active.projectId===projId)ms+=Date.now()-state.active.start;
   return ms;
 }
+// periodOffset: 0=current, -1=previous, etc.
+let periodOffset=0;
+
+function getPeriodBounds(){
+  const now=new Date();
+  let start,end,label;
+  if(currentPeriod==='day'){
+    const d=new Date(now);d.setDate(d.getDate()+periodOffset);d.setHours(0,0,0,0);
+    start=new Date(d);end=new Date(d);end.setHours(23,59,59,999);
+    const isToday=periodOffset===0;
+    const isYest=periodOffset===-1;
+    label=isToday?'Heute':isYest?'Gestern':d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+  }else if(currentPeriod==='week'){
+    const d=new Date(now);d.setDate(d.getDate()+periodOffset*7);
+    const day=d.getDay()||7;
+    start=new Date(d);start.setDate(d.getDate()-(day-1));start.setHours(0,0,0,0);
+    end=new Date(start);end.setDate(start.getDate()+6);end.setHours(23,59,59,999);
+    label=(periodOffset===0?'Diese Woche: ':'')+start.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+'–'+end.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  }else{
+    const d=new Date(now.getFullYear(),now.getMonth()+periodOffset,1);
+    start=new Date(d);start.setHours(0,0,0,0);
+    end=new Date(d.getFullYear(),d.getMonth()+1,0);end.setHours(23,59,59,999);
+    label=(periodOffset===0?'':'')+d.toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  }
+  return{start,end,label};
+}
+
 function getPeriodEntries(){
-  const now=new Date(),today=todayStr();
-  let entries=[...state.entries];
-  if(currentPeriod==='day')entries=entries.filter(e=>e.date===today);
-  else if(currentPeriod==='week'){const ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()||7)-1));ws.setHours(0,0,0,0);entries=entries.filter(e=>new Date(e.start)>=ws);}
-  else entries=entries.filter(e=>e.date.startsWith(now.toISOString().slice(0,7)));
+  const{start,end}=getPeriodBounds();
+  let entries=state.entries.filter(e=>new Date(e.start)>=start&&new Date(e.start)<=end);
   if(state.active){
     const ae={id:'live',projectId:state.active.projectId,start:state.active.start,end:Date.now(),date:new Date(state.active.start).toISOString().slice(0,10)};
-    let inc=false;
-    if(currentPeriod==='day'&&ae.date===today)inc=true;
-    else if(currentPeriod==='week'){const ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()||7)-1));ws.setHours(0,0,0,0);if(new Date(ae.start)>=ws)inc=true;}
-    else if(ae.date.startsWith(now.toISOString().slice(0,7)))inc=true;
-    if(inc)entries.push(ae);
+    if(new Date(ae.start)>=start&&new Date(ae.start)<=end)entries=[...entries,ae];
   }
   return entries;
 }
+
+function navPeriod(dir){
+  const isToday=periodOffset===0;
+  if(dir===1&&isToday)return; // can't go into future
+  periodOffset+=dir;
+  const nextBtn=document.getElementById('periodNavNext');
+  if(nextBtn)nextBtn.disabled=(periodOffset>=0);
+  renderReport();
+}
+function navToToday(){periodOffset=0;const nb=document.getElementById('periodNavNext');if(nb)nb.disabled=true;renderReport();}
 
 // ══ RENDER: ERFASSUNG ══
 function renderErf(){
@@ -720,12 +774,21 @@ function renderProjekte(){
   const list=document.getElementById('projekteListe');
   if(!state.projects.length){list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🏗️</div><div class="empty-state-text">Noch keine Projekte angelegt.</div></div>`;return;}
   list.innerHTML=state.projects.map(p=>`
-    <div class="project-item">
+    <div class="project-item" draggable="true" data-id="${p.id}"
+      ondragstart="dragStart(event,${p.id})"
+      ondragover="dragOver(event)"
+      ondrop="dragDrop(event,${p.id})"
+      ondragend="dragEnd(event)"
+      ontouchstart="touchStart(event,${p.id})"
+      ontouchmove="touchMove(event)"
+      ontouchend="touchEnd(event,${p.id})">
+      <div class="drag-handle" title="Verschieben">⠿</div>
       <div class="project-icon" style="border-color:${p.color}">${p.icon||'🏗️'}</div>
       <div class="project-info"><div class="project-name">${p.name}</div><div class="project-meta">${p.num?p.num+' · ':''} ${HOAI_NAMES[p.phase]}</div></div>
       <button class="edit-proj-btn" onclick="openProjektModal(${p.id})">✏️</button>
       <button class="del-proj-btn" onclick="deleteProjekt(${p.id})">×</button>
     </div>`).join('');
+  initDragDrop();
 }
 
 // ══ RENDER: REPORT ══
@@ -733,8 +796,11 @@ function renderReport(){
   const entries=getPeriodEntries();
   const totalMs=entries.filter(e=>e.id!=='live').reduce((a,e)=>a+(e.end-e.start),0);
   const projCount=new Set(entries.map(e=>e.projectId)).size;
-  const labels={day:'Heute',week:'Diese Woche',month:'Dieser Monat'};
-  document.getElementById('reportTitle').textContent='Buchungen · '+labels[currentPeriod];
+  const{label:periodLabel}=getPeriodBounds();
+  document.getElementById('reportTitle').textContent='Buchungen · '+periodLabel;
+  const navLabel=document.getElementById('periodNavLabel');
+  if(navLabel)navLabel.textContent=periodLabel;
+  const nb=document.getElementById('periodNavNext');if(nb)nb.disabled=(periodOffset>=0);
   document.getElementById('summaryRow').innerHTML=`
     <div class="summary-card"><div class="summary-card-label">Gesamt</div><div class="summary-card-value">${fmtHM(totalMs)}<span class="summary-card-unit">h</span></div></div>
     <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.filter(e=>e.id!=='live').length}</div></div>
@@ -757,9 +823,10 @@ function renderReport(){
   body.innerHTML+=`<tr class="total-row"><td colspan="4">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
 }
 function setPeriod(p,btn){
-  currentPeriod=p;
+  currentPeriod=p;periodOffset=0;
   document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
+  const nb=document.getElementById('periodNavNext');if(nb)nb.disabled=true;
   renderReport();
 }
 function deleteEntry(id){state.entries=state.entries.filter(e=>e.id!==id);save();renderReport();renderErf();toast('Buchung gelöscht');}
@@ -988,7 +1055,8 @@ function exportExcel(){
     return x+'</Table></Worksheet>\n';
   }
   let xml=`<?xml version="1.0" encoding="UTF-8"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
-  xml+=`<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/></Style><Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
+    const xlsAccent=(getSettings().sAccentColor||'#A80000').replace('#','');
+  xml+=`<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#${xlsAccent}" ss:Pattern="Solid"/></Style><Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
   xml+=mkSheet('Buchungen',bHdr,bRows,bTotal);
   xml+=mkSheet('Zusammenfassung',sHdr,sRows,sTotal);
   xml+='</Workbook>';
@@ -1005,12 +1073,13 @@ function exportPDF(){
   const buero=s.sBuero||'desch architekten';
   const adresse=s.sBueroAdresse||'';
   const metaLine=[s.sName,s.sFunktion,buero].filter(Boolean).join(' · ');
-  const pLabels={day:'Tagesübersicht',week:'Wochenübersicht',month:'Monatsübersicht'};
+  const {label,start:pStart}=getPeriodBounds();
   const pShort={day:'Tag',week:'Woche',month:'Monat'};
-  const label=pLabels[currentPeriod];
   const now=new Date();
-  const dateStr=now.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const dateStr=label;
   const fileDate=now.toLocaleDateString('de-DE').replace(/\./g,'-');
+  const accentColor=s.sAccentColor||'#A80000';
+  const logoHtml=buildLogoHtml();
 
   const sorted=[...entries].sort((a,b)=>b.start-a.start);
   const totalMs=sorted.reduce((a,e)=>a+(e.end-e.start),0);
@@ -1034,9 +1103,8 @@ function exportPDF(){
   const printHTML=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${label}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
-.hdr{background:#A80000;color:#fff;padding:9mm 14mm 7mm;display:flex;justify-content:space-between;align-items:flex-end}
-.hl .brand{font-size:17pt;font-weight:700;letter-spacing:-.5px;line-height:1.1}
-.hl .sub{font-size:8pt;opacity:.8;margin-top:1px}
+.hdr{background:${accentColor};color:#fff;padding:9mm 14mm 7mm;display:flex;justify-content:space-between;align-items:flex-end}
+.hl{display:flex;align-items:center}
 .hr{text-align:right}
 .hr .title{font-size:12pt;font-weight:700;letter-spacing:1px}
 .hr .sub2{font-size:7.5pt;opacity:.85;margin-top:2px}
@@ -1049,16 +1117,16 @@ body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;bac
 .cv{font-size:13pt;font-weight:300;letter-spacing:-.5px}
 h3{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin:5mm 0 2mm;border-bottom:1px solid #ddd8d0;padding-bottom:1mm}
 table{width:100%;border-collapse:collapse;font-size:8pt}
-thead th{background:#A80000;color:#fff;padding:2mm;text-align:left;font-size:7.5pt;font-weight:600;white-space:nowrap}
+thead th{background:${accentColor};color:#fff;padding:2mm;text-align:left;font-size:7.5pt;font-weight:600;white-space:nowrap}
 tbody tr:nth-child(even){background:#f8f5f0}
 td{padding:1.8mm 2mm;border-bottom:1px solid #ede8e0;vertical-align:middle}
 .b{font-weight:600}.n{text-align:right;font-variant-numeric:tabular-nums}
-.ph{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:8px;background:#fde9e8;color:#A80000}
+.ph{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:8px;background:rgba(168,0,0,0.1);color:${accentColor}}
 tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #c8c4b8}
 .footer{margin-top:5mm;padding-top:2.5mm;border-top:1px solid #ddd8d0;display:flex;justify-content:space-between;font-size:7pt;color:#bbb}
 @media print{@page{size:A4 portrait;margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
-<div class="hdr"><div class="hl"><div class="brand">desch</div><div class="sub">architekten</div></div><div class="hr"><div class="title">STUNDENERFASSUNG</div><div class="sub2">${label.toUpperCase()} · ${dateStr}</div></div></div>
+<div class="hdr"><div class="hl">${logoHtml}</div><div class="hr"><div class="title">STUNDENERFASSUNG</div><div class="sub2">${label.toUpperCase()} · ${dateStr}</div></div></div>
 <div class="body">
 <div class="h1">${label}</div><div class="meta">${metaLine}</div>
 <div class="cards">
@@ -1097,6 +1165,106 @@ tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #
   w.document.write(printHTML);
   w.document.close();
   toast('PDF-Druckdialog geöffnet ✓');
+}
+
+// ══ DRAG & DROP SORT (Desktop + iOS Touch) ══
+let dragSrcId=null,touchSrcId=null,touchStartY=0,touchElem=null,touchClone=null;
+
+function initDragDrop(){
+  // Touch events already bound via HTML attributes
+}
+
+function dragStart(e,id){
+  dragSrcId=id;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=e.currentTarget;if(el)el.classList.add('dragging');},0);
+}
+function dragOver(e){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.project-item').forEach(el=>el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function dragDrop(e,targetId){
+  e.preventDefault();
+  if(dragSrcId===targetId)return;
+  reorderProjects(dragSrcId,targetId);
+}
+function dragEnd(e){
+  document.querySelectorAll('.project-item').forEach(el=>{el.classList.remove('dragging');el.classList.remove('drag-over');});
+  dragSrcId=null;
+}
+
+// Touch drag for iOS
+function touchStart(e,id){
+  // Only drag if touch starts on the handle
+  if(!e.target.classList.contains('drag-handle'))return;
+  e.preventDefault();
+  touchSrcId=id;
+  touchStartY=e.touches[0].clientY;
+  touchElem=e.currentTarget;
+  touchElem.classList.add('dragging');
+}
+function touchMove(e){
+  if(!touchSrcId)return;
+  e.preventDefault();
+  const y=e.touches[0].clientY;
+  // find element under touch
+  touchElem.style.display='none';
+  const below=document.elementFromPoint(e.touches[0].clientX,y);
+  touchElem.style.display='';
+  if(!below)return;
+  const target=below.closest('.project-item');
+  document.querySelectorAll('.project-item').forEach(el=>el.classList.remove('drag-over'));
+  if(target&&target!==touchElem)target.classList.add('drag-over');
+}
+function touchEnd(e,id){
+  if(!touchSrcId){return;}
+  touchElem&&touchElem.classList.remove('dragging');
+  const targetEl=document.querySelector('.project-item.drag-over');
+  if(targetEl){
+    const targetId=parseInt(targetEl.getAttribute('data-id'));
+    targetEl.classList.remove('drag-over');
+    if(targetId&&targetId!==touchSrcId)reorderProjects(touchSrcId,targetId);
+  }
+  touchSrcId=null;touchElem=null;
+}
+
+function reorderProjects(srcId,targetId){
+  const arr=state.projects;
+  const si=arr.findIndex(p=>p.id===srcId);
+  const ti=arr.findIndex(p=>p.id===targetId);
+  if(si<0||ti<0)return;
+  const [item]=arr.splice(si,1);
+  arr.splice(ti,0,item);
+  save();renderProjekte();renderErf();toast('Reihenfolge gespeichert');
+}
+
+// ══ LOGO für Export ══
+function getLogoForExport(){
+  // Returns: {type:'img',data:base64} | {type:'text',text:str} | {type:'svg',html:str}
+  const imgData=localStorage.getItem('zeit2_logo');
+  const textEl=document.getElementById('sLogoText');
+  const text=textEl?textEl.value.trim():'';
+  if(imgData)return{type:'img',data:imgData};
+  if(text)return{type:'text',text};
+  // Default: use the SVG backup
+  const backup=document.getElementById('logoSvgBackup');
+  if(backup)return{type:'svg',html:backup.innerHTML};
+  return{type:'text',text:'desch architekten'};
+}
+
+function buildLogoHtml(){
+  const logo=getLogoForExport();
+  const s=getSettings();
+  const buero=s.sBuero||'desch architekten';
+  if(logo.type==='img'){
+    return`<img src="${logo.data}" style="max-height:36px;max-width:200px;object-fit:contain;display:block;filter:brightness(0) invert(1)">`;
+  }else if(logo.type==='svg'){
+    // Inline SVG scaled to fit header (white version)
+    return`<div style="height:28px;width:200px;overflow:hidden;filter:brightness(0) invert(1)">${logo.html}</div>`;
+  }else{
+    return`<span style="font-size:16pt;font-weight:700;letter-spacing:-.5px;line-height:1">${logo.text||buero}</span>`;
+  }
 }
 
 // ══ INIT ══
