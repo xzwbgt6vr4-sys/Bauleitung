@@ -498,6 +498,11 @@
         </div>
       </div>
       <div class="field">
+        <label>Export – E-Mail-Empfänger (iOS)</label>
+        <input type="text" id="sExportMail" placeholder="z.B. buero@desch.de" oninput="saveSettings()">
+        <p style="font-size:11px;color:var(--ink-3);margin-top:4px">Auf iPhone/iPad: Dateien werden per Mail an diese Adresse gesendet. Leer = nur Share-Sheet.</p>
+      </div>
+      <div class="field">
         <label>Erscheinungsbild</label>
         <select id="sDarkMode" onchange="applyDarkMode(this.value);saveSettings()">
           <option value="auto">Automatisch (Systemeinstellung)</option>
@@ -762,286 +767,312 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));});
 
 // ══════════════════════════════════════════
-// EXPORT: EXCEL (natives XML-XLSX, kein CDN)
+// iOS-KOMPATIBLES SHARE / DOWNLOAD
+// ══════════════════════════════════════════
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+async function shareOrDownload(blob, filename, mimeType) {
+  const s = getSettings();
+
+  // iOS: navigator.share mit File (iOS 15+)
+  if (isIOS() && navigator.share && navigator.canShare) {
+    try {
+      const file = new File([blob], filename, { type: mimeType });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        toast('Geteilt ✓');
+        return;
+      }
+    } catch(e) {
+      if (e.name !== 'AbortError') console.warn('share failed:', e);
+      else { toast('Abgebrochen'); return; }
+    }
+  }
+
+  // iOS-Fallback: data:-URI in neuem Tab öffnen (Safari zeigt Vorschau + Teilen-Button)
+  if (isIOS()) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      const dataUrl = reader.result;
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('Datei wird geöffnet – Teilen zum Speichern');
+    };
+    reader.readAsDataURL(blob);
+    return;
+  }
+
+  // Desktop: normaler Blob-Download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Download gestartet ✓');
+}
+
+// ══════════════════════════════════════════
+// EXPORT: EXCEL (SpreadsheetML, kein CDN)
 // ══════════════════════════════════════════
 function exportExcel() {
   const entries = getPeriodEntries().filter(e => e.id !== 'live');
   if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
 
   const s = getSettings();
-  const labels = {day:'Tag', week:'Woche', month:'Monat'};
+  const periodShort = {day:'Tag', week:'Woche', month:'Monat'}[currentPeriod];
   const dateStr = new Date().toLocaleDateString('de-DE').replace(/\./g, '-');
+  const sorted = [...entries].sort((a, b) => b.start - a.start);
 
-  const sorted = [...entries].sort((a,b) => b.start - a.start);
+  function escXml(v) {
+    return String(v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
-  // --- Buchungen-Sheet ---
+  // ── Buchungen ──
+  const bookHeaders = ['Datum','Projekt','Projektnummer','HOAI-Phase','Von','Bis','Dauer (h:mm)','Dezimal (h)'];
   const bookRows = sorted.map(e => {
     const p = state.projects.find(x => x.id === e.projectId);
     const dur = e.end - e.start;
-    const h = Math.floor(dur / 3600000);
-    const m = Math.floor((dur % 3600000) / 60000);
+    const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
     return [
       new Date(e.start).toLocaleDateString('de-DE'),
       p ? p.name : '–',
       p ? (p.num || '–') : '–',
       p ? HOAI_NAMES[p.phase] : '–',
-      fmtTime(e.start),
-      fmtTime(e.end),
+      fmtTime(e.start), fmtTime(e.end),
       `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,
-      (Math.round(dur / 360000) / 10).toFixed(1)
+      (Math.round(dur/360000)/10).toFixed(1)
     ];
   });
-  const bookHeaders = ['Datum','Projekt','Projektnummer','HOAI-Phase','Von','Bis','Dauer (h:mm)','Dauer (Dez.)'];
+  const totalAllMs = sorted.reduce((a, e) => a + (e.end - e.start), 0);
+  const tH = Math.floor(totalAllMs/3600000), tM = Math.floor((totalAllMs%3600000)/60000);
+  const bookTotal = ['','','','','','GESAMT',
+    `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`,
+    (Math.round(totalAllMs/360000)/10).toFixed(1)
+  ];
 
-  // --- Zusammenfassung-Sheet ---
+  // ── Zusammenfassung ──
   const projTotals = {};
   sorted.forEach(e => {
     const p = state.projects.find(x => x.id === e.projectId);
     const key = p ? p.name : '–';
-    if (!projTotals[key]) projTotals[key] = 0;
-    projTotals[key] += (e.end - e.start);
+    if (!projTotals[key]) projTotals[key] = { ms:0, phase: p ? HOAI_SHORT[p.phase] : '–', num: p ? (p.num||'–') : '–' };
+    projTotals[key].ms += (e.end - e.start);
   });
-  const totalAllMs = sorted.reduce((a,e) => a + (e.end - e.start), 0);
-  const sumRows = Object.entries(projTotals).map(([name, ms]) => {
+  const sumHeaders = ['Projekt','Projektnummer','HOAI-Phase','Gesamt (h:mm)','Dezimal (h)'];
+  const sumRows = Object.entries(projTotals).map(([name, {ms, phase, num}]) => {
     const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
-    return [name, `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, (Math.round(ms/360000)/10).toFixed(1)];
+    return [name, num, phase, `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, (Math.round(ms/360000)/10).toFixed(1)];
   });
-  const tH = Math.floor(totalAllMs/3600000), tM = Math.floor((totalAllMs%3600000)/60000);
-  sumRows.push(['GESAMT', `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`, (Math.round(totalAllMs/360000)/10).toFixed(1)]);
-  const sumHeaders = ['Projekt','Gesamt (h:mm)','Gesamt (Dezimal h)'];
+  const sumTotal = ['GESAMT','','', `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`, (Math.round(totalAllMs/360000)/10).toFixed(1)];
 
-  function escXml(v) {
-    return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function sheetXml(headers, rows, sheetName) {
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
-    xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n`;
-    xml += `<Worksheet ss:Name="${escXml(sheetName)}"><Table>\n`;
-    // Header row
-    xml += '<Row>';
-    headers.forEach(h => {
-      xml += `<Cell><Data ss:Type="String">${escXml(h)}</Data></Cell>`;
-    });
-    xml += '</Row>\n';
-    // Data rows
+  // ── Build SpreadsheetML XML ──
+  function buildSheet(name, headers, rows, totalRow) {
+    let x = `<Worksheet ss:Name="${escXml(name)}"><Table>\n`;
+    x += '<Row>' + headers.map(h => `<Cell ss:StyleID="hdr"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('') + '</Row>\n';
     rows.forEach(row => {
-      xml += '<Row>';
-      row.forEach(cell => {
-        const isNum = typeof cell === 'number' || (!isNaN(parseFloat(cell)) && !cell.includes(':') && !cell.includes('.') && cell !== '–');
-        xml += `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escXml(cell)}</Data></Cell>`;
-      });
-      xml += '</Row>\n';
+      x += '<Row>' + row.map(cell => {
+        const s = String(cell);
+        const isNum = /^\d+(\.\d+)?$/.test(s);
+        return `<Cell><Data ss:Type="${isNum?'Number':'String'}">${escXml(s)}</Data></Cell>`;
+      }).join('') + '</Row>\n';
     });
-    xml += '</Table></Worksheet>\n</Workbook>';
-    return xml;
-  }
-
-  // Build multi-sheet workbook via SpreadsheetML
-  function fullWorkbook(sheets) {
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
-    xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" `;
-    xml += `xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
-    xml += `<Styles><Style ss:ID="h"><Font ss:Bold="1"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/><Font ss:Color="#FFFFFF" ss:Bold="1"/></Style>`;
-    xml += `<Style ss:ID="total"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
-    sheets.forEach(({name, headers, rows, totalRow}) => {
-      xml += `<Worksheet ss:Name="${escXml(name)}"><Table>\n`;
-      xml += '<Row>';
-      headers.forEach(h => xml += `<Cell ss:StyleID="h"><Data ss:Type="String">${escXml(h)}</Data></Cell>`);
-      xml += '</Row>\n';
-      rows.forEach(row => {
-        xml += '<Row>';
-        row.forEach(cell => {
-          const s = String(cell);
-          const isNum = /^\d+\.\d+$/.test(s);
-          xml += `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escXml(s)}</Data></Cell>`;
-        });
-        xml += '</Row>\n';
-      });
-      if (totalRow) {
-        xml += '<Row>';
-        totalRow.forEach(cell => xml += `<Cell ss:StyleID="total"><Data ss:Type="String">${escXml(String(cell))}</Data></Cell>`);
-        xml += '</Row>\n';
-      }
-      xml += '</Table></Worksheet>\n';
-    });
-    xml += '</Workbook>';
-    return xml;
-  }
-
-  const tAllH = Math.floor(totalAllMs/3600000), tAllM = Math.floor((totalAllMs%3600000)/60000);
-  const totalBookRow = ['','','','','','GESAMT',
-    `${String(tAllH).padStart(2,'0')}:${String(tAllM).padStart(2,'0')}`,
-    (Math.round(totalAllMs/360000)/10).toFixed(1)
-  ];
-
-  const xml = fullWorkbook([
-    { name:'Buchungen', headers:bookHeaders, rows:bookRows, totalRow:totalBookRow },
-    { name:'Zusammenfassung', headers:sumHeaders, rows:Object.entries(projTotals).map(([name,ms])=>{
-        const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
-        return [name,`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,(Math.round(ms/360000)/10).toFixed(1)];
-      }),
-      totalRow:['GESAMT',`${String(tAllH).padStart(2,'0')}:${String(tAllM).padStart(2,'0')}`,(Math.round(totalAllMs/360000)/10).toFixed(1)]
+    if (totalRow) {
+      x += '<Row>' + totalRow.map(cell => `<Cell ss:StyleID="tot"><Data ss:Type="String">${escXml(String(cell))}</Data></Cell>`).join('') + '</Row>\n';
     }
-  ]);
+    x += '</Table></Worksheet>\n';
+    return x;
+  }
 
-  const blob = new Blob([xml], {type:'application/vnd.ms-excel;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Stundenerfassung_${labels[currentPeriod]}_${dateStr}.xls`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('Excel exportiert ✓');
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" `;
+  xml += `xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" `;
+  xml += `xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
+  xml += `<Styles>`;
+  xml += `<Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#A80000" ss:Pattern="Solid"/></Style>`;
+  xml += `<Style ss:ID="tot"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style>`;
+  xml += `</Styles>\n`;
+  xml += buildSheet('Buchungen', bookHeaders, bookRows, bookTotal);
+  xml += buildSheet('Zusammenfassung', sumHeaders, sumRows, sumTotal);
+  xml += `</Workbook>`;
+
+  const filename = `Stundenerfassung_${periodShort}_${dateStr}.xls`;
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  shareOrDownload(blob, filename, 'application/vnd.ms-excel');
 }
 
 // ══════════════════════════════════════════
-// EXPORT: PDF (Print-Window mit desch-Stil)
+// EXPORT: PDF (Print-Fenster mit desch-Stil)
 // ══════════════════════════════════════════
 function exportPDF() {
   const entries = getPeriodEntries().filter(e => e.id !== 'live');
   if (!entries.length) { toast('Keine Buchungen zum Exportieren'); return; }
 
   const s = getSettings();
-  const buero = s.sBuero || 'desch architekten';
+  const buero   = s.sBuero || 'desch architekten';
   const adresse = s.sBueroAdresse || '';
-  const person = s.sName || '';
-  const funktion = s.sFunktion || '';
-  const periodLabels = {day:'Tagesübersicht', week:'Wochenübersicht', month:'Monatsübersicht'};
-  const shortLabels = {day:'Tag', week:'Woche', month:'Monat'};
-  const periodLabel = periodLabels[currentPeriod];
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('de-DE', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  const person  = s.sName || '';
+  const funk    = s.sFunktion || '';
+  const periodLabels = { day:'Tagesübersicht', week:'Wochenübersicht', month:'Monatsübersicht' };
+  const periodShort  = { day:'Tag', week:'Woche', month:'Monat' };
+  const label   = periodLabels[currentPeriod];
+  const now     = new Date();
+  const dateStr = now.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   const fileDate = now.toLocaleDateString('de-DE').replace(/\./g,'-');
 
   const sorted = [...entries].sort((a,b) => b.start - a.start);
-  const totalMs = sorted.reduce((a,e) => a + (e.end - e.start), 0);
+  const totalMs = sorted.reduce((a,e) => a+(e.end-e.start), 0);
   const tH = Math.floor(totalMs/3600000), tM = Math.floor((totalMs%3600000)/60000);
   const projCount = new Set(sorted.map(e=>e.projectId)).size;
+  const dayCount = Math.max(1, new Set(sorted.map(e=>e.date)).size);
+  const avgH = (Math.round(totalMs/360000)/10/dayCount).toFixed(1);
 
-  // Per-project totals
   const projTotals = {};
   sorted.forEach(e => {
     const p = state.projects.find(x=>x.id===e.projectId);
     const key = p ? p.name : '–';
-    if (!projTotals[key]) projTotals[key] = {ms:0, phase: p?HOAI_SHORT[p.phase]:'–', num: p?p.num:'–'};
-    projTotals[key].ms += (e.end - e.start);
+    if (!projTotals[key]) projTotals[key] = { ms:0, phase:p?HOAI_SHORT[p.phase]:'–', num:p?p.num||'–':'–' };
+    projTotals[key].ms += (e.end-e.start);
   });
 
   const tableRows = sorted.map(e => {
     const p = state.projects.find(x=>x.id===e.projectId);
-    const dur = e.end - e.start;
+    const dur = e.end-e.start;
     const h = Math.floor(dur/3600000), m = Math.floor((dur%3600000)/60000);
     return `<tr>
       <td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td>
-      <td class="td-main">${p ? p.name : '–'}</td>
-      <td>${p ? (p.num||'–') : '–'}</td>
-      <td><span class="phase-badge">${p ? HOAI_SHORT[p.phase] : '–'}</span></td>
-      <td>${fmtTime(e.start)}</td>
-      <td>${fmtTime(e.end)}</td>
-      <td class="td-num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
-      <td class="td-num">${(Math.round(dur/360000)/10).toFixed(1)}</td>
+      <td class="bold">${p?p.name:'–'}</td>
+      <td>${p?p.num||'–':'–'}</td>
+      <td><span class="ph">${p?HOAI_SHORT[p.phase]:'–'}</span></td>
+      <td>${fmtTime(e.start)}</td><td>${fmtTime(e.end)}</td>
+      <td class="num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
+      <td class="num">${(Math.round(dur/360000)/10).toFixed(1)}</td>
     </tr>`;
   }).join('');
 
-  const summaryRows = Object.entries(projTotals).map(([name, {ms, phase, num}]) => {
-    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+  const sumRows = Object.entries(projTotals).map(([name,{ms,phase,num}]) => {
+    const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
     return `<tr>
-      <td class="td-main">${name}</td>
-      <td>${num||'–'}</td>
-      <td><span class="phase-badge">${phase}</span></td>
-      <td class="td-num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
-      <td class="td-num">${(Math.round(ms/360000)/10).toFixed(1)}</td>
+      <td class="bold">${name}</td><td>${num}</td>
+      <td><span class="ph">${phase}</span></td>
+      <td class="num">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</td>
+      <td class="num">${(Math.round(ms/360000)/10).toFixed(1)}</td>
     </tr>`;
   }).join('');
 
-  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-<title>Stundenerfassung – ${periodLabel}</title>
+  const metaLine = [person, funk, buero].filter(Boolean).join(' · ');
+
+  const printHTML = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>${label} – Stundenerfassung</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
-  .header{background:#A80000;color:#fff;padding:10mm 14mm 8mm;display:flex;justify-content:space-between;align-items:flex-start}
-  .header-left .brand{font-size:18pt;font-weight:700;letter-spacing:-0.5px;line-height:1}
-  .header-left .sub{font-size:8pt;opacity:0.8;margin-top:2px}
-  .header-right{text-align:right}
-  .header-right .doc-title{font-size:13pt;font-weight:700;letter-spacing:1px}
-  .header-right .doc-sub{font-size:8pt;opacity:0.85;margin-top:3px}
-  .body{padding:8mm 14mm 6mm}
-  .section-title{font-size:15pt;font-weight:700;margin-bottom:1mm}
-  .meta{font-size:8pt;color:#888;margin-bottom:5mm}
-  .cards{display:flex;gap:4mm;margin-bottom:6mm}
-  .card{flex:1;background:#ece8e0;border-radius:4px;padding:3mm 4mm}
-  .card-label{font-size:6.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:1.5mm}
-  .card-value{font-size:14pt;font-weight:300;letter-spacing:-0.5px}
-  h3{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin:5mm 0 2mm;border-bottom:1px solid #e0dbd0;padding-bottom:1.5mm}
-  table{width:100%;border-collapse:collapse;font-size:8pt}
-  thead tr{background:#A80000;color:#fff}
-  thead th{padding:2.5mm 2mm;text-align:left;font-weight:600;font-size:7.5pt;white-space:nowrap}
-  tbody tr:nth-child(even){background:#f8f5f0}
-  tbody tr:hover{background:#ede9e0}
-  td{padding:2mm 2mm;vertical-align:middle;border-bottom:1px solid #ede8e0}
-  .td-main{font-weight:600}
-  .td-num{font-variant-numeric:tabular-nums;text-align:right}
-  tfoot tr{background:#ece8e0;font-weight:700}
-  tfoot td{padding:2.5mm 2mm;border-top:2px solid #c8c4b8}
-  .phase-badge{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:10px;background:#fde9e8;color:#A80000;white-space:nowrap}
-  .footer{margin-top:6mm;padding-top:3mm;border-top:1px solid #e0dbd0;display:flex;justify-content:space-between;font-size:7pt;color:#aaa}
-  @media print{
-    @page{size:A4 portrait;margin:0}
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .no-print{display:none}
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
+.hdr{background:#A80000;color:#fff;padding:9mm 14mm 7mm;display:flex;justify-content:space-between;align-items:flex-end}
+.hdr-l .brand{font-size:17pt;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.hdr-l .sub{font-size:8pt;opacity:.8;margin-top:1px}
+.hdr-r{text-align:right}
+.hdr-r .title{font-size:12pt;font-weight:700;letter-spacing:1px}
+.hdr-r .sub2{font-size:7.5pt;opacity:.85;margin-top:2px}
+.body{padding:7mm 14mm 5mm}
+.h1{font-size:14pt;font-weight:700;margin-bottom:1mm}
+.meta{font-size:8pt;color:#888;margin-bottom:5mm}
+.cards{display:flex;gap:3mm;margin-bottom:6mm}
+.card{flex:1;background:#ece8e0;border-radius:3px;padding:2.5mm 3mm}
+.cl{font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:1mm}
+.cv{font-size:13pt;font-weight:300;letter-spacing:-.5px}
+h3{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin:5mm 0 2mm;border-bottom:1px solid #ddd8d0;padding-bottom:1mm}
+table{width:100%;border-collapse:collapse;font-size:8pt}
+thead th{background:#A80000;color:#fff;padding:2mm;text-align:left;font-size:7.5pt;font-weight:600;white-space:nowrap}
+tbody tr:nth-child(even){background:#f8f5f0}
+td{padding:1.8mm 2mm;border-bottom:1px solid #ede8e0;vertical-align:middle}
+.bold{font-weight:600}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.ph{font-size:7pt;font-weight:600;padding:1px 4px;border-radius:8px;background:#fde9e8;color:#A80000}
+tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #c8c4b8}
+.footer{margin-top:5mm;padding-top:2.5mm;border-top:1px solid #ddd8d0;display:flex;justify-content:space-between;font-size:7pt;color:#bbb}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style></head><body>
-<div class="header">
-  <div class="header-left">
-    <div class="brand">desch</div>
-    <div class="sub">architekten</div>
-  </div>
-  <div class="header-right">
-    <div class="doc-title">STUNDENERFASSUNG</div>
-    <div class="doc-sub">${periodLabel.toUpperCase()} &nbsp;·&nbsp; ${dateStr}</div>
-  </div>
+<div class="hdr">
+  <div class="hdr-l"><div class="brand">desch</div><div class="sub">architekten</div></div>
+  <div class="hdr-r"><div class="title">STUNDENERFASSUNG</div><div class="sub2">${label.toUpperCase()} · ${dateStr}</div></div>
 </div>
 <div class="body">
-  <div class="section-title">${periodLabel}</div>
-  <div class="meta">${person}${person && funktion ? ' · ' : ''}${funktion}${(person||funktion) && buero ? ' · ' : ''}${buero}</div>
+  <div class="h1">${label}</div>
+  <div class="meta">${metaLine}</div>
   <div class="cards">
-    <div class="card"><div class="card-label">Gesamt</div><div class="card-value">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')} h</div></div>
-    <div class="card"><div class="card-label">Buchungen</div><div class="card-value">${sorted.length}</div></div>
-    <div class="card"><div class="card-label">Projekte</div><div class="card-value">${projCount}</div></div>
-    <div class="card"><div class="card-label">Ø pro Tag</div><div class="card-value">${((Math.round(totalMs/360000)/10)/Math.max(1,new Set(sorted.map(e=>e.date)).size)).toFixed(1)} h</div></div>
+    <div class="card"><div class="cl">Gesamt</div><div class="cv">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')} h</div></div>
+    <div class="card"><div class="cl">Buchungen</div><div class="cv">${sorted.length}</div></div>
+    <div class="card"><div class="cl">Projekte</div><div class="cv">${projCount}</div></div>
+    <div class="card"><div class="cl">Ø / Tag</div><div class="cv">${avgH} h</div></div>
   </div>
-  <h3>Alle Buchungen</h3>
+  <h3>Buchungen</h3>
   <table>
     <thead><tr><th>Datum</th><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Dez.</th></tr></thead>
     <tbody>${tableRows}</tbody>
-    <tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="td-num">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}</td><td class="td-num">${(Math.round(totalMs/360000)/10).toFixed(1)}</td></tr></tfoot>
+    <tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="num">${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}</td><td class="num">${(Math.round(totalMs/360000)/10).toFixed(1)}</td></tr></tfoot>
   </table>
   <h3>Zusammenfassung nach Projekt</h3>
   <table>
     <thead><tr><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Gesamt</th><th>Dez. h</th></tr></thead>
-    <tbody>${summaryRows}</tbody>
+    <tbody>${sumRows}</tbody>
   </table>
   <div class="footer">
-    <span>${buero}${adresse ? ' · ' + adresse : ''}</span>
-    <span>Exportiert am ${new Date().toLocaleString('de-DE')}</span>
+    <span>${buero}${adresse?' · '+adresse:''}</span>
+    <span>Exportiert ${now.toLocaleString('de-DE')}</span>
   </div>
 </div>
-<script>window.onload=function(){window.print();}<\/script>
+<script>
+  // Auto-print after load
+  window.addEventListener('load', function() {
+    setTimeout(function(){ window.print(); }, 400);
+  });
+<\/script>
 </body></html>`;
 
-  const w = window.open('', '_blank', 'width=850,height=1100');
+  // iOS: share as HTML blob → Safari zeigt Drucken-Option im Share-Sheet
+  if (isIOS()) {
+    const blob = new Blob([printHTML], { type: 'text/html;charset=utf-8' });
+    const filename = `Stundenerfassung_${periodShort[currentPeriod]}_${fileDate}.html`;
+    // data URI for iOS Safari direct open
+    const reader = new FileReader();
+    reader.onload = function() {
+      const w = window.open(reader.result, '_blank');
+      if (!w) {
+        // fallback: share
+        const file = new File([blob], filename, {type:'text/html'});
+        if (navigator.share && navigator.canShare({files:[file]})) {
+          navigator.share({files:[file], title:filename}).catch(()=>{});
+        }
+      }
+      toast('PDF-Vorschau geöffnet – Drucken/Teilen');
+    };
+    reader.readAsDataURL(blob);
+    return;
+  }
+
+  // Desktop: open print window
+  const w = window.open('', '_blank', 'width=900,height=1100');
   if (!w) { toast('Bitte Pop-ups erlauben'); return; }
-  w.document.write(html);
+  w.document.write(printHTML);
   w.document.close();
   toast('PDF-Druckdialog geöffnet ✓');
 }
 
-// ══════════════════════════════════════════
-// EXPORT: PDF
-// ══════════════════════════════════════════
 </script>
 </body>
 </html>
