@@ -233,6 +233,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 
 /* Bild in der Projektliste */
 .project-icon img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+
+/* ── BUCHUNGS-MODAL ── */
+.entry-edit-btn{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:15px;padding:3px 5px;line-height:1;transition:color .15s}
+.entry-edit-btn:active{color:var(--accent)}
+.time-row{display:flex;gap:8px;align-items:flex-end}
+.time-row .field{flex:1;margin-bottom:0}
+.time-sep{padding-bottom:14px;color:var(--ink-3);font-size:18px;line-height:1;flex-shrink:0}
+.entry-actions-cell{display:flex;gap:2px;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -497,10 +505,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
   <div class="summary-row" id="summaryRow"></div>
   <div class="card">
-    <div class="card-header"><span class="card-title" id="reportTitle">Buchungen heute</span></div>
+    <div class="card-header">
+      <span class="card-title" id="reportTitle">Buchungen heute</span>
+      <button class="header-btn" onclick="openEntryModal(null)" title="Buchung hinzufügen" style="font-size:16px;padding:5px 11px;line-height:1">＋</button>
+    </div>
     <div class="card-body" style="padding:0">
       <table class="report-table">
-        <thead><tr><th>Projekt</th><th>Phase</th><th>Von</th><th>Bis</th><th>Dauer</th><th></th></tr></thead>
+        <thead><tr><th>Projekt</th><th>Von</th><th>Bis</th><th>Dauer</th><th></th></tr></thead>
         <tbody id="reportBody"></tbody>
       </table>
     </div>
@@ -594,14 +605,54 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
 
   <div class="card">
-    <div class="card-header"><span class="card-title">🗑 Daten</span></div>
+    <div class="card-header"><span class="card-title">💾 Datensicherung</span></div>
     <div class="card-body">
-      <button class="big-btn secondary" style="color:var(--accent)" onclick="clearAllData()">Alle App-Daten löschen</button>
+      <p class="hint" style="margin-bottom:12px">Exportiert alle Projekte, Einstellungen und Buchungen als JSON-Datei. Kann auf anderen Geräten oder nach einem Datenverlust wieder importiert werden.</p>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <button class="big-btn primary" onclick="exportBackup()">📤 Sicherung exportieren (.json)</button>
+        <button class="big-btn secondary" onclick="document.getElementById('importInput').click()">📥 Sicherung importieren</button>
+        <input type="file" id="importInput" accept=".json,application/json,text/plain" style="display:none" onchange="importBackup(this)">
+      </div>
+
+      <div style="border-top:1px solid var(--paper-3);padding-top:12px">
+        <p class="hint" style="margin-bottom:8px;color:var(--accent)">⚠️ Nur Projekte importieren (Buchungen bleiben erhalten):</p>
+        <button class="big-btn secondary" onclick="document.getElementById('importProjInput').click()">📋 Nur Projekte importieren</button>
+        <input type="file" id="importProjInput" accept=".json,application/json,text/plain" style="display:none" onchange="importProjects(this)">
+      </div>
+
+      <div style="border-top:1px solid var(--paper-3);padding-top:12px;margin-top:4px">
+        <button class="big-btn secondary" style="color:var(--accent)" onclick="clearAllData()">🗑 Alle App-Daten löschen</button>
+      </div>
     </div>
   </div>
 
 </div>
 </main>
+
+<!-- MODAL: BUCHUNG -->
+<div class="modal-overlay hidden" id="modalEntry">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalEntryTitle">Buchung bearbeiten</div>
+    <div class="field">
+      <label>Projekt *</label>
+      <select id="eProjekt"></select>
+    </div>
+    <div class="field">
+      <label>Datum</label>
+      <input type="date" id="eDatum">
+    </div>
+    <div class="time-row">
+      <div class="field"><label>Von</label><input type="time" id="eVon" oninput="updateEntryHint()"></div>
+      <div class="time-sep">–</div>
+      <div class="field"><label>Bis</label><input type="time" id="eBis" oninput="updateEntryHint()"></div>
+    </div>
+    <p class="hint" id="eHint" style="margin-bottom:12px"></p>
+    <button class="big-btn primary" onclick="saveEntry()" style="margin-top:4px">Speichern</button>
+    <button class="big-btn secondary" onclick="closeModal('modalEntry')">Abbrechen</button>
+  </div>
+</div>
 
 <!-- MODAL: PROJEKT -->
 <div class="modal-overlay hidden" id="modalProjekt">
@@ -612,6 +663,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     <div class="field"><label>Projektnummer</label><input type="text" id="pNum" placeholder="z.B. 2024-012"></div>
     <div class="field"><label>HOAI-Leistungsphase</label>
       <select id="pPhase">
+        <option value="0">– Keine Angabe –</option>
         <option value="1">LP 1 – Grundlagenermittlung</option><option value="2">LP 2 – Vorplanung</option>
         <option value="3">LP 3 – Entwurfsplanung</option><option value="4">LP 4 – Genehmigungsplanung</option>
         <option value="5">LP 5 – Ausführungsplanung</option><option value="6">LP 6 – Vorbereitung Vergabe</option>
@@ -786,7 +838,7 @@ function renderErf(){
           <div class="proj-track-btn-name">${p.img?'':p.icon||'🏗️'} ${p.name}</div>
           <div class="proj-running-dot"></div>
         </div>
-        <div>${p.num?`<div class="proj-track-btn-num">${p.num}</div>`:''}<span class="proj-phase-badge phase-${p.phase}">${HOAI_SHORT[p.phase]}</span>${p.desc?`<div class="proj-btn-desc">${p.desc}</div>`:''}</div>
+        <div>${p.num?`<div class="proj-track-btn-num">${p.num}</div>`:''}${p.phase>0?`<span class="proj-phase-badge phase-${p.phase}">${HOAI_SHORT[p.phase]}</span>`:''}${p.desc?`<div class="proj-btn-desc">${p.desc}</div>`:''}</div>
         <div><div class="proj-timer">${fmtDur(getTodayMs(p.id))}</div><div class="proj-today-label">heute</div></div>
       </button>`;
     }).join('');
@@ -826,7 +878,7 @@ function renderProjekte(){
       <div class="project-icon" style="border-color:${p.color}">${p.img?`<img src="${p.img}" alt="">`:p.icon||'🏗️'}</div>
       <div class="project-info">
         <div class="project-name">${p.name}</div>
-        <div class="project-meta">${p.num?p.num+' · ':''}${HOAI_NAMES[p.phase]}${p.ort?' · 📍'+p.ort:''}</div>
+        <div class="project-meta">${p.num?p.num+' · ':''}${p.phase>0?HOAI_NAMES[p.phase]:''}${p.ort?(p.phase>0?' · ':'')+'📍'+p.ort:''}</div>
         ${p.desc?`<div class="project-desc">${p.desc}</div>`:''}
       </div>
       <button class="edit-proj-btn" onclick="openProjektModal(${p.id})">✏️</button>
@@ -856,15 +908,21 @@ function renderReport(){
     const p=state.projects.find(x=>x.id===e.projectId);
     const isLive=e.id==='live';
     return`<tr>
-      <td style="font-weight:600">${p?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>${p.name}`:'–'}</td>
-      <td><span class="proj-phase-badge phase-${p?p.phase:1}">${p?HOAI_SHORT[p.phase]:'–'}</span></td>
-      <td style="font-size:12px;color:var(--ink-3)">${fmtTime(e.start)}</td>
-      <td style="font-size:12px;color:var(--ink-3)">${isLive?'<span class="badge live">Läuft</span>':fmtTime(e.end)}</td>
-      <td style="font-variant-numeric:tabular-nums">${isLive?'–':fmtDur(e.end-e.start)}</td>
-      <td>${isLive?'':`<button class="entry-del" onclick="deleteEntry(${e.id})">×</button>`}</td>
+      <td style="font-weight:600">
+        ${p?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>`:''}
+        ${p?p.name:'–'}
+        ${p&&p.phase>0?`<div style="font-size:10px;font-weight:400;color:var(--ink-3);margin-top:1px">${HOAI_SHORT[p.phase]}</div>`:''}
+      </td>
+      <td style="font-size:12px;color:var(--ink-3);white-space:nowrap">${isLive?'<span class="badge live">Läuft</span>':fmtTime(e.start)}</td>
+      <td style="font-size:12px;color:var(--ink-3);white-space:nowrap">${isLive?'':fmtTime(e.end)}</td>
+      <td style="font-variant-numeric:tabular-nums;font-size:12px">${isLive?'–':fmtDur(e.end-e.start)}</td>
+      <td><div class="entry-actions-cell">${isLive?'':`
+        <button class="entry-edit-btn" onclick="openEntryModal(${e.id})" title="Bearbeiten">✏️</button>
+        <button class="entry-del" onclick="deleteEntry(${e.id})" title="Löschen">×</button>
+      `}</div></td>
     </tr>`;
   }).join('');
-  body.innerHTML+=`<tr class="total-row"><td colspan="4">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
+  body.innerHTML+=`<tr class="total-row"><td colspan="3">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
 }
 function setPeriod(p,btn){
   currentPeriod=p;periodOffset=0;
@@ -873,7 +931,92 @@ function setPeriod(p,btn){
   const nb=document.getElementById('periodNavNext');if(nb)nb.disabled=true;
   renderReport();
 }
-function deleteEntry(id){state.entries=state.entries.filter(e=>e.id!==id);save();renderReport();renderErf();toast('Buchung gelöscht');}
+function deleteEntry(id){
+  if(!confirm('Buchung löschen?'))return;
+  state.entries=state.entries.filter(e=>e.id!==id);
+  save();renderReport();renderErf();toast('Buchung gelöscht');
+}
+
+// ══ BUCHUNGS-MODAL ══
+let editingEntryId=null;
+
+function openEntryModal(entryId){
+  editingEntryId=entryId;
+  const e=entryId?state.entries.find(x=>x.id===entryId):null;
+  document.getElementById('modalEntryTitle').textContent=e?'Buchung bearbeiten':'Buchung hinzufügen';
+
+  // Fill project dropdown
+  const sel=document.getElementById('eProjekt');
+  sel.innerHTML=state.projects.map(p=>`<option value="${p.id}">${p.name}${p.num?' ('+p.num+')':''}</option>`).join('');
+
+  if(e){
+    // Editing existing
+    const startD=new Date(e.start), endD=new Date(e.end);
+    sel.value=e.projectId;
+    document.getElementById('eDatum').value=startD.toISOString().slice(0,10);
+    document.getElementById('eVon').value=pad2(startD.getHours())+':'+pad2(startD.getMinutes());
+    document.getElementById('eBis').value=pad2(endD.getHours())+':'+pad2(endD.getMinutes());
+  } else {
+    // New entry: default to today, last full hour
+    const now=new Date();
+    sel.value=state.projects[0]?.id||'';
+    document.getElementById('eDatum').value=now.toISOString().slice(0,10);
+    document.getElementById('eVon').value=pad2(now.getHours()-1<0?0:now.getHours()-1)+':00';
+    document.getElementById('eBis').value=pad2(now.getHours())+':00';
+  }
+
+  updateEntryHint();
+  openModal('modalEntry');
+}
+
+function pad2(n){return String(n).padStart(2,'0');}
+
+function updateEntryHint(){
+  const von=document.getElementById('eVon').value;
+  const bis=document.getElementById('eBis').value;
+  const hint=document.getElementById('eHint');
+  if(von&&bis){
+    const [vh,vm]=von.split(':').map(Number);
+    const [bh,bm]=bis.split(':').map(Number);
+    let diffMin=(bh*60+bm)-(vh*60+vm);
+    if(diffMin<0)diffMin+=24*60; // overnight
+    if(diffMin<=0){hint.textContent='';return;}
+    const h=Math.floor(diffMin/60),m=diffMin%60;
+    hint.textContent=`Dauer: ${pad2(h)}:${pad2(m)} h`;
+    hint.style.color='var(--ink-3)';
+  }else{hint.textContent='';}
+}
+
+function saveEntry(){
+  const projId=parseInt(document.getElementById('eProjekt').value);
+  const datum=document.getElementById('eDatum').value;
+  const von=document.getElementById('eVon').value;
+  const bis=document.getElementById('eBis').value;
+
+  if(!projId||!datum||!von||!bis){toast('Bitte alle Felder ausfüllen');return;}
+
+  const [vh,vm]=von.split(':').map(Number);
+  const [bh,bm]=bis.split(':').map(Number);
+  const startTs=new Date(datum+'T'+pad2(vh)+':'+pad2(vm)+':00').getTime();
+  let endTs  =new Date(datum+'T'+pad2(bh)+':'+pad2(bm)+':00').getTime();
+
+  // Allow overnight entries (bis < von → next day)
+  if(endTs<=startTs) endTs+=24*60*60*1000;
+
+  if(endTs-startTs>24*60*60*1000){toast('Buchung darf max. 24h betragen');return;}
+
+  if(editingEntryId){
+    const idx=state.entries.findIndex(e=>e.id===editingEntryId);
+    if(idx>-1){
+      state.entries[idx]={...state.entries[idx],projectId:projId,start:startTs,end:endTs,date:datum};
+      toast('Buchung aktualisiert ✓');
+    }
+  }else{
+    state.entries.push({id:state.nextEntryId++,projectId:projId,start:startTs,end:endTs,date:datum});
+    toast('Buchung hinzugefügt ✓');
+  }
+  save();closeModal('modalEntry');renderReport();renderErf();
+}
 
 // ══ PROJEKT MODAL ══
 function buildIconPicker(){
@@ -915,7 +1058,7 @@ function openProjektModal(projId){
   document.getElementById('modalProjektTitle').textContent=p?'Projekt bearbeiten':'Neues Projekt';
   document.getElementById('pName').value=p?p.name:'';
   document.getElementById('pNum').value=p?p.num:'';
-  document.getElementById('pPhase').value=p?p.phase:1;
+  document.getElementById('pPhase').value=p?p.phase:0;
   document.getElementById('pOrt').value=p?p.ort||'':'';
   document.getElementById('pDesc').value=p?p.desc||'':'';
   selectedIcon=p?p.icon:ICONS[state.projects.length%ICONS.length];
@@ -1034,6 +1177,107 @@ function clearAllData(){
   location.reload();
 }
 
+// ══ DATENSICHERUNG: EXPORT ══
+function exportBackup(){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('de-DE').replace(/\./g,'-');
+  const timeStr=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
+
+  const backup={
+    version:2,
+    exportedAt:now.toISOString(),
+    exportedBy:getSettings().sName||'',
+    buero:getSettings().sBuero||'desch architekten',
+    state: JSON.parse(localStorage.getItem('zeit2_state')||'null'),
+    settings: JSON.parse(localStorage.getItem('zeit2_settings')||'null'),
+    logo: localStorage.getItem('zeit2_logo')||null
+  };
+
+  const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+  const filename=`Stundenerfassung_Backup_${dateStr}_${timeStr}.json`;
+  shareOrDownload(blob,filename,'application/json');
+  toast('Sicherung exportiert ✓');
+}
+
+// ══ DATENSICHERUNG: VOLLSTÄNDIGER IMPORT ══
+function importBackup(input){
+  const file=input.files[0]; if(!file)return; input.value='';
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.version||!data.state){toast('❌ Ungültige Backup-Datei');return;}
+      if(!confirm(`Backup vom ${new Date(data.exportedAt).toLocaleString('de-DE')} laden?
+
+Alle aktuellen Daten werden überschrieben.`))return;
+
+      if(data.state)localStorage.setItem('zeit2_state',JSON.stringify(data.state));
+      if(data.settings)localStorage.setItem('zeit2_settings',JSON.stringify(data.settings));
+      if(data.logo)localStorage.setItem('zeit2_logo',data.logo);
+      else localStorage.removeItem('zeit2_logo');
+
+      toast('Import erfolgreich – App wird neu geladen …');
+      setTimeout(()=>location.reload(),1200);
+    }catch(err){
+      toast('❌ Datei konnte nicht gelesen werden');
+      console.error(err);
+    }
+  };
+  r.readAsText(file,'utf-8');
+}
+
+// ══ DATENSICHERUNG: NUR PROJEKTE IMPORTIEREN ══
+function importProjects(input){
+  const file=input.files[0]; if(!file)return; input.value='';
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+
+      // Accept full backup or bare projects array
+      let projects=null;
+      if(Array.isArray(data)){
+        projects=data;
+      }else if(data.state&&Array.isArray(data.state.projects)){
+        projects=data.state.projects;
+      }else if(Array.isArray(data.projects)){
+        projects=data.projects;
+      }
+
+      if(!projects||!projects.length){toast('❌ Keine Projekte gefunden');return;}
+
+      const mode=confirm(
+        `${projects.length} Projekt(e) gefunden.
+
+`+
+        `OK = Vorhandene Projekte ersetzen
+`+
+        `Abbrechen = Zu bestehenden hinzufügen`
+      );
+
+      if(mode){
+        // Replace: keep entries, swap projects, fix IDs
+        const maxId=Math.max(0,...projects.map(p=>p.id||0))+1;
+        state.projects=projects;
+        state.nextProjId=maxId+1;
+      }else{
+        // Merge: renumber incoming projects to avoid ID collisions
+        let nextId=state.nextProjId;
+        const added=projects.map(p=>({...p,id:nextId++}));
+        state.projects=[...state.projects,...added];
+        state.nextProjId=nextId;
+      }
+      save();renderAll();
+      toast(`${projects.length} Projekt(e) importiert ✓`);
+    }catch(err){
+      toast('❌ Datei konnte nicht gelesen werden');
+      console.error(err);
+    }
+  };
+  r.readAsText(file,'utf-8');
+}
+
 // ══ iOS DETECTION ══
 function isIOS(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent)||
@@ -1107,7 +1351,7 @@ function exportExcel(){
   const bRows=sorted.map(e=>{
     const p=state.projects.find(x=>x.id===e.projectId);
     const dur=e.end-e.start;
-    return[new Date(e.start).toLocaleDateString('de-DE'),p?p.name:'–',p?p.num||'–':'–',p?HOAI_NAMES[p.phase]:'–',fmtTime(e.start),fmtTime(e.end),fmtHM(dur),fmtDec(dur)];
+    return[new Date(e.start).toLocaleDateString('de-DE'),p?p.name:'–',p?p.num||'–':'–',p?(p.phase>0?HOAI_NAMES[p.phase]:''):'–',fmtTime(e.start),fmtTime(e.end),fmtHM(dur),fmtDec(dur)];
   });
   const totalMs=sorted.reduce((a,e)=>a+(e.end-e.start),0);
   const bTotal=['','','','','','GESAMT',fmtHM(totalMs),fmtDec(totalMs)];
