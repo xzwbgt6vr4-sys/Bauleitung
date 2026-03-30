@@ -241,6 +241,24 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .time-row .field{flex:1;margin-bottom:0}
 .time-sep{padding-bottom:14px;color:var(--ink-3);font-size:18px;line-height:1;flex-shrink:0}
 .entry-actions-cell{display:flex;gap:2px;justify-content:flex-end}
+
+/* ── TAGESVERLAUF-BALKEN ── */
+.timeline-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.timeline-header{padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.timeline-title{font-size:15px;font-weight:600}
+.timeline-range{font-size:11px;color:var(--ink-3)}
+.timeline-wrap{padding:0 16px 14px}
+.timeline-bar{position:relative;height:36px;background:var(--paper-2);border-radius:6px;overflow:hidden;cursor:pointer}
+.timeline-seg{position:absolute;top:0;height:100%;transition:opacity .15s}
+.timeline-seg:hover{opacity:.75!important;z-index:2}
+.timeline-seg.gap{background:var(--paper-3)!important;opacity:.5}
+.timeline-tick-row{display:flex;justify-content:space-between;padding:4px 0 0;margin-top:2px}
+.timeline-tick{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.timeline-tooltip{position:fixed;background:var(--ink);color:#fff;font-size:11px;padding:5px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:500;opacity:0;transition:opacity .15s;max-width:220px;line-height:1.4}
+.timeline-legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 16px 12px}
+.timeline-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-2)}
+.timeline-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.timeline-now{position:absolute;top:0;width:2px;background:var(--accent);height:100%;z-index:3;opacity:.8}
 </style>
 </head>
 <body>
@@ -481,7 +499,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     </div>
     <div class="card-body"><div class="daily-bar-wrap" id="dailyBars"></div></div>
   </div>
+  <div class="timeline-card" id="timelineCard" style="display:none">
+    <div class="timeline-header">
+      <span class="timeline-title">Tagesverlauf</span>
+      <span class="timeline-range" id="timelineRange"></span>
+    </div>
+    <div class="timeline-wrap">
+      <div class="timeline-bar" id="timelineBar"></div>
+      <div class="timeline-tick-row" id="timelineTicks"></div>
+    </div>
+    <div class="timeline-legend" id="timelineLegend"></div>
+  </div>
 </div>
+<div class="timeline-tooltip" id="timelineTooltip"></div>
 
 <!-- ══ PROJEKTE ══ -->
 <div id="tab-projekte" class="screen">
@@ -698,7 +728,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 // ══ KONSTANTEN ══
 const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#555'];
 const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
-const HOAI_NAMES = {1:'LP 1 – Grundlagenermittlung',2:'LP 2 – Vorplanung',3:'LP 3 – Entwurfsplanung',4:'LP 4 – Genehmigungsplanung',5:'LP 5 – Ausführungsplanung',6:'LP 6 – Vorbereitung Vergabe',7:'LP 7 – Mitwirkung Vergabe',8:'LP 8 – Objektüberwachung',9:'LP 9 – Objektbetreuung'};
+const HOAI_NAMES = {1:'LP 1 - Grundlagenermittlung',2:'LP 2 - Vorplanung',3:'LP 3 - Entwurfsplanung',4:'LP 4 - Genehmigungsplanung',5:'LP 5 - Ausführungsplanung',6:'LP 6 - Vorbereitung Vergabe',7:'LP 7 - Mitwirkung Vergabe',8:'LP 8 - Objektüberwachung',9:'LP 9 - Objektbetreuung'};
 const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
 const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail'];
 
@@ -717,10 +747,10 @@ setInterval(updateClock,1000);
 updateClock();
 
 // ══ HELPERS ══
-function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;'';}
+function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
 function todayStr(){return new Date().toISOString().slice(0,10);}
-function fmtHM(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;'';}
+function fmtHM(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
 function fmtDec(ms){return(Math.round(ms/360000)/10).toFixed(1);}
 
 // ══ TABS ══
@@ -785,7 +815,7 @@ function getPeriodBounds(){
     const day=d.getDay()||7;
     start=new Date(d);start.setDate(d.getDate()-(day-1));start.setHours(0,0,0,0);
     end=new Date(start);end.setDate(start.getDate()+6);end.setHours(23,59,59,999);
-    label=(periodOffset===0?'Diese Woche: ':'')+start.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+'–'+end.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+    label=(periodOffset===0?'Diese Woche: ':'')+start.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+'-'+end.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
   }else{
     const d=new Date(now.getFullYear(),now.getMonth()+periodOffset,1);
     start=new Date(d);start.setHours(0,0,0,0);
@@ -821,7 +851,7 @@ function renderErf(){
   if(state.active){
     const proj=state.projects.find(p=>p.id===state.active.projectId);
     bar.style.display='flex';
-    document.getElementById('runningName').textContent=proj?proj.name:'–';
+    document.getElementById('runningName').textContent=proj?proj.name:'-';
     document.getElementById('runningSince').textContent='Läuft seit '+fmtTime(state.active.start);
     document.getElementById('runningTime').textContent=fmtDur(Date.now()-state.active.start);
     if(!elapsedInterval)startTick();
@@ -849,7 +879,7 @@ function renderDailyBars(){
   const data=state.projects.map(p=>({p,ms:getTodayMs(p.id)})).filter(x=>x.ms>0);
   const total=data.reduce((a,x)=>a+x.ms,0);
   const card=document.getElementById('dailySummaryCard');
-  if(!data.length){card.style.display='none';return;}
+  if(!data.length){card.style.display='none';document.getElementById('timelineCard').style.display='none';return;}
   card.style.display='block';
   document.getElementById('dailyTotal').textContent=fmtHM(total)+' h';
   document.getElementById('dailyBars').innerHTML=data.map(({p,ms})=>`
@@ -859,6 +889,178 @@ function renderDailyBars(){
       <div class="daily-bar-bg"><div class="daily-bar-fill" style="width:${total?Math.round(ms/total*100):0}%;background:${p.color}"></div></div>
       <div class="daily-bar-time">${fmtHM(ms)}</div>
     </div>`).join('');
+  renderTimeline();
+}
+
+function renderTimeline(){
+  const today=todayStr();
+  // Collect all entries for today including active
+  let entries=state.entries.filter(e=>e.date===today).map(e=>({...e}));
+  if(state.active&&new Date(state.active.start).toISOString().slice(0,10)===today){
+    entries.push({id:'live',projectId:state.active.projectId,start:state.active.start,end:Date.now(),date:today});
+  }
+  if(!entries.length){document.getElementById('timelineCard').style.display='none';return;}
+  document.getElementById('timelineCard').style.display='block';
+
+  // Find time window: earliest start to latest end, min 1h span
+  const minStart=Math.min(...entries.map(e=>e.start));
+  const maxEnd  =Math.max(...entries.map(e=>e.end));
+  // Snap to hour boundaries, extend slightly for readability
+  const winStart=new Date(minStart);winStart.setMinutes(0,0,0);
+  let winEnd=new Date(maxEnd);winEnd.setMinutes(59,59,999);
+  if(state.active)winEnd=new Date(Math.max(winEnd.getTime(),Date.now()+60000));
+  const winMs=winEnd.getTime()-winStart.getTime();
+
+  // Range label
+  document.getElementById('timelineRange').textContent=
+    fmtTime(winStart.getTime())+' - '+fmtTime(winEnd.getTime());
+
+  // Sort entries by start
+  const sorted=[...entries].sort((a,b)=>a.start-b.start);
+
+  // Build segments: entries + gaps between them
+  const segments=[];
+  let cursor=winStart.getTime();
+
+  sorted.forEach(e=>{
+    const s=Math.max(e.start,cursor);
+    const en=e.id==='live'?Date.now():e.end;
+    // Gap before this entry
+    if(s>cursor+30000){ // >30s gap
+      segments.push({type:'gap',start:cursor,end:s});
+    }
+    if(en>s){
+      segments.push({type:'entry',entry:e,start:s,end:en});
+    }
+    cursor=Math.max(cursor,en);
+  });
+  // Gap after last entry to winEnd
+  if(cursor<winEnd.getTime()-30000){
+    segments.push({type:'gap',start:cursor,end:winEnd.getTime()});
+  }
+
+  // Render bar segments
+  const bar=document.getElementById('timelineBar');
+  bar.innerHTML='';
+
+  segments.forEach(seg=>{
+    const left=(seg.start-winStart.getTime())/winMs*100;
+    const width=(seg.end-seg.start)/winMs*100;
+    if(width<0.1)return;
+
+    const div=document.createElement('div');
+    div.className='timeline-seg'+(seg.type==='gap'?' gap':'');
+    div.style.left=left.toFixed(3)+'%';
+    div.style.width=width.toFixed(3)+'%';
+
+    if(seg.type==='entry'){
+      const p=state.projects.find(x=>x.id===seg.entry.projectId);
+      const isLive=seg.entry.id==='live';
+      div.style.background=p?p.color:'var(--ink-3)';
+      if(isLive){div.style.opacity='1';div.style.animation='pulse 1.4s ease-in-out infinite';}
+      const dur=seg.end-seg.start;
+      const tip=(p?p.name:'?')+'\n'+fmtTime(seg.start)+' – '+(isLive?'läuft':fmtTime(seg.end))+'\n'+fmtHM(dur)+' h';
+      div.dataset.tip=tip;
+    }else{
+      const gapMs=seg.end-seg.start;
+      div.dataset.tip='Pause'+'\n'+fmtTime(seg.start)+' - '+fmtTime(seg.end)+'\n'+fmtHM(seg.end-seg.start)+' h';
+    }
+
+    // Tooltip events
+    div.addEventListener('mouseenter',showTip);
+    div.addEventListener('mousemove',moveTip);
+    div.addEventListener('mouseleave',hideTip);
+    div.addEventListener('touchstart',showTipTouch,{passive:true});
+    div.addEventListener('touchend',hideTip,{passive:true});
+    bar.appendChild(div);
+  });
+
+  // Now-marker
+  const nowPct=(Date.now()-winStart.getTime())/winMs*100;
+  if(nowPct>0&&nowPct<100){
+    const marker=document.createElement('div');
+    marker.className='timeline-now';
+    marker.style.left=nowPct.toFixed(2)+'%';
+    bar.appendChild(marker);
+  }
+
+  // Tick marks
+  const ticks=document.getElementById('timelineTicks');
+  ticks.innerHTML='';
+  const hours=Math.ceil(winMs/3600000);
+  const tickStep=hours<=4?1:hours<=8?1:hours<=12?2:3;
+  let t=new Date(winStart);t.setMinutes(0,0,0);
+  while(t<=winEnd){
+    const pct=(t.getTime()-winStart.getTime())/winMs*100;
+    if(pct>=0&&pct<=100){
+      const span=document.createElement('span');
+      span.className='timeline-tick';
+      span.style.position='absolute';
+      span.style.left=pct.toFixed(1)+'%';
+      span.style.transform='translateX(-50%)';
+      span.textContent=pad2(t.getHours())+':00';
+      ticks.appendChild(span);
+    }
+    t.setHours(t.getHours()+tickStep);
+  }
+  ticks.style.position='relative';
+  ticks.style.height='16px';
+
+  // Legend: unique projects
+  const seenIds=new Set();
+  const legend=document.getElementById('timelineLegend');
+  legend.innerHTML='';
+  sorted.forEach(e=>{
+    if(seenIds.has(e.projectId))return;
+    seenIds.add(e.projectId);
+    const p=state.projects.find(x=>x.id===e.projectId);
+    if(!p)return;
+    const item=document.createElement('div');
+    item.className='timeline-legend-item';
+    item.innerHTML=`<div class="timeline-legend-dot" style="background:${p.color}"></div><span>${p.name}</span>`;
+    legend.appendChild(item);
+  });
+  // Add gap legend if any gaps
+  if(segments.some(s=>s.type==='gap')){
+    const item=document.createElement('div');
+    item.className='timeline-legend-item';
+    item.innerHTML=`<div class="timeline-legend-dot" style="background:var(--paper-3);border:1px solid var(--paper-3)"></div><span style="color:var(--ink-3)">Pause</span>`;
+    legend.appendChild(item);
+  }
+}
+
+// Tooltip helpers
+const _tip=document.getElementById('timelineTooltip');
+function showTip(e){
+  const t=e.currentTarget.dataset.tip;
+  if(!t)return;
+  _tip.textContent='';
+  t.split('\n').forEach((line,i)=>{
+    if(i>0)_tip.appendChild(document.createElement('br'));
+    _tip.appendChild(document.createTextNode(line));
+  });
+  _tip.style.opacity='1';
+  moveTip(e);
+}
+function moveTip(e){
+  const x=e.clientX,y=e.clientY;
+  const tw=_tip.offsetWidth,th=_tip.offsetHeight;
+  _tip.style.left=Math.min(x+12,window.innerWidth-tw-8)+'px';
+  _tip.style.top=(y-th-8<8?y+16:y-th-8)+'px';
+}
+function hideTip(){_tip.style.opacity='0';}
+function showTipTouch(e){
+  const t=e.currentTarget.dataset.tip;if(!t)return;
+  _tip.textContent='';
+  t.split('\n').forEach((line,i)=>{
+    if(i>0)_tip.appendChild(document.createElement('br'));
+    _tip.appendChild(document.createTextNode(line));
+  });
+  _tip.style.opacity='1';
+  const touch=e.touches[0];
+  _tip.style.left=Math.min(touch.clientX+12,window.innerWidth-_tip.offsetWidth-8)+'px';
+  _tip.style.top=(touch.clientY-60)+'px';
+  setTimeout(hideTip,2500);
 }
 
 // ══ RENDER: PROJEKTE ══
@@ -910,12 +1112,12 @@ function renderReport(){
     return`<tr>
       <td style="font-weight:600">
         ${p?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>`:''}
-        ${p?p.name:'–'}
+        ${p?p.name:'-'}
         ${p&&p.phase>0?`<div style="font-size:10px;font-weight:400;color:var(--ink-3);margin-top:1px">${HOAI_SHORT[p.phase]}</div>`:''}
       </td>
       <td style="font-size:12px;color:var(--ink-3);white-space:nowrap">${isLive?'<span class="badge live">Läuft</span>':fmtTime(e.start)}</td>
       <td style="font-size:12px;color:var(--ink-3);white-space:nowrap">${isLive?'':fmtTime(e.end)}</td>
-      <td style="font-variant-numeric:tabular-nums;font-size:12px">${isLive?'–':fmtDur(e.end-e.start)}</td>
+      <td style="font-variant-numeric:tabular-nums;font-size:12px">${isLive?'-':fmtDur(e.end-e.start)}</td>
       <td><div class="entry-actions-cell">${isLive?'':`
         <button class="entry-edit-btn" onclick="openEntryModal(${e.id})" title="Bearbeiten">✏️</button>
         <button class="entry-del" onclick="deleteEntry(${e.id})" title="Löschen">×</button>
@@ -1217,7 +1419,7 @@ Alle aktuellen Daten werden überschrieben.`))return;
       if(data.logo)localStorage.setItem('zeit2_logo',data.logo);
       else localStorage.removeItem('zeit2_logo');
 
-      toast('Import erfolgreich – App wird neu geladen …');
+      toast('Import erfolgreich - App wird neu geladen …');
       setTimeout(()=>location.reload(),1200);
     }catch(err){
       toast('❌ Datei konnte nicht gelesen werden');
@@ -1305,12 +1507,12 @@ async function shareOrDownload(blob, filename, mimeType){
   if(isIOS()&&s.sExportTarget==='mail'&&s.sExportMail){
     const r=new FileReader();
     r.onload=function(){
-      // Öffne Mail-App mit mailto: – Anhang geht via mailto nicht direkt,
+      // Öffne Mail-App mit mailto: - Anhang geht via mailto nicht direkt,
       // daher öffnen wir die Datei als data-URI in Safari und hinweisen den User
       const a=document.createElement('a');
       a.href=r.result;a.download=filename;a.target='_blank';
       document.body.appendChild(a);a.click();document.body.removeChild(a);
-      toast('Datei geöffnet – über Teilen versenden');
+      toast('Datei geöffnet - über Teilen versenden');
     };
     r.readAsDataURL(blob);return;
   }
@@ -1351,14 +1553,14 @@ function exportExcel(){
   const bRows=sorted.map(e=>{
     const p=state.projects.find(x=>x.id===e.projectId);
     const dur=e.end-e.start;
-    return[new Date(e.start).toLocaleDateString('de-DE'),p?p.name:'–',p?p.num||'–':'–',p?(p.phase>0?HOAI_NAMES[p.phase]:''):'–',fmtTime(e.start),fmtTime(e.end),fmtHM(dur),fmtDec(dur)];
+    return[new Date(e.start).toLocaleDateString('de-DE'),p?p.name:'-',p?p.num||'-':'-',p?(p.phase>0?HOAI_NAMES[p.phase]:''):'-',fmtTime(e.start),fmtTime(e.end),fmtHM(dur),fmtDec(dur)];
   });
   const totalMs=sorted.reduce((a,e)=>a+(e.end-e.start),0);
   const bTotal=['','','','','','GESAMT',fmtHM(totalMs),fmtDec(totalMs)];
 
   // Zusammenfassung
   const pt={};
-  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'–';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'–',num:p?p.num||'–':'–'};pt[k].ms+=e.end-e.start;});
+  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'-';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'-',num:p?p.num||'-':'-'};pt[k].ms+=e.end-e.start;});
   const sHdr=['Projekt','Projektnummer','HOAI-Phase','Gesamt (h:mm)','Dezimal (h)'];
   const sRows=Object.entries(pt).map(([n,{ms,phase,num}])=>[n,num,phase,fmtHM(ms),fmtDec(ms)]);
   const sTotal=['GESAMT','','',fmtHM(totalMs),fmtDec(totalMs)];
@@ -1404,12 +1606,12 @@ function exportPDF(){
   const dayCount=Math.max(1,new Set(sorted.map(e=>e.date)).size);
 
   const pt={};
-  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'–';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'–',num:p?p.num||'–':'–'};pt[k].ms+=e.end-e.start;});
+  sorted.forEach(e=>{const p=state.projects.find(x=>x.id===e.projectId);const k=p?p.name:'-';if(!pt[k])pt[k]={ms:0,phase:p?HOAI_SHORT[p.phase]:'-',num:p?p.num||'-':'-'};pt[k].ms+=e.end-e.start;});
 
   const tableRows=sorted.map(e=>{
     const p=state.projects.find(x=>x.id===e.projectId);
     const dur=e.end-e.start;
-    return`<tr><td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td><td class="b">${p?p.name:'–'}</td><td>${p?p.num||'–':'–'}</td><td><span class="ph">${p?HOAI_SHORT[p.phase]:'–'}</span></td><td>${fmtTime(e.start)}</td><td>${fmtTime(e.end)}</td><td class="n">${fmtHM(dur)}</td><td class="n">${fmtDec(dur)}</td></tr>`;
+    return`<tr><td>${new Date(e.start).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}</td><td class="b">${p?p.name:'-'}</td><td>${p?p.num||'-':'-'}</td><td><span class="ph">${p?HOAI_SHORT[p.phase]:'-'}</span></td><td>${fmtTime(e.start)}</td><td>${fmtTime(e.end)}</td><td class="n">${fmtHM(dur)}</td><td class="n">${fmtDec(dur)}</td></tr>`;
   }).join('');
 
   const sumRows=Object.entries(pt).map(([n,{ms,phase,num}])=>
@@ -1484,7 +1686,7 @@ tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #
   a.click();
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('PDF wird im Browser geöffnet – Drucken/Speichern als PDF');
+  toast('PDF wird im Browser geöffnet - Drucken/Speichern als PDF');
 }
 
 // ══ DRAG & DROP SORT (Desktop + iOS Touch) ══
