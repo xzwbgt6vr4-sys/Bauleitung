@@ -1779,13 +1779,27 @@ function buildLogoHtml(){
   const logo=getLogoForExport();
   const s=getSettings();
   const buero=s.sBuero||'desch architekten';
+
   if(logo.type==='img'){
-    return`<img src="${logo.data}" style="max-height:36px;max-width:200px;object-fit:contain;display:block;filter:brightness(0) invert(1)">`;
+    // Custom image – shown as-is with white overlay for dark header
+    return`<img src="${logo.data}" style="max-height:36px;max-width:200px;object-fit:contain;display:block">`;
+
   }else if(logo.type==='svg'){
-    // Inline SVG scaled to fit header (white version)
-    return`<div style="height:28px;width:200px;overflow:hidden;filter:brightness(0) invert(1)">${logo.html}</div>`;
+    // The desch SVG has a white background rect (fill:white) and white text.
+    // For the PDF header (colored background) we need to:
+    // 1. Remove / hide the white background rect
+    // 2. Keep text as white
+    // We do this by serialising the SVG and patching the background rect fill to 'none'
+    let svgStr=logo.html;
+    // The background rect has style="fill:white;" – make it transparent
+    svgStr=svgStr.replace(/fill:white;/g,'fill:none;');
+    svgStr=svgStr.replace(/style="fill:white"/g,'style="fill:none"');
+    // Wrap in a sized container
+    return`<div style="height:32px;width:260px;flex-shrink:0;overflow:hidden">${svgStr}</div>`;
+
   }else{
-    return`<span style="font-size:16pt;font-weight:700;letter-spacing:-.5px;line-height:1">${logo.text||buero}</span>`;
+    // Custom text or büro name
+    return`<span style="font-family:'Arial Narrow',Arial,sans-serif;font-size:18pt;font-weight:700;letter-spacing:-.5px;color:#fff;line-height:1;white-space:nowrap">${logo.text||buero}</span>`;
   }
 }
 
