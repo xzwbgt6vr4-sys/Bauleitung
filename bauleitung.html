@@ -1902,8 +1902,8 @@ function generiereProtokoll() {
 }
 
 function sendeEmail() {
-  const email = document.getElementById('pEmail').value || '';
-  const { subject, datumDE, projekt, cc } = buildMailParts();
+  const { subject, datumDE, projekt, cc, to } = buildMailParts();
+  const email = to;
 
   // Try Web Share API first (iOS Safari supports sharing HTML files)
   if (navigator.share && navigator.canShare) {
@@ -1965,12 +1965,19 @@ function buildMailParts() {
   const autoSubject = `${projekt} – Protokoll vom ${datumDE}`;
   const betreffEl = document.getElementById('pBetreff');
   const subject = (betreffEl && betreffEl.value.trim()) ? betreffEl.value.trim() : autoSubject;
-  // Merge field CC with project CC
-  const fieldCC = document.getElementById('pEmailCC').value.trim();
+  // Resolve TO address: field → project → global settings
+  const fieldTo = document.getElementById('pEmail').value.trim();
   const projObj = state.projekte.find(p => p.name === projekt);
+  const projTo = (projObj && projObj.email) ? projObj.email : '';
+  const s = getSettings();
+  const settingsTo = s.sDefaultMail || '';
+  const to = fieldTo || projTo || settingsTo;
+  // Merge CC: field + project + global settings
+  const fieldCC = document.getElementById('pEmailCC').value.trim();
   const projCC = (projObj && projObj.cc) ? projObj.cc : '';
-  const allCC = [fieldCC, projCC].filter(Boolean).join(', ');
-  return { projekt, datumDE, subject, body: '', cc: allCC };
+  const settingsCC = s.sDefaultCC || '';
+  const allCC = [fieldCC, projCC, settingsCC].filter(Boolean).join(', ');
+  return { projekt, datumDE, subject, body: '', to, cc: allCC };
 }
 
 function updateBetreff() {
