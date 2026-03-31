@@ -259,6 +259,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .timeline-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-2)}
 .timeline-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .timeline-now{position:absolute;top:0;width:2px;background:var(--accent);height:100%;z-index:3;opacity:.8}
+
+/* ── GEO STATUS ── */
+.geo-status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;font-size:12px;color:var(--ink-3)}
+.geo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--paper-3)}
+.geo-dot.active{background:#2a7a4e;animation:pulse 2s ease-in-out infinite}
+.geo-dot.searching{background:#c57b00;animation:pulse 1s ease-in-out infinite}
+.geo-dot.off{background:var(--paper-3)}
+.geo-dot.denied{background:var(--accent)}
+.geo-status-text{flex:1}
+.geo-status-proj{font-weight:600;color:var(--ink)}
+.geo-toggle-btn{background:none;border:1.5px solid var(--paper-3);border-radius:20px;padding:4px 10px;font-size:11px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;color:var(--ink-3);white-space:nowrap}
+.geo-toggle-btn.on{border-color:var(--accent);color:var(--accent)}
+[data-theme="dark"] .geo-status-bar{background:#1f1e1c}
 </style>
 </head>
 <body>
@@ -481,6 +494,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 
 <!-- ══ ERFASSUNG ══ -->
 <div id="tab-erfassung" class="screen active">
+  <div class="geo-status-bar" id="geoStatusBar" style="display:none">
+    <div class="geo-dot off" id="geoDot"></div>
+    <span class="geo-status-text" id="geoStatusText">Standortüberwachung läuft…</span>
+    <button class="geo-toggle-btn" id="geoToggleBtn" onclick="toggleGeoTracking()">Aus</button>
+  </div>
   <div class="running-bar" id="runningBar" style="display:none">
     <div class="running-bar-dot"></div>
     <div class="running-bar-info">
@@ -635,6 +653,39 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
 
   <div class="card">
+    <div class="card-header"><span class="card-title">📍 Automatische Standort-Erfassung</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>Standortüberwachung</label>
+        <select id="sGeoAuto" onchange="saveSettings();onGeoSettingChange()">
+          <option value="off">Deaktiviert</option>
+          <option value="on">Aktiviert – startet Buchung automatisch</option>
+        </select>
+        <p class="hint">Wenn du dich im eingestellten Radius einer Projektadresse befindest und keine Buchung läuft, wird das Projekt automatisch gestartet.</p>
+      </div>
+      <div class="field">
+        <label>Radius (Meter)</label>
+        <select id="sGeoRadius" onchange="saveSettings()">
+          <option value="50">50 m</option>
+          <option value="100">100 m</option>
+          <option value="150">150 m</option>
+          <option value="200">200 m</option>
+          <option value="300">300 m</option>
+          <option value="500">500 m</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Standort-Status</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="geo-dot off" id="geoSettingsDot"></div>
+          <span id="geoSettingsStatus" style="font-size:12px;color:var(--ink-3)">Nicht aktiv</span>
+        </div>
+        <p class="hint" style="margin-top:6px">Damit die automatische Erfassung funktioniert, muss der Projektadresse ein Geocoordinaten hinterlegt sein. Tipp: Adresse im Projektformular eintragen, dann auf "Koordinaten ermitteln" tippen.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-header"><span class="card-title">💾 Datensicherung</span></div>
     <div class="card-body">
       <p class="hint" style="margin-bottom:12px">Exportiert alle Projekte, Einstellungen und Buchungen als JSON-Datei. Kann auf anderen Geräten oder nach einem Datenverlust wieder importiert werden.</p>
@@ -701,7 +752,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
         <option value="9">LP 9 – Objektbetreuung</option>
       </select>
     </div>
-    <div class="field"><label>Ort / Adresse</label><input type="text" id="pOrt" placeholder="z.B. Brombach, Lörrach"></div>
+    <div class="field">
+      <label>Ort / Adresse</label>
+      <input type="text" id="pOrt" placeholder="z.B. Brombach, Lörrach" oninput="clearProjCoords()">
+      <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+        <button type="button" class="settings-btn" onclick="geocodeProjOrt()" id="geocodeBtn">📍 Koordinaten ermitteln</button>
+        <span id="geocodeStatus" style="font-size:11px;color:var(--ink-3)"></span>
+      </div>
+      <input type="hidden" id="pLat">
+      <input type="hidden" id="pLng">
+    </div>
     <div class="field"><label>Beschreibung <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">(wird am Button angezeigt)</span></label><input type="text" id="pDesc" placeholder="z.B. Umbau EG, LPH 5 Ausführung …"></div>
     <div class="field">
       <label>Bild / Icon</label>
@@ -730,7 +790,7 @@ const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a
 const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
 const HOAI_NAMES = {1:'LP 1 - Grundlagenermittlung',2:'LP 2 - Vorplanung',3:'LP 3 - Entwurfsplanung',4:'LP 4 - Genehmigungsplanung',5:'LP 5 - Ausführungsplanung',6:'LP 6 - Vorbereitung Vergabe',7:'LP 7 - Mitwirkung Vergabe',8:'LP 8 - Objektüberwachung',9:'LP 9 - Objektbetreuung'};
 const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
-const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail'];
+const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius'];
 
 // ══ STATE ══
 let state = JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
@@ -778,6 +838,155 @@ function stopTracking(){
   clearInterval(elapsedInterval);elapsedInterval=null;
   renderErf();toast('Zeiterfassung gestoppt');
 }
+// ══ GEOCODING ══
+async function geocodeProjOrt(){
+  const ort=document.getElementById('pOrt').value.trim();
+  if(!ort){toast('Bitte Adresse eingeben');return;}
+  const btn=document.getElementById('geocodeBtn');
+  const status=document.getElementById('geocodeStatus');
+  btn.textContent='⏳ Suche…';btn.disabled=true;
+  status.textContent='';
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(ort);
+    const res=await fetch(url,{headers:{'Accept-Language':'de'}});
+    const data=await res.json();
+    if(!data||!data.length){status.textContent='Nicht gefunden';status.style.color='var(--accent)';}
+    else{
+      const{lat,lon,display_name}=data[0];
+      document.getElementById('pLat').value=lat;
+      document.getElementById('pLng').value=lon;
+      status.textContent='✓ '+parseFloat(lat).toFixed(4)+', '+parseFloat(lon).toFixed(4);
+      status.style.color='var(--green)';
+    }
+  }catch(e){status.textContent='Fehler bei der Suche';status.style.color='var(--accent)';}
+  btn.textContent='📍 Koordinaten ermitteln';btn.disabled=false;
+}
+function clearProjCoords(){
+  document.getElementById('pLat').value='';
+  document.getElementById('pLng').value='';
+  document.getElementById('geocodeStatus').textContent='';
+}
+
+// ══ GEO-TRACKING ══
+let geoWatchId=null;
+let geoLastPos=null;
+let geoEnabled=false;
+
+function distanceM(lat1,lon1,lat2,lon2){
+  const R=6371000,r=Math.PI/180;
+  const dLat=(lat2-lat1)*r,dLon=(lon2-lon1)*r;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function getNearestProject(lat,lng){
+  const s=getSettings();
+  const radius=parseFloat(s.sGeoRadius||50);
+  let nearest=null,minDist=Infinity;
+  state.projects.forEach(p=>{
+    if(!p.lat||!p.lng)return;
+    const d=distanceM(lat,lng,parseFloat(p.lat),parseFloat(p.lng));
+    if(d<=radius&&d<minDist){minDist=d;nearest=p;}
+  });
+  return nearest?{project:nearest,dist:Math.round(minDist)}:null;
+}
+
+function setGeoStatus(mode, text, projName){
+  const bar=document.getElementById('geoStatusBar');
+  const dot=document.getElementById('geoDot');
+  const label=document.getElementById('geoStatusText');
+  const btn=document.getElementById('geoToggleBtn');
+  const sDot=document.getElementById('geoSettingsDot');
+  const sStatus=document.getElementById('geoSettingsStatus');
+  if(!bar)return;
+  bar.style.display='flex';
+  dot.className='geo-dot '+mode;
+  if(sDot)sDot.className='geo-dot '+mode;
+  label.innerHTML=projName?`<span class="geo-status-text">${text} <span class="geo-status-proj">${projName}</span></span>`:text;
+  if(sStatus)sStatus.textContent=text+(projName?' - '+projName:'');
+  if(btn){btn.textContent=geoEnabled?'An':'Aus';btn.className='geo-toggle-btn'+(geoEnabled?' on':'');}
+}
+
+function startGeoWatch(){
+  if(!navigator.geolocation){setGeoStatus('denied','Standort nicht verfügbar');return;}
+  geoEnabled=true;
+  setGeoStatus('searching','Standort wird ermittelt…');
+  geoWatchId=navigator.geolocation.watchPosition(
+    pos=>{
+      geoLastPos=pos;
+      onGeoUpdate(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);
+    },
+    err=>{
+      if(err.code===1){setGeoStatus('denied','Standort-Zugriff verweigert');}
+      else{setGeoStatus('off','Kein Standort-Signal');}
+    },
+    {enableHighAccuracy:true,maximumAge:15000,timeout:20000}
+  );
+}
+
+function stopGeoWatch(){
+  if(geoWatchId!==null){navigator.geolocation.clearWatch(geoWatchId);geoWatchId=null;}
+  geoEnabled=false;
+  const bar=document.getElementById('geoStatusBar');
+  if(bar)bar.style.display='none';
+  const btn=document.getElementById('geoToggleBtn');
+  if(btn){btn.textContent='Aus';btn.className='geo-toggle-btn';}
+  const sDot=document.getElementById('geoSettingsDot');
+  if(sDot)sDot.className='geo-dot off';
+  const sStatus=document.getElementById('geoSettingsStatus');
+  if(sStatus)sStatus.textContent='Nicht aktiv';
+}
+
+function onGeoUpdate(lat,lng,accuracy){
+  const near=getNearestProject(lat,lng);
+  if(near){
+    const{project,dist}=near;
+    setGeoStatus('active',`📍 ${dist}m – Auto-Start:`,project.name);
+    // Only auto-start if no tracking is running
+    if(!state.active){
+      startTracking(project.id);
+      toast(`📍 Auto-Start: ${project.name} (${dist}m)`);
+    }
+  }else{
+    const projsWithCoords=state.projects.filter(p=>p.lat&&p.lng);
+    if(!projsWithCoords.length){
+      setGeoStatus('off','Kein Projekt mit Adresse vorhanden');
+    }else{
+      setGeoStatus('searching',`📡 ${Math.round(accuracy||0)}m Genauigkeit – kein Projekt in Reichweite`);
+    }
+  }
+}
+
+function toggleGeoTracking(){
+  if(geoEnabled){
+    stopGeoWatch();
+    saveSettings();
+    // Also update the setting select if visible
+    const sel=document.getElementById('sGeoAuto');
+    if(sel)sel.value='off';
+    saveSettings();
+  }else{
+    startGeoWatch();
+    const sel=document.getElementById('sGeoAuto');
+    if(sel)sel.value='on';
+    saveSettings();
+  }
+}
+
+function onGeoSettingChange(){
+  const s=getSettings();
+  if(s.sGeoAuto==='on'){startGeoWatch();}
+  else{stopGeoWatch();}
+}
+
+function initGeoFromSettings(){
+  const s=getSettings();
+  if(s.sGeoAuto==='on'){
+    // small delay to let page settle
+    setTimeout(startGeoWatch,800);
+  }
+}
+
 function finishActive(){
   const{projectId,start}=state.active;
   state.entries.push({id:state.nextEntryId++,projectId,start,end:Date.now(),date:new Date(start).toISOString().slice(0,10)});
@@ -1261,7 +1470,7 @@ function openProjektModal(projId){
   document.getElementById('pName').value=p?p.name:'';
   document.getElementById('pNum').value=p?p.num:'';
   document.getElementById('pPhase').value=p?p.phase:0;
-  document.getElementById('pOrt').value=p?p.ort||'':'';
+  document.getElementById('pLat').value=p?p.lat||'':"";document.getElementById('pLng').value=p?p.lng||'':"";document.getElementById('geocodeStatus').textContent=p&&p.lat?'✓ '+parseFloat(p.lat).toFixed(4)+', '+parseFloat(p.lng).toFixed(4):'';document.getElementById('pOrt').value=p?p.ort||'':'';
   document.getElementById('pDesc').value=p?p.desc||'':'';
   selectedIcon=p?p.icon:ICONS[state.projects.length%ICONS.length];
   selectedColor=p?p.color:COLORS[state.projects.length%COLORS.length];
@@ -1273,7 +1482,7 @@ function openProjektModal(projId){
 function saveProjekt(){
   const name=document.getElementById('pName').value.trim();
   if(!name){toast('Bitte Projektname eingeben');return;}
-  const data={name,num:document.getElementById('pNum').value.trim(),phase:parseInt(document.getElementById('pPhase').value),icon:selectedIcon,color:selectedColor,img:selectedImg||null,ort:document.getElementById('pOrt').value.trim(),desc:document.getElementById('pDesc').value.trim()};
+  const data={name,num:document.getElementById('pNum').value.trim(),phase:parseInt(document.getElementById('pPhase').value),icon:selectedIcon,color:selectedColor,img:selectedImg||null,ort:document.getElementById('pOrt').value.trim(),lat:document.getElementById('pLat').value,lng:document.getElementById('pLng').value,desc:document.getElementById('pDesc').value.trim()};
   if(editingProjId){const idx=state.projects.findIndex(p=>p.id===editingProjId);if(idx>-1)state.projects[idx]={...state.projects[idx],...data};toast('Projekt aktualisiert');}
   else{state.projects.push({id:state.nextProjId++,...data});toast('Projekt angelegt');}
   save();closeModal('modalProjekt');renderAll();
@@ -1807,6 +2016,7 @@ function buildLogoHtml(){
 loadSettings();
 if(state.active)startTick();
 renderAll();
+initGeoFromSettings();
 </script>
 </body>
 </html>
