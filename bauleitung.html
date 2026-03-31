@@ -1566,16 +1566,18 @@ function renderSectionCard(s) {
       <button class="block-add-btn" id="voicebtn-${s.id}" onclick="startVoiceBlock('${s.id}')">🎤 Sprache</button>
       <button class="block-add-btn" onclick="addTextBlock('${s.id}')">✏️ Text</button>
       <button class="block-add-btn" onclick="triggerPhotoForSection('${s.id}')">📷 Foto</button>
+      <button class="block-add-btn" onclick="openSkizzeModal('${s.id}')">✏️ Skizze</button>
     </div>
   </div>`;
 }
 
 function renderBlock(secId, block, i) {
-  if (block.type === 'photo') {
+  if (block.type === 'photo' || block.type === 'sketch') {
+    const bullet = block.type === 'sketch' ? '✏️' : '📷';
     return `<div class="block-item">
-      <div class="block-bullet">📷</div>
+      <div class="block-bullet">${bullet}</div>
       <div class="block-photo">
-        <img src="${block.data}" alt="Foto">
+        <img src="${block.data}" alt="${block.type === 'sketch' ? 'Skizze' : 'Foto'}" style="${block.type === 'sketch' ? 'background:#fff;border-radius:6px;' : ''}">
       </div>
       <button class="block-del" onclick="deleteBlock('${secId}',${i})">×</button>
     </div>`;
@@ -2386,6 +2388,147 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+</script>
+
+<!-- ══════ MODAL: Skizze ══════ -->
+<div class="modal-overlay hidden" id="modalSkizze">
+  <div class="modal-sheet" style="padding:16px 16px calc(var(--safe-bottom) + 16px)">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="modal-title" style="margin:0">✏️ Skizze</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div id="skizzeColors" style="display:flex;gap:4px">
+          <div onclick="setSkizzeColor('#1a1a1a')" style="width:26px;height:26px;border-radius:50%;background:#1a1a1a;cursor:pointer;border:3px solid var(--accent)"></div>
+          <div onclick="setSkizzeColor('#A80000')" style="width:26px;height:26px;border-radius:50%;background:#A80000;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="setSkizzeColor('#1e5a8c')" style="width:26px;height:26px;border-radius:50%;background:#1e5a8c;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="setSkizzeColor('#2a7a4e')" style="width:26px;height:26px;border-radius:50%;background:#2a7a4e;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="setSkizzeColor('#e8a82a')" style="width:26px;height:26px;border-radius:50%;background:#e8a82a;cursor:pointer;border:3px solid transparent"></div>
+        </div>
+        <select id="skizzeBrush" onchange="skizzeBrushSize=parseInt(this.value)" style="font-size:12px;padding:4px 6px;border:1.5px solid var(--paper-3);border-radius:6px;background:#fff;width:auto">
+          <option value="2">Dünn</option>
+          <option value="4" selected>Normal</option>
+          <option value="8">Dick</option>
+          <option value="16">Breit</option>
+        </select>
+        <button onclick="setSkizzeEraser()" id="skizzeEraserBtn" style="padding:4px 8px;border:1.5px solid var(--paper-3);border-radius:6px;background:#fff;font-size:13px;cursor:pointer" title="Radierer">⬜</button>
+        <button onclick="clearSkizze()" style="padding:4px 8px;border:1.5px solid var(--paper-3);border-radius:6px;background:#fff;font-size:13px;cursor:pointer" title="Löschen">🗑</button>
+      </div>
+    </div>
+    <canvas id="skizzeCanvas" style="width:100%;background:#fff;border-radius:8px;border:1.5px solid var(--paper-3);touch-action:none;display:block;cursor:crosshair"></canvas>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="big-btn primary" style="margin:0;flex:1" onclick="speichereSkizze()">💾 Einfügen</button>
+      <button class="big-btn secondary" style="margin:0;flex:1" onclick="closeModal('modalSkizze')">Abbrechen</button>
+    </div>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════
+// SKIZZE (Drawing Canvas)
+// ══════════════════════════════════
+let skizzeSecId = null;
+let skizzeDrawing = false;
+let skizzeColor = '#1a1a1a';
+let skizzeBrushSize = 4;
+let skizzeErasing = false;
+let skizzeLastX = 0, skizzeLastY = 0;
+
+function openSkizzeModal(secId) {
+  skizzeSecId = secId;
+  skizzeErasing = false;
+  openModal('modalSkizze');
+  setTimeout(initSkizzeCanvas, 120);
+}
+
+function initSkizzeCanvas() {
+  const canvas = document.getElementById('skizzeCanvas');
+  if (!canvas) return;
+  const w = canvas.parentElement.clientWidth - 32;
+  const h = Math.min(Math.max(w * 0.65, 260), 440);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+
+  const getPos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    const scaleX = (canvas.width / dpr) / rect.width;
+    const scaleY = (canvas.height / dpr) / rect.height;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  };
+
+  canvas.onmousedown = canvas.ontouchstart = e => {
+    e.preventDefault();
+    skizzeDrawing = true;
+    const {x,y} = getPos(e);
+    skizzeLastX = x; skizzeLastY = y;
+    const ctx2 = canvas.getContext('2d');
+    ctx2.beginPath();
+    ctx2.arc(x, y, (skizzeErasing ? skizzeBrushSize*3 : skizzeBrushSize)/2, 0, Math.PI*2);
+    ctx2.fillStyle = skizzeErasing ? '#fff' : skizzeColor;
+    ctx2.fill();
+  };
+
+  canvas.onmousemove = canvas.ontouchmove = e => {
+    if (!skizzeDrawing) return;
+    e.preventDefault();
+    const ctx2 = canvas.getContext('2d');
+    const {x,y} = getPos(e);
+    ctx2.beginPath();
+    ctx2.moveTo(skizzeLastX, skizzeLastY);
+    ctx2.lineTo(x, y);
+    ctx2.strokeStyle = skizzeErasing ? '#fff' : skizzeColor;
+    ctx2.lineWidth = skizzeErasing ? skizzeBrushSize*3 : skizzeBrushSize;
+    ctx2.lineCap = 'round';
+    ctx2.lineJoin = 'round';
+    ctx2.stroke();
+    skizzeLastX = x; skizzeLastY = y;
+  };
+
+  canvas.onmouseup = canvas.ontouchend = () => { skizzeDrawing = false; };
+}
+
+function setSkizzeColor(color) {
+  skizzeColor = color;
+  skizzeErasing = false;
+  document.querySelectorAll('#skizzeColors div').forEach(el => {
+    el.style.border = (el.style.background === color) ? '3px solid var(--accent)' : '3px solid transparent';
+  });
+  const eb = document.getElementById('skizzeEraserBtn');
+  if (eb) eb.style.background = '#fff';
+}
+
+function setSkizzeEraser() {
+  skizzeErasing = !skizzeErasing;
+  const eb = document.getElementById('skizzeEraserBtn');
+  if (eb) eb.style.background = skizzeErasing ? 'var(--paper-2)' : '#fff';
+  document.querySelectorAll('#skizzeColors div').forEach(el => el.style.border = '3px solid transparent');
+}
+
+function clearSkizze() {
+  const canvas = document.getElementById('skizzeCanvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width/dpr, canvas.height/dpr);
+}
+
+function speichereSkizze() {
+  const canvas = document.getElementById('skizzeCanvas');
+  if (!canvas || !skizzeSecId) return;
+  const data = canvas.toDataURL('image/png');
+  initBlocks();
+  state.blocks[skizzeSecId].push({ type: 'sketch', data });
+  save();
+  rerenderSection(skizzeSecId);
+  closeModal('modalSkizze');
+  toast('Skizze eingefügt');
 }
 </script>
 </body>
