@@ -36,6 +36,7 @@
 [data-theme="dark"] .card,[data-theme="dark"] .proj-track-btn,[data-theme="dark"] .project-item,
 [data-theme="dark"] .summary-card,[data-theme="dark"] .running-bar,[data-theme="dark"] .export-btn{background:#1f1e1c}
 [data-theme="dark"] .header-logo rect{fill:#1a1918!important}
+[data-theme="dark"] #headerSyncBtn{border-color:#3a3a36;color:var(--ink-2)}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 body{font-family:'Arial Narrow',Arial,sans-serif;background:#e8e4de;color:var(--ink);min-height:100vh;overflow-x:hidden;overscroll-behavior-y:none}
@@ -275,6 +276,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .geo-toggle-btn{background:none;border:1.5px solid var(--paper-3);border-radius:20px;padding:4px 10px;font-size:11px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;color:var(--ink-3);white-space:nowrap}
 .geo-toggle-btn.on{border-color:var(--accent);color:var(--accent)}
 [data-theme="dark"] .geo-status-bar{background:#1f1e1c}
+
+/* ── SYNC ── */
+.sync-btn{width:100%;padding:15px;border-radius:var(--radius);font-size:16px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;background:var(--accent);color:#fff;margin-bottom:8px}
+.sync-btn:active{transform:scale(.98)}
+.sync-btn.secondary{background:var(--paper-2);color:var(--ink)}
+.sync-status{background:var(--paper-2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--ink-2);line-height:1.5;margin-bottom:12px}
+.sync-status b{color:var(--ink)}
+.sync-status .sync-ok{color:#2a7a4e}
+.sync-status .sync-warn{color:#c57b00}
+.sync-status .sync-err{color:var(--accent)}
+.sync-filename{font-family:'Arial Narrow',Arial,sans-serif;background:var(--paper);border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;color:var(--ink);width:100%;margin-bottom:8px}
+.sync-arrow{font-size:20px;animation:none}
+.sync-btn.syncing .sync-arrow{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+[data-theme="dark"] .sync-status{background:var(--paper-2)}
+[data-theme="dark"] .sync-filename{background:var(--paper)}
 </style>
 </head>
 <body>
@@ -388,7 +405,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
       <span id="clockDisplay"></span>
     </div>
   </div>
-  <button class="header-btn" onclick="openProjektModal()" title="Neues Projekt">＋</button>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="syncUp()" title="Stand in iCloud hochladen" style="background:none;border:1.5px solid var(--paper-3);border-radius:20px;padding:6px 10px;font-size:15px;cursor:pointer;color:var(--ink-3);line-height:1" id="headerSyncBtn">☁️</button>
+    <button class="header-btn" onclick="openProjektModal()" title="Neues Projekt">＋</button>
+  </div>
 </header>
 <div id="logoSvgBackup" style="display:none"><svg width="100%" height="100%" style="display:block;" viewBox="0 0 5438 575" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(3.250146,0,0,1,276.767972,0)">
@@ -688,23 +708,51 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     </div>
   </div>
 
+  <!-- SYNC CARD -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">☁️ iCloud-Sync</span></div>
+    <div class="card-body">
+      <div class="sync-status" id="syncStatus">
+        <b>Wie funktioniert der Sync?</b><br>
+        Alle Geräte (iPhone, iPad, Mac) verwenden dieselbe Datei in iCloud Drive.<br><br>
+        1. <b>Sync ↑</b> speichert den aktuellen Stand in iCloud<br>
+        2. <b>Sync ↓</b> lädt den Stand von einem anderen Gerät<br>
+        3. Dateiname immer gleich halten → gleicher Ordner = automatisch aktuell
+      </div>
+
+      <div class="field">
+        <label>Dateiname</label>
+        <input type="text" class="sync-filename" id="sSyncFilename" value="desch-zeit-sync.json" placeholder="desch-zeit-sync.json" oninput="saveSettings()">
+        <p class="hint">Gleicher Name auf allen Geräten = gleiche Datei.</p>
+      </div>
+
+      <button class="sync-btn" id="syncUpBtn" onclick="syncUp()">
+        <span class="sync-arrow">☁️</span>
+        <span>Sync ↑ — Stand hochladen</span>
+      </button>
+      <button class="sync-btn secondary" id="syncDownBtn" onclick="syncDown()">
+        <span>☁️ Sync ↓ — Stand laden</span>
+      </button>
+      <input type="file" id="syncImportInput" accept=".json,application/json" style="display:none" onchange="syncImportFile(this)">
+      <p class="hint" style="margin-top:4px">↑ speichert via Share-Sheet nach iCloud Drive &nbsp;·&nbsp; ↓ öffnet Datei-Auswahl</p>
+    </div>
+  </div>
+
+  <!-- SICHERUNG CARD -->
   <div class="card">
     <div class="card-header"><span class="card-title">💾 Datensicherung</span></div>
     <div class="card-body">
-      <p class="hint" style="margin-bottom:12px">Exportiert alle Projekte, Einstellungen und Buchungen als JSON-Datei. Kann auf anderen Geräten oder nach einem Datenverlust wieder importiert werden.</p>
-
+      <p class="hint" style="margin-bottom:12px">Vollständige Sicherung aller Daten als JSON-Datei.</p>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
         <button class="big-btn primary" onclick="exportBackup()">📤 Sicherung exportieren (.json)</button>
         <button class="big-btn secondary" onclick="document.getElementById('importInput').click()">📥 Sicherung importieren</button>
         <input type="file" id="importInput" accept=".json,application/json,text/plain" style="display:none" onchange="importBackup(this)">
       </div>
-
       <div style="border-top:1px solid var(--paper-3);padding-top:12px">
         <p class="hint" style="margin-bottom:8px;color:var(--accent)">⚠️ Nur Projekte importieren (Buchungen bleiben erhalten):</p>
         <button class="big-btn secondary" onclick="document.getElementById('importProjInput').click()">📋 Nur Projekte importieren</button>
         <input type="file" id="importProjInput" accept=".json,application/json,text/plain" style="display:none" onchange="importProjects(this)">
       </div>
-
       <div style="border-top:1px solid var(--paper-3);padding-top:12px;margin-top:4px">
         <button class="big-btn secondary" style="color:var(--accent)" onclick="clearAllData()">🗑 Alle App-Daten löschen</button>
       </div>
@@ -798,7 +846,7 @@ const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a
 const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
 const HOAI_NAMES = {1:'LP 1 - Grundlagenermittlung',2:'LP 2 - Vorplanung',3:'LP 3 - Entwurfsplanung',4:'LP 4 - Genehmigungsplanung',5:'LP 5 - Ausführungsplanung',6:'LP 6 - Vorbereitung Vergabe',7:'LP 7 - Mitwirkung Vergabe',8:'LP 8 - Objektüberwachung',9:'LP 9 - Objektbetreuung'};
 const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
-const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius'];
+const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius','sSyncFilename'];
 
 // ══ STATE ══
 let state = JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
@@ -846,6 +894,144 @@ function stopTracking(){
   clearInterval(elapsedInterval);elapsedInterval=null;
   renderErf();toast('Zeiterfassung gestoppt');
 }
+// ══ iCLOUD SYNC ══
+function getSyncFilename(){
+  const el=document.getElementById('sSyncFilename');
+  const name=(el?el.value.trim():'')||'desch-zeit-sync.json';
+  return name.endsWith('.json')?name:name+'.json';
+}
+
+function buildSyncPayload(){
+  const now=new Date();
+  return{
+    version:2,
+    syncedAt:now.toISOString(),
+    device:getSettings().sName||navigator.platform||'Gerät',
+    buero:getSettings().sBuero||'desch architekten',
+    state:JSON.parse(localStorage.getItem('zeit2_state')||'null'),
+    settings:JSON.parse(localStorage.getItem('zeit2_settings')||'null'),
+    logo:localStorage.getItem('zeit2_logo')||null
+  };
+}
+
+function setSyncStatus(html,cls){
+  const el=document.getElementById('syncStatus');
+  if(el){el.innerHTML=html;el.className='sync-status'+(cls?' '+cls:'');}
+}
+
+// ── SYNC ↑: Hochladen ──
+function syncUp(){
+  const payload=buildSyncPayload();
+  const json=JSON.stringify(payload,null,2);
+  const filename=getSyncFilename();
+  const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+  const now=new Date();
+
+  setSyncStatus(
+    `<span class="sync-ok">✓ Stand vom ${now.toLocaleString('de-DE')} bereit.</span><br>`+
+    `Datei: <b>${filename}</b><br><br>`+
+    `Speichere in iCloud Drive in denselben Ordner auf allen Geräten.`
+  );
+
+  // iOS: Share-Sheet → Nutzer wählt iCloud Drive
+  shareOrDownload(blob, filename, 'application/json');
+  toast('Sync-Datei bereit ↑');
+}
+
+// ── SYNC ↓: Laden ──
+function syncDown(){
+  document.getElementById('syncImportInput').click();
+}
+
+function syncImportFile(input){
+  const file=input.files[0]; if(!file)return; input.value='';
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+
+      // Validate
+      if(!data.syncedAt&&!data.exportedAt){toast('❌ Keine gültige Sync-Datei');return;}
+      if(!data.state){toast('❌ Sync-Datei enthält keine Daten');return;}
+
+      const syncTime=new Date(data.syncedAt||data.exportedAt);
+      const device=data.device||data.exportedBy||'anderes Gerät';
+      const localState=JSON.parse(localStorage.getItem('zeit2_state')||'null');
+      const localEntries=(localState&&localState.entries)||[];
+      const remoteEntries=(data.state&&data.state.entries)||[];
+
+      // Smart merge: keep entries from both, deduplicate by id+start
+      const mergedEntries=mergeEntries(localEntries, remoteEntries);
+      const mergedProjects=mergeProjects(
+        (localState&&localState.projects)||[],
+        (data.state&&data.state.projects)||[]
+      );
+
+      // Build merged state
+      const mergedState={
+        ...data.state,
+        projects:mergedProjects,
+        entries:mergedEntries,
+        nextProjId:Math.max((localState&&localState.nextProjId)||1,(data.state&&data.state.nextProjId)||1,
+          ...mergedProjects.map(p=>p.id+1)),
+        nextEntryId:Math.max((localState&&localState.nextEntryId)||1,(data.state&&data.state.nextEntryId)||1,
+          ...mergedEntries.map(e=>typeof e.id==='number'?e.id+1:1)),
+        active:(localState&&localState.active)||null // keep local active session
+      };
+
+      localStorage.setItem('zeit2_state',JSON.stringify(mergedState));
+      if(data.settings)localStorage.setItem('zeit2_settings',JSON.stringify(data.settings));
+      if(data.logo)localStorage.setItem('zeit2_logo',data.logo);
+      else localStorage.removeItem('zeit2_logo');
+
+      const added=mergedEntries.length-localEntries.length;
+      setSyncStatus(
+        `<span class="sync-ok">✓ Sync abgeschlossen</span><br>`+
+        `Von: <b>${device}</b> – ${syncTime.toLocaleString('de-DE')}<br>`+
+        `Buchungen: ${mergedEntries.length} gesamt`+
+        (added>0?` <span class="sync-ok">(+${added} neu)</span>`:'')+`<br>`+
+        `Projekte: ${mergedProjects.length} gesamt`
+      );
+
+      toast('Sync abgeschlossen ✓');
+      setTimeout(()=>location.reload(),1000);
+    }catch(err){
+      setSyncStatus(`<span class="sync-err">❌ Fehler: ${err.message}</span>`);
+      toast('❌ Sync-Datei konnte nicht gelesen werden');
+      console.error(err);
+    }
+  };
+  r.readAsText(file,'utf-8');
+}
+
+// ── Intelligentes Merging ──
+function mergeEntries(local, remote){
+  // Combine, deduplicate by matching start+projectId (within 60s)
+  const all=[...local];
+  remote.forEach(re=>{
+    const dup=all.find(le=>
+      le.projectId===re.projectId&&
+      Math.abs(le.start-re.start)<60000&&
+      Math.abs(le.end-re.end)<60000
+    );
+    if(!dup)all.push(re);
+  });
+  // Sort by start, renumber IDs
+  all.sort((a,b)=>a.start-b.start);
+  return all.map((e,i)=>({...e,id:i+1}));
+}
+
+function mergeProjects(local, remote){
+  // Remote projects win for updates; local-only projects kept
+  const merged=[...remote];
+  local.forEach(lp=>{
+    // Check if remote has a project with same name (by name match)
+    const exists=merged.find(rp=>rp.name===lp.name);
+    if(!exists)merged.push(lp); // local-only → keep
+  });
+  return merged;
+}
+
 // ══ GEOCODING ══
 async function geocodeProjOrt(){
   const ort=document.getElementById('pAdresse').value.trim();
