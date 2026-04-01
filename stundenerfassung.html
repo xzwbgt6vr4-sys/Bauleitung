@@ -756,12 +756,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
       </select>
     </div>
     <div class="field">
-      <label>Ort / Adresse</label>
-      <input type="text" id="pOrt" placeholder="z.B. Brombach, Lörrach" oninput="clearProjCoords()">
+      <label>Ort <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">(Kurzbezeichnung, z.B. Brombach)</span></label>
+      <input type="text" id="pOrt" placeholder="z.B. Brombach, Lörrach">
+    </div>
+    <div class="field">
+      <label>Exakte Adresse <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">(für automatische Standorterkennung)</span></label>
+      <input type="text" id="pAdresse" placeholder="z.B. Musterstraße 5, 79685 Häg-Ehrsberg" oninput="clearProjCoords()">
       <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
         <button type="button" class="settings-btn" onclick="geocodeProjOrt()" id="geocodeBtn">📍 Koordinaten ermitteln</button>
         <span id="geocodeStatus" style="font-size:11px;color:var(--ink-3)"></span>
       </div>
+      <p class="hint">Vollständige Adresse eingeben, dann auf Koordinaten ermitteln tippen.</p>
       <input type="hidden" id="pLat">
       <input type="hidden" id="pLng">
     </div>
@@ -843,7 +848,7 @@ function stopTracking(){
 }
 // ══ GEOCODING ══
 async function geocodeProjOrt(){
-  const ort=document.getElementById('pOrt').value.trim();
+  const ort=document.getElementById('pAdresse').value.trim();
   if(!ort){toast('Bitte Adresse eingeben');return;}
   const btn=document.getElementById('geocodeBtn');
   const status=document.getElementById('geocodeStatus');
@@ -1473,7 +1478,7 @@ function openProjektModal(projId){
   document.getElementById('pName').value=p?p.name:'';
   document.getElementById('pNum').value=p?p.num:'';
   document.getElementById('pPhase').value=p?p.phase:0;
-  document.getElementById('pLat').value=p?p.lat||'':"";document.getElementById('pLng').value=p?p.lng||'':"";document.getElementById('geocodeStatus').textContent=p&&p.lat?'✓ '+parseFloat(p.lat).toFixed(4)+', '+parseFloat(p.lng).toFixed(4):'';document.getElementById('pOrt').value=p?p.ort||'':'';
+  document.getElementById('pLat').value=p?p.lat||'':"";document.getElementById('pLng').value=p?p.lng||'':"";document.getElementById('geocodeStatus').textContent=p&&p.lat?'✓ '+parseFloat(p.lat).toFixed(4)+', '+parseFloat(p.lng).toFixed(4):(p&&p.adresse?'Noch nicht ermittelt':'');document.getElementById('pOrt').value=p?p.ort||'':"";document.getElementById('pAdresse').value=p?p.adresse||'':"";
   document.getElementById('pDesc').value=p?p.desc||'':'';
   selectedIcon=p?p.icon:ICONS[state.projects.length%ICONS.length];
   selectedColor=p?p.color:COLORS[state.projects.length%COLORS.length];
@@ -1485,7 +1490,7 @@ function openProjektModal(projId){
 function saveProjekt(){
   const name=document.getElementById('pName').value.trim();
   if(!name){toast('Bitte Projektname eingeben');return;}
-  const data={name,num:document.getElementById('pNum').value.trim(),phase:parseInt(document.getElementById('pPhase').value),icon:selectedIcon,color:selectedColor,img:selectedImg||null,ort:document.getElementById('pOrt').value.trim(),lat:document.getElementById('pLat').value,lng:document.getElementById('pLng').value,desc:document.getElementById('pDesc').value.trim()};
+  const data={name,num:document.getElementById('pNum').value.trim(),phase:parseInt(document.getElementById('pPhase').value),icon:selectedIcon,color:selectedColor,img:selectedImg||null,ort:document.getElementById('pOrt').value.trim(),adresse:document.getElementById('pAdresse').value.trim(),lat:document.getElementById('pLat').value,lng:document.getElementById('pLng').value,desc:document.getElementById('pDesc').value.trim()};
   if(editingProjId){const idx=state.projects.findIndex(p=>p.id===editingProjId);if(idx>-1)state.projects[idx]={...state.projects[idx],...data};toast('Projekt aktualisiert');}
   else{state.projects.push({id:state.nextProjId++,...data});toast('Projekt angelegt');}
   save();closeModal('modalProjekt');renderAll();
