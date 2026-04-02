@@ -76,8 +76,8 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
   gap:0;
 }
 #zbar.on{display:flex}
-/* left portion = spacer aligned with left panel */
-#zbar-left{width:var(--left-w);flex-shrink:0;display:flex;align-items:center;padding-left:12px;gap:4px;transition:width 0s}
+/* left spacer tracks panel width */
+#zbar-left{width:var(--left-w);flex-shrink:0;transition:width 0s}
 #zbar-right{flex:1;display:flex;align-items:center;gap:4px;padding:0 8px;justify-content:flex-end}
 /* zoom bar controls */
 .zmodeBtn{background:none;border:1.5px solid var(--paper-3);border-radius:20px;
@@ -91,8 +91,7 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
   flex-shrink:0;transition:all .15s;font-weight:300}
 .zbtn:active{background:var(--paper-2);color:var(--accent)}
 .zsep{width:1px;height:18px;background:var(--paper-3);flex-shrink:0;margin:0 2px}
-/* row-height slider */
-#zslider-wrap{display:flex;align-items:center;padding:0 10px;width:100%}
+
 #zslider{
   -webkit-appearance:none;appearance:none;
   width:100%;height:3px;border-radius:2px;
@@ -109,7 +108,7 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
   background:#fff;border:2px solid var(--accent);
   box-shadow:0 1px 4px rgba(0,0,0,0.12);cursor:pointer;
 }
-#zlbl{display:none}
+
 
 /* ── EMPTY STATE ── */
 #empty{
@@ -171,6 +170,8 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 .tr.l2 .tr-n{color:var(--ink-2)}
 .tr.l3 .tr-n,.tr.l4 .tr-n,.tr.l5 .tr-n{color:var(--ink-3);font-size:10.5px}
 .tr.ms .tr-n{color:var(--accent);font-style:italic}
+.tr .tr-arr{transition:color .15s;cursor:pointer;width:18px}
+.tr .tr-arr:hover{color:var(--accent)}
 .tr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-right:2px}
 
 /* GANTT ROWS */
@@ -289,23 +290,21 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 
 /* ── DIVIDER HANDLE (scrolls with chart vertically) ── */
 #div-handle{
-  position:absolute;
-  /* horizontal: centered on the separator line */
+  position:fixed;
   left:calc(var(--left-w) - 16px);
+  top:50vh;
+  transform:translateY(-50%);
   width:32px;
   height:44px;
-  /* vertical position updated by JS on scroll */
-  top:60px;
   z-index:25;
   cursor:col-resize;
   display:none;
-  /* Card-style pill */
   background:#fff;
   border:1.5px solid var(--paper-3);
   border-radius:20px;
   box-shadow:0 2px 8px rgba(0,0,0,0.12);
   touch-action:none;
-  transition:border-color .15s, box-shadow .15s;
+  transition:left 0s, border-color .15s, box-shadow .15s;
 }
 #div-handle:hover,
 #div-handle.dragging{
@@ -381,6 +380,24 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 .big-btn.secondary{background:var(--paper-2);color:var(--ink)}
 /* logo click cursor */
 .hdr-logo-wrap{cursor:pointer}
+/* slider in lp-hdr */
+#zslider{
+  width:100%;height:3px;
+  -webkit-appearance:none;appearance:none;
+  background:var(--paper-3);border-radius:2px;
+  outline:none;cursor:pointer;
+}
+#zslider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);
+  box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer;
+}
+#zslider::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);
+  box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -499,12 +516,7 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 
 <!-- ZOOM BAR -->
 <div id="zbar">
-  <div id="zbar-left" style="width:var(--left-w)">
-    <div id="zslider-wrap">
-      <input type="range" id="zslider" min="0" max="8" step="1" value="4"
-        oninput="onSlider(this.value)" title="Zeilenhöhe">
-    </div>
-  </div>
+  <div id="zbar-left"></div>
   <div id="zbar-right">
     <button class="zbtn" onclick="adjZ(-1)">−</button>
     <button class="zbtn" onclick="adjZ(1)">+</button>
@@ -515,6 +527,7 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
   </div>
 </div>
 </div><!-- /sticky-top -->
+
 
 <!-- EMPTY STATE -->
 <div id="empty">
@@ -528,7 +541,12 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 <!-- GANTT -->
 <div id="gwrap">
   <div id="lp">
-    <div id="lp-hdr">Vorgänge</div>
+    <div id="lp-hdr">
+      <input type="range" id="zslider" min="0" max="8" step="1" value="4"
+        oninput="onSlider(this.value)" title="Zeilenhöhe"
+        style="width:100%;height:3px;-webkit-appearance:none;appearance:none;
+               background:var(--paper-3);border-radius:2px;outline:none;cursor:pointer;">
+    </div>
     <div id="lp-rows"></div>
   </div>
   <div id="div-line"></div>
@@ -582,6 +600,23 @@ let T=[];
 let cStart=null, cDays=0;
 let selId=null, tipTmr=null;
 let depStyle='curve'; // 'curve' | 'ortho'
+let collapsed=new Set(); // ids of collapsed summary tasks
+let showLegend=false;    // off by default
+
+// Returns T entries that are currently visible (not inside a collapsed group)
+function getVisible(){
+  const hidden=new Set();
+  // Walk T in order; if a summary is collapsed, hide all its descendants
+  const stack=[]; // stack of {id, level}
+  for(const t of T){
+    // Pop stack items whose level >= current (we've left their subtree)
+    while(stack.length && stack[stack.length-1].level >= t.level) stack.pop();
+    // If any ancestor is collapsed → hide this task
+    if(stack.some(s=>collapsed.has(s.id))){ hidden.add(t.id); }
+    if(t.isSummary) stack.push({id:t.id, level:t.level});
+  }
+  return T.filter(t=>!hidden.has(t.id));
+}
 
 const ppd=()=>ZPRE[mode][zIdx];
 
@@ -731,6 +766,7 @@ function load(text,filename){
     document.getElementById('empty').style.display='none';
     document.getElementById('gwrap').classList.add('on');
     document.getElementById('zbar').classList.add('on');
+    // slider shown via CSS #zbar.on #zslider-wrap
 
     // Compute hdr height dynamically
     computeHdrH();
@@ -790,22 +826,38 @@ function build(){
   const wd=mn.getDay(); mn.setDate(mn.getDate()-(wd===0?6:wd-1));
   cStart=mn; cDays=Math.ceil((mx-mn)/86400000)+1;
 
-  const P=ppd(), W=cDays*P, H=T.length*rowH();
+  const V=getVisible();
+  const P=ppd(), W=cDays*P, H=V.length*rowH();
 
   // ── Left panel rows ──
   const lpRows=document.getElementById('lp-rows');
   lpRows.innerHTML='';
-  T.forEach(t=>{
+  V.forEach(t=>{
     const div=document.createElement('div');
+    const isCollapsed=collapsed.has(t.id);
     div.className=`tr l${Math.min(t.level,5)}${t.isMilestone?' ms':''}`;
     div.dataset.id=t.id;
     const indent=t.level*12;
     div.style.fontSize = rowFs() + 'px';
     div.innerHTML=
       `<div style="width:${indent+4}px;flex-shrink:0"></div>`+
-      `<div class="tr-arr">${t.isSummary?'▾':t.isMilestone?'◆':''}</div>`+
+      `<div class="tr-arr">${t.isSummary?(isCollapsed?'▸':'▾'):t.isMilestone?'◆':''}</div>`+
       `<div class="tr-n" title="${esc(t.name)}">${esc(t.name)}</div>`;
-    div.addEventListener('click',()=>pick(t.id));
+    if(t.isSummary){
+      // Click on arrow toggles collapse; click elsewhere picks
+      div.addEventListener('click', e=>{
+        const arr=div.querySelector('.tr-arr');
+        if(e.target===arr||e.target.closest('.tr-arr')){
+          if(collapsed.has(t.id)) collapsed.delete(t.id);
+          else collapsed.add(t.id);
+          build();
+        } else {
+          pick(t.id);
+        }
+      });
+    } else {
+      div.addEventListener('click',()=>pick(t.id));
+    }
     lpRows.appendChild(div);
   });
 
@@ -838,12 +890,12 @@ function build(){
     h+=`<div id="today-line" style="left:${tx}px"></div>`;
 
   // Row backgrounds
-  T.forEach((_,i)=>{
+  V.forEach((_,i)=>{
     h+=`<div class="gr${i%2?' alt':''}" style="top:${i*rowH()}px;width:${W}px"></div>`;
   });
 
   // Bars & milestones
-  T.forEach((t,i)=>{
+  V.forEach((t,i)=>{
     const bx=x2(t.start), bx2=x2(t.end)+P, bw=Math.max(bx2-bx,3);
     const bg=t.color||'#A80000', fc=tc(bg);
     if(t.isMilestone){
@@ -956,10 +1008,12 @@ function depPath(x1,y1,x2v,y2,P){
 
 function drawDeps(P){
   const svg=document.getElementById('dsvg'); if(!svg)return;
-  const im={}; T.forEach((t,i)=>im[t.id]=i);
+  const V=getVisible();
+  const im={}; V.forEach((t,i)=>im[t.id]=i);
+  const visIds=new Set(V.map(t=>t.id));
   let paths='';
-  T.forEach(t=>t.deps.forEach(did=>{
-    const src=T.find(x=>x.id===did); if(!src)return;
+  V.forEach(t=>t.deps.forEach(did=>{
+    const src=T.find(x=>x.id===did); if(!src||!visIds.has(src.id))return;
     const si=im[src.id], ti=im[t.id];
     if(si==null||ti==null)return;
     const x1=x2(src.end)+P, y1=si*rowH()+rowH()/2;
@@ -1063,7 +1117,7 @@ function buildLegend(){
       groups.push({name:t.name,color:t.color});
     }
   });
-  if(!groups.length){leg.classList.remove('on');return;}
+  if(!groups.length||!showLegend){leg.classList.remove('on');return;}
   leg.classList.add('on');
   leg.innerHTML=`<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);margin-bottom:2px;font-family:'Arial Narrow',Arial,sans-serif">Legende</div>`+
     groups.slice(0,8).map(g=>
@@ -1078,6 +1132,16 @@ function buildLegend(){
     </div>`;
 }
 
+
+function setLegend(v){
+  showLegend = v;
+  const s=getSavedSettings(); s.legend=v;
+  localStorage.setItem('gantt_settings',JSON.stringify(s));
+  ['leg-off','leg-on'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.classList.toggle('on', id===(v?'leg-on':'leg-off'));
+  });
+  buildLegend();
+}
 
 // ── SETTINGS ─────────────────────────────────────────
 let darkMode = 'auto';
@@ -1102,6 +1166,11 @@ function loadSettingsUI(){
   // dep style buttons
   ['curve','ortho'].forEach(v=>{
     document.getElementById('dep-'+v).classList.toggle('on', (s.depStyle||'curve')===v);
+  });
+  // legend toggle (default off)
+  const legOn = s.legend===true;
+  ['leg-off','leg-on'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.classList.toggle('on', id===(legOn?'leg-on':'leg-off'));
   });
 }
 
@@ -1152,232 +1221,216 @@ function initSettings(){
   darkMode = s.dark || 'auto';
   applyDark(darkMode);
   if(s.depStyle) depStyle = s.depStyle;
+  showLegend = s.legend===true;
 }
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
   if(darkMode==='auto') applyDark('auto');
 });
 
-// ── PDF EXPORT ───────────────────────────────────────
-function exportPDF(){
+// ── SVG EXPORT ───────────────────────────────────────
+async function exportPDF(){
   if(!T.length){ showToast('Keine Daten zum Exportieren'); return; }
-  const s = getSavedSettings();
-  const buero = s.buero || 'desch architekten';
-  const name  = s.name  || '';
-  const accent = '#A80000';
+
+  const s       = getSavedSettings();
+  const buero   = s.buero || 'desch architekten';
+  const name    = s.name  || '';
+  const accent  = '#A80000';
+  const MO2     = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const projTitle = document.getElementById('htitle').textContent || 'Bauzeitenplan';
+
+  // ── Layout ──────────────────────────────────────────
+  const ROW = 20, LEFT = 240, TL = 32, PPD = 4;
+  // Header strip height in SVG
+  const HDR = 36;
 
   const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
-  const mn = new Date(Math.min(...dates));
-  const mx = new Date(Math.max(...dates));
-  const rangeStr = mn.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
-    + ' – ' + mx.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const projTitle = document.getElementById('htitle').textContent || 'Bauzeitenplan';
-  const nowStr = new Date().toLocaleString('de-DE');
+  let cs = new Date(Math.min(...dates)), ce = new Date(Math.max(...dates));
+  cs.setDate(cs.getDate()-4); ce.setDate(ce.getDate()+12);
+  const wd=cs.getDay(); cs.setDate(cs.getDate()-(wd===0?6:wd-1));
+  const totalDays = Math.ceil((ce-cs)/86400000)+1;
+  const CW = totalDays*PPD;
+  const CH = T.length*ROW;
+  // Total SVG dimensions: HDR strip on top, then TL timeline, then rows
+  const W  = LEFT+CW;
+  const H  = HDR+TL+CH;
 
-  // ── SVG Gantt for PDF ──
-  const PDF_ROW = 18;
-  const PDF_LEFT = 220;
-  const PDF_PPD = 3; // px per day – compact
-  const PDF_TL = 26; // timeline header height
+  function gx(d){ return LEFT + Math.round((d-cs)/86400000*PPD); }
+  function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // Recompute chart start/end (same logic as build())
-  let cmn = new Date(Math.min(...dates)), cmx = new Date(Math.max(...dates));
-  cmn.setDate(cmn.getDate()-3); cmx.setDate(cmx.getDate()+10);
-  const cwd = cmn.getDay(); cmn.setDate(cmn.getDate()-(cwd===0?6:cwd-1));
-  const totalDays = Math.ceil((cmx-cmn)/86400000)+1;
-  const chartW = totalDays * PDF_PPD;
-  const chartH = T.length * PDF_ROW;
-  const totalW = PDF_LEFT + chartW;
-  const totalH = PDF_TL + chartH;
+  const p = [];  // SVG parts
 
-  function px(d){ return PDF_LEFT + Math.round((d-cmn)/86400000*PDF_PPD); }
+  // ── Open SVG ──
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">`);
 
-  // Build SVG content
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" style="font-family:Arial Narrow,Arial,sans-serif">`;
+  // ── Defs ──
+  p.push(`<defs>
+  <marker id="a" markerWidth="6" markerHeight="4" refX="5.5" refY="2" orient="auto">
+    <polygon points="0 0,6 2,0 4" fill="${accent}" opacity="0.5"/>
+  </marker>
+  <clipPath id="cc"><rect x="${LEFT}" y="${HDR}" width="${CW}" height="${TL+CH}"/></clipPath>
+  <clipPath id="nc"><rect x="0" y="${HDR+TL}" width="${LEFT-3}" height="${CH}"/></clipPath>
+  <clipPath id="tc"><rect x="${LEFT}" y="${HDR}" width="${CW}" height="${TL}"/></clipPath>
+</defs>`);
 
-  // Background
-  svg += `<rect width="${totalW}" height="${totalH}" fill="#f5f2ed"/>`;
-  svg += `<rect x="${PDF_LEFT}" width="${chartW}" height="${totalH}" fill="#f5f2ed"/>`;
+  // ── Header strip ──
+  p.push(`<rect width="${W}" height="${HDR}" fill="${accent}"/>`);
+  // Büro name left
+  p.push(`<text x="10" y="${HDR*0.68}" font-family="Arial Narrow,Arial,sans-serif" font-size="16" font-weight="900" fill="white" letter-spacing="-0.3">${xe(buero)}</text>`);
+  // Project title + range right
+  const fmt = d=>d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const mn=new Date(Math.min(...dates)), mx=new Date(Math.max(...dates));
+  const rangeStr = fmt(mn)+' – '+fmt(mx);
+  p.push(`<text x="${W-10}" y="${HDR*0.52}" font-family="Arial Narrow,Arial,sans-serif" font-size="11" font-weight="700" fill="white" text-anchor="end">${xe(projTitle)}</text>`);
+  p.push(`<text x="${W-10}" y="${HDR*0.88}" font-family="Arial Narrow,Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.8)" text-anchor="end">${xe(rangeStr)}</text>`);
 
+  // ── Main background ──
+  p.push(`<rect y="${HDR}" width="${W}" height="${TL+CH}" fill="#f5f2ed"/>`);
   // Timeline header bg
-  svg += `<rect width="${totalW}" height="${PDF_TL}" fill="#ece8e0"/>`;
-  svg += `<rect width="${PDF_LEFT}" height="${PDF_TL}" fill="#ece8e0"/>`;
+  p.push(`<rect y="${HDR}" width="${W}" height="${TL}" fill="#ece8e0"/>`);
+  // Left panel bg
+  p.push(`<rect y="${HDR}" width="${LEFT}" height="${TL+CH}" fill="rgba(245,242,237,0.95)"/>`);
 
-  // Grid: month lines + labels, week lines
-  const MO2 = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  // ── Grid (clipped to chart area) ──
+  let grid = `<g clip-path="url(#cc)">`;
   let prevMo = -1;
-  for(let d=0; d<totalDays; d++){
-    const cur = new Date(cmn); cur.setDate(cur.getDate()+d);
-    const gx = PDF_LEFT + d*PDF_PPD;
-    const dow = cur.getDay();
-    const is1 = cur.getDate()===1;
-    const isMon = dow===1;
-    // Weekend shade
-    if((dow===0||dow===6) && PDF_PPD>=2)
-      svg += `<rect x="${gx}" y="${PDF_TL}" width="${PDF_PPD}" height="${chartH}" fill="rgba(168,0,0,.04)"/>`;
-    // Month line
+  for(let d=0;d<totalDays;d++){
+    const cur=new Date(cs); cur.setDate(cur.getDate()+d);
+    const x=LEFT+d*PPD, dow=cur.getDay();
+    const is1=cur.getDate()===1, isMon=dow===1;
+    if(dow===0||dow===6) grid+=`<rect x="${x}" y="${HDR+TL}" width="${PPD}" height="${CH}" fill="rgba(100,0,0,0.03)"/>`;
     if(is1){
-      svg += `<line x1="${gx}" y1="0" x2="${gx}" y2="${totalH}" stroke="#c8c4b8" stroke-width="0.8"/>`;
-      const mo = cur.getMonth(), yr = cur.getFullYear();
-      if(mo !== prevMo){
-        svg += `<text x="${gx+3}" y="${PDF_TL-5}" font-size="8" font-weight="700" fill="#888" letter-spacing="0.5">${MO2[mo].toUpperCase()} ${yr}</text>`;
-        prevMo = mo;
+      grid+=`<line x1="${x}" y1="${HDR}" x2="${x}" y2="${H}" stroke="#bbb6ac" stroke-width="0.7"/>`;
+      const mo=cur.getMonth(),yr=cur.getFullYear();
+      if(mo!==prevMo){
+        grid+=`<text clip-path="url(#tc)" x="${x+3}" y="${HDR+TL-8}" font-family="Arial Narrow,Arial,sans-serif" font-size="9" font-weight="700" fill="#666">${MO2[mo]} ${yr}</text>`;
+        prevMo=mo;
       }
-    } else if(isMon && PDF_PPD>=2){
-      svg += `<line x1="${gx}" y1="${PDF_TL}" x2="${gx}" y2="${totalH}" stroke="#e0dbd0" stroke-width="0.5"/>`;
+    } else if(isMon){
+      grid+=`<line x1="${x}" y1="${HDR+TL}" x2="${x}" y2="${H}" stroke="#ddd8ce" stroke-width="0.4"/>`;
     }
   }
-
-  // Today line
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayX = px(today);
-  if(todayX >= PDF_LEFT && todayX <= totalW){
-    svg += `<line x1="${todayX}" y1="0" x2="${todayX}" y2="${totalH}" stroke="${accent}" stroke-width="1.2" opacity="0.6"/>`;
-    svg += `<text x="${todayX+3}" y="${PDF_TL-5}" font-size="7" fill="${accent}" font-weight="700">heute</text>`;
+  // Today
+  const tod=new Date(); tod.setHours(0,0,0,0);
+  const tx=gx(tod);
+  if(tx>=LEFT&&tx<=W){
+    grid+=`<line x1="${tx}" y1="${HDR}" x2="${tx}" y2="${H}" stroke="${accent}" stroke-width="1.5" opacity="0.5"/>`;
+    grid+=`<text x="${tx+3}" y="${HDR+TL-8}" font-family="Arial Narrow,Arial,sans-serif" font-size="8" font-weight="700" fill="${accent}">heute</text>`;
   }
+  grid+=`</g>`;
+  p.push(grid);
 
-  // Left panel separator
-  svg += `<line x1="${PDF_LEFT}" y1="0" x2="${PDF_LEFT}" y2="${totalH}" stroke="#c8c4b8" stroke-width="1"/>`;
-  svg += `<rect width="${PDF_LEFT}" height="${PDF_TL}" fill="#ece8e0"/>`;
-
-  // Row backgrounds + task names
-  T.forEach((t,i)=>{
-    const ry = PDF_TL + i*PDF_ROW;
-    if(i%2===0) svg += `<rect y="${ry}" width="${totalW}" height="${PDF_ROW}" fill="rgba(236,232,224,.4)"/>`;
-    svg += `<line x1="0" y1="${ry+PDF_ROW}" x2="${totalW}" y2="${ry+PDF_ROW}" stroke="#e0dbd0" stroke-width="0.4"/>`;
-    // Task name
-    const indent = 4 + t.level*10;
-    const fs = t.level===0 ? 9 : t.level===1 ? 8 : 7.5;
-    const fw = t.level<=1 ? 'bold' : 'normal';
-    const fc = t.level===0 ? '#1a1a1a' : t.level===1 ? '#444' : '#666';
-    const maxChars = Math.floor((PDF_LEFT - indent - 8) / (fs*0.55));
-    const label = t.name.length > maxChars ? t.name.slice(0,maxChars-1)+'…' : t.name;
-    svg += `<text x="${indent}" y="${ry+PDF_ROW/2+fs*0.35}" font-size="${fs}" font-weight="${fw}" fill="${fc}">${label}</text>`;
+  // ── Row stripes ──
+  let rows='';
+  T.forEach((_,i)=>{
+    const ry=HDR+TL+i*ROW;
+    if(i%2===0) rows+=`<rect y="${ry}" width="${W}" height="${ROW}" fill="rgba(232,228,218,0.4)"/>`;
+    rows+=`<line x1="0" y1="${ry+ROW}" x2="${W}" y2="${ry+ROW}" stroke="#ddd8ce" stroke-width="0.35"/>`;
   });
+  p.push(rows);
 
-  // Bars & milestones
+  // ── Timeline header label ──
+  p.push(`<text x="8" y="${HDR+TL-9}" font-family="Arial Narrow,Arial,sans-serif" font-size="8" font-weight="700" fill="#999" letter-spacing="0.5">VORGANG</text>`);
+  p.push(`<line x1="0" y1="${HDR+TL}" x2="${W}" y2="${HDR+TL}" stroke="#c8c4b8" stroke-width="0.8"/>`);
+
+  // ── Task names ──
+  let nms=`<g clip-path="url(#nc)">`;
   T.forEach((t,i)=>{
-    const ry = PDF_TL + i*PDF_ROW;
-    const bx = px(t.start);
-    const bx2 = px(t.end)+PDF_PPD;
-    const bw = Math.max(bx2-bx, 2);
-    const bg = t.color||accent;
+    const ry=HDR+TL+i*ROW;
+    const ind=6+t.level*11;
+    const fs=t.level===0?9.5:t.level===1?8.5:8;
+    const fw=t.level<=1?'bold':'normal';
+    const fc=t.level===0?'#1a1a1a':t.level<=2?'#444':'#666';
+    const maxC=Math.floor((LEFT-ind-10)/(fs*0.52));
+    const lbl=t.name.length>maxC?t.name.slice(0,maxC-1)+'…':t.name;
+    nms+=`<text x="${ind}" y="${ry+ROW*0.65}" font-family="Arial Narrow,Arial,sans-serif" font-size="${fs}" font-weight="${fw}" fill="${fc}">${xe(lbl)}</text>`;
+  });
+  nms+=`</g>`;
+  p.push(nms);
+
+  // ── Bars & milestones ──
+  let bars=`<g clip-path="url(#cc)">`;
+  T.forEach((t,i)=>{
+    const ry=HDR+TL+i*ROW;
+    const bx=gx(t.start), bx2=gx(t.end)+PPD, bw=Math.max(bx2-bx,2);
+    const bg=t.color||accent;
     if(t.isMilestone){
-      const mx2 = px(t.start)+PDF_PPD/2;
-      const my2 = ry+PDF_ROW/2;
-      svg += `<polygon points="${mx2},${my2-5} ${mx2+5},${my2} ${mx2},${my2+5} ${mx2-5},${my2}" fill="${bg}"/>`;
+      const mx2=gx(t.start)+PPD/2, my2=ry+ROW/2, r2=Math.min(ROW*0.38,6);
+      bars+=`<polygon points="${mx2},${my2-r2} ${mx2+r2},${my2} ${mx2},${my2+r2} ${mx2-r2},${my2}" fill="${bg}"/>`;
     } else {
-      const bh = t.isSummary ? PDF_ROW-6 : PDF_ROW-8;
-      const by = ry + (PDF_ROW-bh)/2;
-      const br = t.isSummary ? 1 : 2;
-      svg += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${br}" fill="${bg}" opacity="${t.isSummary?.9:1}"/>`;
-      if(t.prog>0){
-        svg += `<rect x="${bx}" y="${by}" width="${bw*t.prog/100}" height="${bh}" rx="${br}" fill="rgba(0,0,0,.2)"/>`;
+      const bh=t.isSummary?ROW-6:ROW-9, by=ry+(ROW-bh)/2, rx2=t.isSummary?1.5:3;
+      bars+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${rx2}" fill="${bg}"/>`;
+      if(t.prog>0) bars+=`<rect x="${bx}" y="${by}" width="${Math.max(bw*t.prog/100,0)}" height="${bh}" rx="${rx2}" fill="rgba(0,0,0,0.22)"/>`;
+      if(bw>28){
+        const lfs=7.5, maxC2=Math.floor((bw-6)/(lfs*0.55));
+        const lbl=t.name.length>maxC2?t.name.slice(0,maxC2-1)+'…':t.name;
+        const r2=parseInt(bg.slice(1,3),16),g2=parseInt(bg.slice(3,5),16),b2=parseInt(bg.slice(5,7),16);
+        const lc=0.299*r2+0.587*g2+0.114*b2>145?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.9)';
+        bars+=`<text x="${bx+4}" y="${by+bh*0.73}" font-family="Arial Narrow,Arial,sans-serif" font-size="${lfs}" font-weight="700" fill="${lc}">${xe(lbl)}</text>`;
       }
     }
   });
+  bars+=`</g>`;
+  p.push(bars);
 
-  // Dependency arrows
-  const im={}; T.forEach((t,i)=>im[t.id]=i);
-  let depPaths='';
+  // ── Dependencies ──
+  const im={}; T.forEach((t,k)=>im[t.id]=k);
+  let deps=`<g clip-path="url(#cc)" fill="none" stroke-width="1">`;
   T.forEach(t=>t.deps.forEach(did=>{
     const src=T.find(x=>x.id===did); if(!src)return;
-    const si=im[src.id], ti=im[t.id];
+    const si=im[src.id],ti=im[t.id];
     if(si==null||ti==null)return;
-    const ax1 = px(src.end)+PDF_PPD;
-    const ay1 = PDF_TL + si*PDF_ROW+PDF_ROW/2;
-    const ax2 = px(t.start);
-    const ay2 = PDF_TL + ti*PDF_ROW+PDF_ROW/2;
-    const col = (src.color||accent)+'99';
-    let d;
+    const ax1=gx(src.end)+PPD, ay1=HDR+TL+si*ROW+ROW/2;
+    const ax2=gx(t.start),     ay2=HDR+TL+ti*ROW+ROW/2;
+    const col=src.color||accent;
+    let dp;
     if(depStyle==='ortho'){
-      const gap=5;
-      const mx2=(ax1+ax2)/2;
-      if(ax2>ax1+gap*2){ d=`M${ax1},${ay1} H${mx2} V${ay2} H${ax2}`; }
-      else {
-        const dir=ay2>ay1?1:-1;
-        const hy=Math.max(ay1,ay2)+dir*PDF_ROW*0.6;
-        d=`M${ax1},${ay1} H${ax1+gap} V${hy} H${ax2-gap} V${ay2} H${ax2}`;
-      }
+      const gap=6,mid=(ax1+ax2)/2;
+      if(ax2>ax1+gap*2){ dp=`M${ax1},${ay1} H${mid} V${ay2} H${ax2}`; }
+      else{ const dir=ay2>=ay1?1:-1,hy=Math.max(ay1,ay2)+dir*ROW*0.7; dp=`M${ax1},${ay1} H${ax1+gap} V${hy} H${ax2-gap} V${ay2} H${ax2}`; }
     } else {
-      const cp=Math.max(Math.abs(ax2-ax1)*.4,12);
-      d=`M${ax1},${ay1} C${ax1+cp},${ay1} ${ax2-cp},${ay2} ${ax2},${ay2}`;
+      const cp=Math.max(Math.abs(ax2-ax1)*.42,14);
+      dp=`M${ax1},${ay1} C${ax1+cp},${ay1} ${ax2-cp},${ay2} ${ax2},${ay2}`;
     }
-    depPaths+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="1" marker-end="url(#parr)"/>`;
+    deps+=`<path d="${dp}" stroke="${col}" opacity="0.45" marker-end="url(#a)"/>`;
   }));
-  svg += `<defs><marker id="parr" markerWidth="5" markerHeight="4" refX="4.5" refY="2" orient="auto"><polygon points="0 0,5 2,0 4" fill="rgba(168,0,0,.5)"/></marker></defs>`;
-  svg += depPaths;
-  svg += '</svg>';
+  deps+=`</g>`;
+  p.push(deps);
 
-  // ── Build print HTML ──
-  const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  // ── Separator line ──
+  p.push(`<line x1="${LEFT}" y1="${HDR}" x2="${LEFT}" y2="${H}" stroke="#a8a49c" stroke-width="1"/>`);
 
-  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-<title>${projTitle}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
-.hdr{background:${accent};color:#fff;padding:8mm 14mm 6mm;display:flex;justify-content:space-between;align-items:flex-end}
-.hdr-l{display:flex;flex-direction:column;gap:3px}
-.hdr-logo-text{font-size:18pt;font-weight:900;letter-spacing:-.5px;color:#fff}
-.hdr-logo-sub{font-size:9pt;color:rgba(255,255,255,.8);letter-spacing:.5px}
-.hdr-r{text-align:right}
-.hdr-r .title{font-size:13pt;font-weight:700;letter-spacing:.5px}
-.hdr-r .sub{font-size:8pt;opacity:.85;margin-top:2px}
-.body{padding:6mm 8mm}
-.meta{font-size:8pt;color:#888;margin-bottom:4mm;display:flex;gap:12mm}
-.gantt-wrap{width:100%;overflow:hidden;border:1px solid #e0dbd0;border-radius:4px}
-.gantt-wrap img{width:100%;height:auto;display:block}
-.footer{margin-top:4mm;padding-top:2mm;border-top:1px solid #e0dbd0;
-  display:flex;justify-content:space-between;font-size:7pt;color:#bbb}
-@media print{@page{size:A3 landscape;margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body>
-<div class="hdr">
-  <div class="hdr-l">
-    <div class="hdr-logo-text">${buero}</div>
-    <div class="hdr-logo-sub">BAUZEITENPLAN</div>
-  </div>
-  <div class="hdr-r">
-    <div class="title">${projTitle}</div>
-    <div class="sub">${rangeStr}</div>
-  </div>
-</div>
-<div class="body">
-  <div class="meta">
-    <span><b>Zeitraum:</b> ${rangeStr}</span>
-    <span><b>Vorgänge:</b> ${T.length}</span>
-    ${name?`<span><b>Bearbeiter:</b> ${name}</span>`:''}
-  </div>
-  <div class="gantt-wrap"><img src="${svgB64}" alt="Bauzeitenplan"/></div>
-  <div class="footer">
-    <span>${buero}${name?' · '+name:''}</span>
-    <span>Exportiert ${nowStr}</span>
-  </div>
-</div>
-<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400));<\/script>
-</body></html>`;
+  // ── Footer strip ──
+  const nowStr=new Date().toLocaleString('de-DE');
+  p.push(`<rect y="${H-14}" width="${W}" height="14" fill="rgba(236,232,224,0.8)"/>`);
+  p.push(`<text x="8" y="${H-4}" font-family="Arial Narrow,Arial,sans-serif" font-size="7" fill="#999">${xe(buero)}${name?' · '+xe(name):''}</text>`);
+  p.push(`<text x="${W-8}" y="${H-4}" font-family="Arial Narrow,Arial,sans-serif" font-size="7" fill="#999" text-anchor="end">Exportiert ${xe(nowStr)}</text>`);
 
-  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  const fname = projTitle.replace(/[^a-zA-Z0-9äöüÄÖÜ_-]/g,'_') + '_Bauzeitenplan.html';
+  p.push(`</svg>`);
+  const svgTxt = p.join('\n');
 
-  // iOS: share sheet; Desktop: open in new tab
-  if(/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)){
-    const r = new FileReader();
-    r.onload = e => {
-      const a = document.createElement('a');
-      a.href = e.target.result; a.download = fname; a.target='_blank';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    };
-    r.readAsDataURL(blob);
-    showToast('PDF-Vorschau öffnen → Teilen → Drucken');
-  } else {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.target='_blank'; a.download=fname;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),3000);
-    showToast('PDF wird geöffnet …');
+  // ── Download SVG ──────────────────────────────────
+  const fname = projTitle.replace(/[^\wäöüÄÖÜ\s-]/g,'_').trim()+'_Bauzeitenplan.svg';
+  const blob  = new Blob([svgTxt],{type:'image/svg+xml;charset=utf-8'});
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+  if(isIOS && navigator.share){
+    // iOS Share Sheet (best option on iOS 15+)
+    try{
+      const file = new File([blob], fname, {type:'image/svg+xml'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:fname});
+        closeSettings(); return;
+      }
+    }catch(e){ if(e.name==='AbortError'){closeSettings();return;} }
   }
+  // Fallback: direct download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  showToast('SVG gespeichert – in Browser oder Illustrator öffnen');
   closeSettings();
 }
 
@@ -1417,8 +1470,7 @@ const divHandle = document.getElementById('div-handle');
 function setLeftW(w){
   w = Math.max(MIN_LEFT, Math.min(MAX_LEFT(), Math.round(w)));
   document.documentElement.style.setProperty('--left-w', w + 'px');
-  const zbl = document.getElementById('zbar-left');
-  if(zbl) zbl.style.width = w + 'px';
+  // zbar-left is a pure spacer, CSS var handles its width
   positionHandle();
 }
 
@@ -1427,18 +1479,9 @@ function getCurrentLeftW(){
   return parseFloat(v) || 220;
 }
 
-// Keep handle vertically centered in the visible chart viewport,
-// and follow horizontal left-w. Called on scroll + resize + setLeftW.
+// Update handle horizontal position only (vertical is fixed via CSS)
 function positionHandle(){
-  const chart = document.getElementById('chart');
-  if(!chart || !divHandle) return;
-  const scrollTop  = chart.scrollTop;
-  const clientH    = chart.clientHeight;
-  // Center of visible area, clamped so handle stays within gwrap
-  const centerY    = scrollTop + clientH / 2;
-  const handleH    = 44; // fixed size
-  divHandle.style.top  = Math.max(48, centerY - handleH / 2) + 'px';
-  // horizontal: centered on the separator line (--left-w)
+  if(!divHandle) return;
   divHandle.style.left = (getCurrentLeftW() - 16) + 'px';
 }
 
@@ -1489,6 +1532,16 @@ document.addEventListener('touchend', () => {
 // ── Scroll: reposition handle vertically ──
 // Listeners attached in init() below
 window.addEventListener('resize', () => { positionHandle(); computeHdrH(); });
+// ── INIT (wire DOM after full parse) ─────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  const ms = document.getElementById('modalSettings');
+  if(ms) ms.addEventListener('click', e=>{
+    if(e.target===ms) closeSettings();
+  });
+  const chart = document.getElementById('chart');
+  if(chart) chart.addEventListener('scroll', positionHandle, {passive:true});
+  initSettings();
+});
 </script>
 
 <!-- SETTINGS MODAL -->
@@ -1505,6 +1558,13 @@ window.addEventListener('resize', () => { positionHandle(); computeHdrH(); });
           <button class="seg-btn on" id="dm-auto"  onclick="setDark('auto')">Automatisch</button>
           <button class="seg-btn"    id="dm-light" onclick="setDark('light')">Hell</button>
           <button class="seg-btn"    id="dm-dark"  onclick="setDark('dark')">Dunkel</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Legende</span>
+        <div class="seg-ctrl">
+          <button class="seg-btn on" id="leg-off" onclick="setLegend(false)">Aus</button>
+          <button class="seg-btn"    id="leg-on"  onclick="setLegend(true)">Ein</button>
         </div>
       </div>
       <div class="field-row">
@@ -1530,27 +1590,12 @@ window.addEventListener('resize', () => { positionHandle(); computeHdrH(); });
 
     <div class="modal-section">
       <div class="modal-section-title">PDF Bauzeitenplan</div>
-      <button class="big-btn primary" onclick="exportPDF()">📄 Bauzeitenplan als PDF</button>
+      <button class="big-btn primary" onclick="exportPDF()">📄 Bauzeitenplan als SVG exportieren</button>
     </div>
 
     <button class="big-btn secondary" onclick="closeSettings()">Schließen</button>
   </div>
 </div>
 
-<script>
-// Runs after full DOM is parsed (this script tag is at end of body)
-(function init(){
-  // Settings modal: close on backdrop tap
-  const ms = document.getElementById('modalSettings');
-  if(ms) ms.addEventListener('click', e=>{
-    if(e.target === ms) closeSettings();
-  });
-  // Chart scroll → reposition divider handle
-  const chart = document.getElementById('chart');
-  if(chart) chart.addEventListener('scroll', positionHandle, { passive: true });
-  // Apply saved settings (dark mode, dep style)
-  initSettings();
-})();
-</script>
 </body>
 </html>
