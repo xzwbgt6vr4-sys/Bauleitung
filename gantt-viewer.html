@@ -22,6 +22,27 @@
   --hdr-h: 96px;
   --left-w: 220px;
 }
+[data-theme="dark"]{
+  --ink:#f0ede8; --ink-2:#c8c4bc; --ink-3:#888880;
+  --paper:#1a1918; --paper-2:#242220; --paper-3:#2e2c28; --card:#1f1e1c;
+  --shadow:0 2px 12px rgba(0,0,0,0.4);
+}
+[data-theme="dark"] body{background:#141312}
+[data-theme="dark"] header,[data-theme="dark"] #zbar,[data-theme="dark"] #lp,
+[data-theme="dark"] #tlhdr,[data-theme="dark"] #lp-hdr{background:#1a1918!important;border-color:#2e2c28!important}
+[data-theme="dark"] #chart{background:#141312}
+[data-theme="dark"] .gr.alt{background:rgba(255,255,255,.03)}
+[data-theme="dark"] .gl.maj{background:rgba(255,255,255,.1)}
+[data-theme="dark"] .gl.min{background:rgba(255,255,255,.05)}
+[data-theme="dark"] .wknd{background:rgba(255,255,255,.025)}
+[data-theme="dark"] .tl.mo{color:var(--ink-2)}
+[data-theme="dark"] .tl.sub{color:var(--muted,#888)}
+[data-theme="dark"] #div-handle{background:#242220;border-color:#3a3836}
+[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,.7)}
+[data-theme="dark"] .modal-sheet{background:#1a1918}
+[data-theme="dark"] .field-input{background:#242220;border-color:#2e2c28;color:var(--ink)}
+[data-theme="dark"] #leg{background:#1f1e1c;border-color:#2e2c28}
+[data-theme="dark"] #tip{background:#1f1e1c;border-color:#2e2c28}
 
 /* ── PALETTE (10 Gantt-Farben) ── */
 .gc0{background:#A80000}.gc1{background:#d35400}.gc2{background:#c57b00}
@@ -320,6 +341,46 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 
 /* cursor during drag */
 body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-select:none !important; }
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:flex-end;animation:fadeIn .2s ease}
+.modal-overlay.hidden{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;
+  padding:20px 20px calc(env(safe-area-inset-bottom,0px) + 24px);
+  width:100%;max-height:88vh;overflow-y:auto;
+  animation:slideUp .3s cubic-bezier(.32,.72,0,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--paper-3);
+  border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--ink)}
+.modal-section{margin-bottom:18px}
+.modal-section-title{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.7px;color:var(--ink-3);margin-bottom:8px;
+  font-family:'Arial Narrow',Arial,sans-serif}
+.field-row{margin-bottom:10px}
+.field-label{font-size:11px;font-weight:600;color:var(--ink-2);display:block;
+  margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.field-input{width:100%;padding:10px 12px;border:1.5px solid var(--paper-3);
+  border-radius:var(--radius-sm);font-size:14px;
+  font-family:'Arial Narrow',Arial,sans-serif;
+  background:var(--card);color:var(--ink);outline:none;transition:border-color .15s}
+.field-input:focus{border-color:var(--accent)}
+.seg-ctrl{display:flex;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);overflow:hidden}
+.seg-btn{flex:1;background:none;border:none;padding:8px 4px;font-size:12px;
+  font-family:'Arial Narrow',Arial,sans-serif;font-weight:500;
+  color:var(--ink-3);cursor:pointer;transition:all .15s}
+.seg-btn.on{background:var(--accent);color:#fff;font-weight:700}
+.big-btn{width:100%;padding:13px;border-radius:var(--radius);font-size:15px;
+  font-weight:700;font-family:'Arial Narrow',Arial,sans-serif;
+  border:none;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:all .15s;margin-bottom:8px}
+.big-btn:active{transform:scale(.98)}
+.big-btn.primary{background:var(--accent);color:#fff}
+.big-btn.secondary{background:var(--paper-2);color:var(--ink)}
+/* logo click cursor */
+.hdr-logo-wrap{cursor:pointer}
 </style>
 </head>
 <body>
@@ -328,7 +389,7 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 <div class="sticky-top">
 <header>
   <div class="hdr-left">
-    <div class="hdr-logo-row">
+    <div class="hdr-logo-row hdr-logo-wrap" onclick="openSettings()" title="Einstellungen">
       <div class="hdr-logo"><svg width="100%" height="100%" style="display:block;" viewBox="0 0 5438 575" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(3.250146,0,0,1,276.767972,0)">
         <rect x="-123" y="-72" width="1711" height="947" style="fill:white;"/>
@@ -520,6 +581,7 @@ const PAL   = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5
 let T=[];
 let cStart=null, cDays=0;
 let selId=null, tipTmr=null;
+let depStyle='curve'; // 'curve' | 'ortho'
 
 const ppd=()=>ZPRE[mode][zIdx];
 
@@ -816,15 +878,15 @@ function build(){
   const chart=document.getElementById('chart');
   const lp=document.getElementById('lp');
   const tliEl=document.getElementById('tli');
-  // Remove old listeners by replacing node
-  const newChart=chart.cloneNode(false);
-  newChart.appendChild(cin);
-  chart.parentNode.replaceChild(newChart,chart);
-  document.getElementById('chart').addEventListener('scroll',()=>{
-    lp.scrollTop=document.getElementById('chart').scrollTop;
-    tliEl.style.transform=`translateX(-${document.getElementById('chart').scrollLeft}px)`;
-  },{passive:true});
-  document.getElementById('chart').appendChild(cin);
+  // Sync scroll (use named handler via data attribute trick to avoid duplicates)
+  chart._syncScroll = ()=>{
+    lp.scrollTop = chart.scrollTop;
+    tliEl.style.transform = `translateX(-${chart.scrollLeft}px)`;
+  };
+  chart.removeEventListener('scroll', chart._oldSync);
+  chart.addEventListener('scroll', chart._syncScroll, {passive:true});
+  chart._oldSync = chart._syncScroll;
+  chart.appendChild(cin);
 
   // Scroll to today
   const stx=Math.max(0,tx-(document.getElementById('chart').clientWidth||window.innerWidth)*0.25);
@@ -871,6 +933,27 @@ function kw(d){
 }
 
 // ── DEPENDENCIES ─────────────────────────────────────
+function depPath(x1,y1,x2v,y2,P){
+  if(depStyle==='ortho'){
+    // Orthogonal: right from end → mid-gap → down/up → left to start
+    const gap=8; // px gap before hooking
+    const mx=(x1+x2v)/2;
+    if(x2v>x1+gap*2){
+      // Enough space: straight elbow
+      return `M${x1},${y1} H${mx} V${y2} H${x2v}`;
+    } else {
+      // Tight: go right a bit, hook around below/above
+      const dir=y2>y1?1:-1;
+      const hy=Math.max(y1,y2)+dir*rowH()*0.6;
+      return `M${x1},${y1} H${x1+gap} V${hy} H${x2v-gap} V${y2} H${x2v}`;
+    }
+  } else {
+    // Organic cubic bezier
+    const dx=Math.abs(x2v-x1), cp=Math.max(dx*.4,18);
+    return `M${x1},${y1} C${x1+cp},${y1} ${x2v-cp},${y2} ${x2v},${y2}`;
+  }
+}
+
 function drawDeps(P){
   const svg=document.getElementById('dsvg'); if(!svg)return;
   const im={}; T.forEach((t,i)=>im[t.id]=i);
@@ -881,8 +964,7 @@ function drawDeps(P){
     if(si==null||ti==null)return;
     const x1=x2(src.end)+P, y1=si*rowH()+rowH()/2;
     const x2v=x2(t.start),  y2=ti*rowH()+rowH()/2;
-    const dx=Math.abs(x2v-x1), cp=Math.max(dx*.4,18);
-    const d=`M${x1},${y1} C${x1+cp},${y1} ${x2v-cp},${y2} ${x2v},${y2}`;
+    const d=depPath(x1,y1,x2v,y2,P);
     const col=src.color||'#A80000';
     paths+=`<path class="dep" data-from="${src.id}" data-to="${t.id}" stroke="${col}" d="${d}" marker-end="url(#arr)"/>`;
   }));
@@ -996,6 +1078,309 @@ function buildLegend(){
     </div>`;
 }
 
+
+// ── SETTINGS ─────────────────────────────────────────
+let darkMode = 'auto';
+
+function openSettings(){
+  loadSettingsUI();
+  document.getElementById('modalSettings').classList.remove('hidden');
+}
+function closeSettings(){
+  document.getElementById('modalSettings').classList.add('hidden');
+}
+// modalSettings listener attached in init() below
+
+function loadSettingsUI(){
+  const s = getSavedSettings();
+  document.getElementById('sBuero').value = s.buero||'';
+  document.getElementById('sName').value  = s.name||'';
+  // dark mode buttons
+  ['auto','light','dark'].forEach(v=>{
+    document.getElementById('dm-'+v).classList.toggle('on', (s.dark||'auto')===v);
+  });
+  // dep style buttons
+  ['curve','ortho'].forEach(v=>{
+    document.getElementById('dep-'+v).classList.toggle('on', (s.depStyle||'curve')===v);
+  });
+}
+
+function getSavedSettings(){
+  try{ return JSON.parse(localStorage.getItem('gantt_settings')||'{}'); }catch(e){ return {}; }
+}
+
+function saveSettings(){
+  const s = getSavedSettings();
+  s.buero = document.getElementById('sBuero').value;
+  s.name  = document.getElementById('sName').value;
+  localStorage.setItem('gantt_settings', JSON.stringify(s));
+}
+
+function setDark(v){
+  darkMode = v;
+  const s = getSavedSettings(); s.dark = v;
+  localStorage.setItem('gantt_settings', JSON.stringify(s));
+  applyDark(v);
+  ['auto','light','dark'].forEach(id=>{
+    document.getElementById('dm-'+id).classList.toggle('on', id===v);
+  });
+}
+
+function applyDark(v){
+  const root = document.documentElement;
+  if(v==='dark') root.setAttribute('data-theme','dark');
+  else if(v==='light') root.removeAttribute('data-theme');
+  else{
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? root.setAttribute('data-theme','dark')
+      : root.removeAttribute('data-theme');
+  }
+}
+
+function setDepStyle(v){
+  depStyle = v;
+  const s = getSavedSettings(); s.depStyle = v;
+  localStorage.setItem('gantt_settings', JSON.stringify(s));
+  ['curve','ortho'].forEach(id=>{
+    document.getElementById('dep-'+id).classList.toggle('on', id===v);
+  });
+  if(T.length) drawDeps(ppd());
+}
+
+function initSettings(){
+  const s = getSavedSettings();
+  darkMode = s.dark || 'auto';
+  applyDark(darkMode);
+  if(s.depStyle) depStyle = s.depStyle;
+}
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+  if(darkMode==='auto') applyDark('auto');
+});
+
+// ── PDF EXPORT ───────────────────────────────────────
+function exportPDF(){
+  if(!T.length){ showToast('Keine Daten zum Exportieren'); return; }
+  const s = getSavedSettings();
+  const buero = s.buero || 'desch architekten';
+  const name  = s.name  || '';
+  const accent = '#A80000';
+
+  const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
+  const mn = new Date(Math.min(...dates));
+  const mx = new Date(Math.max(...dates));
+  const rangeStr = mn.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
+    + ' – ' + mx.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const projTitle = document.getElementById('htitle').textContent || 'Bauzeitenplan';
+  const nowStr = new Date().toLocaleString('de-DE');
+
+  // ── SVG Gantt for PDF ──
+  const PDF_ROW = 18;
+  const PDF_LEFT = 220;
+  const PDF_PPD = 3; // px per day – compact
+  const PDF_TL = 26; // timeline header height
+
+  // Recompute chart start/end (same logic as build())
+  let cmn = new Date(Math.min(...dates)), cmx = new Date(Math.max(...dates));
+  cmn.setDate(cmn.getDate()-3); cmx.setDate(cmx.getDate()+10);
+  const cwd = cmn.getDay(); cmn.setDate(cmn.getDate()-(cwd===0?6:cwd-1));
+  const totalDays = Math.ceil((cmx-cmn)/86400000)+1;
+  const chartW = totalDays * PDF_PPD;
+  const chartH = T.length * PDF_ROW;
+  const totalW = PDF_LEFT + chartW;
+  const totalH = PDF_TL + chartH;
+
+  function px(d){ return PDF_LEFT + Math.round((d-cmn)/86400000*PDF_PPD); }
+
+  // Build SVG content
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" style="font-family:Arial Narrow,Arial,sans-serif">`;
+
+  // Background
+  svg += `<rect width="${totalW}" height="${totalH}" fill="#f5f2ed"/>`;
+  svg += `<rect x="${PDF_LEFT}" width="${chartW}" height="${totalH}" fill="#f5f2ed"/>`;
+
+  // Timeline header bg
+  svg += `<rect width="${totalW}" height="${PDF_TL}" fill="#ece8e0"/>`;
+  svg += `<rect width="${PDF_LEFT}" height="${PDF_TL}" fill="#ece8e0"/>`;
+
+  // Grid: month lines + labels, week lines
+  const MO2 = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  let prevMo = -1;
+  for(let d=0; d<totalDays; d++){
+    const cur = new Date(cmn); cur.setDate(cur.getDate()+d);
+    const gx = PDF_LEFT + d*PDF_PPD;
+    const dow = cur.getDay();
+    const is1 = cur.getDate()===1;
+    const isMon = dow===1;
+    // Weekend shade
+    if((dow===0||dow===6) && PDF_PPD>=2)
+      svg += `<rect x="${gx}" y="${PDF_TL}" width="${PDF_PPD}" height="${chartH}" fill="rgba(168,0,0,.04)"/>`;
+    // Month line
+    if(is1){
+      svg += `<line x1="${gx}" y1="0" x2="${gx}" y2="${totalH}" stroke="#c8c4b8" stroke-width="0.8"/>`;
+      const mo = cur.getMonth(), yr = cur.getFullYear();
+      if(mo !== prevMo){
+        svg += `<text x="${gx+3}" y="${PDF_TL-5}" font-size="8" font-weight="700" fill="#888" letter-spacing="0.5">${MO2[mo].toUpperCase()} ${yr}</text>`;
+        prevMo = mo;
+      }
+    } else if(isMon && PDF_PPD>=2){
+      svg += `<line x1="${gx}" y1="${PDF_TL}" x2="${gx}" y2="${totalH}" stroke="#e0dbd0" stroke-width="0.5"/>`;
+    }
+  }
+
+  // Today line
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayX = px(today);
+  if(todayX >= PDF_LEFT && todayX <= totalW){
+    svg += `<line x1="${todayX}" y1="0" x2="${todayX}" y2="${totalH}" stroke="${accent}" stroke-width="1.2" opacity="0.6"/>`;
+    svg += `<text x="${todayX+3}" y="${PDF_TL-5}" font-size="7" fill="${accent}" font-weight="700">heute</text>`;
+  }
+
+  // Left panel separator
+  svg += `<line x1="${PDF_LEFT}" y1="0" x2="${PDF_LEFT}" y2="${totalH}" stroke="#c8c4b8" stroke-width="1"/>`;
+  svg += `<rect width="${PDF_LEFT}" height="${PDF_TL}" fill="#ece8e0"/>`;
+
+  // Row backgrounds + task names
+  T.forEach((t,i)=>{
+    const ry = PDF_TL + i*PDF_ROW;
+    if(i%2===0) svg += `<rect y="${ry}" width="${totalW}" height="${PDF_ROW}" fill="rgba(236,232,224,.4)"/>`;
+    svg += `<line x1="0" y1="${ry+PDF_ROW}" x2="${totalW}" y2="${ry+PDF_ROW}" stroke="#e0dbd0" stroke-width="0.4"/>`;
+    // Task name
+    const indent = 4 + t.level*10;
+    const fs = t.level===0 ? 9 : t.level===1 ? 8 : 7.5;
+    const fw = t.level<=1 ? 'bold' : 'normal';
+    const fc = t.level===0 ? '#1a1a1a' : t.level===1 ? '#444' : '#666';
+    const maxChars = Math.floor((PDF_LEFT - indent - 8) / (fs*0.55));
+    const label = t.name.length > maxChars ? t.name.slice(0,maxChars-1)+'…' : t.name;
+    svg += `<text x="${indent}" y="${ry+PDF_ROW/2+fs*0.35}" font-size="${fs}" font-weight="${fw}" fill="${fc}">${label}</text>`;
+  });
+
+  // Bars & milestones
+  T.forEach((t,i)=>{
+    const ry = PDF_TL + i*PDF_ROW;
+    const bx = px(t.start);
+    const bx2 = px(t.end)+PDF_PPD;
+    const bw = Math.max(bx2-bx, 2);
+    const bg = t.color||accent;
+    if(t.isMilestone){
+      const mx2 = px(t.start)+PDF_PPD/2;
+      const my2 = ry+PDF_ROW/2;
+      svg += `<polygon points="${mx2},${my2-5} ${mx2+5},${my2} ${mx2},${my2+5} ${mx2-5},${my2}" fill="${bg}"/>`;
+    } else {
+      const bh = t.isSummary ? PDF_ROW-6 : PDF_ROW-8;
+      const by = ry + (PDF_ROW-bh)/2;
+      const br = t.isSummary ? 1 : 2;
+      svg += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${br}" fill="${bg}" opacity="${t.isSummary?.9:1}"/>`;
+      if(t.prog>0){
+        svg += `<rect x="${bx}" y="${by}" width="${bw*t.prog/100}" height="${bh}" rx="${br}" fill="rgba(0,0,0,.2)"/>`;
+      }
+    }
+  });
+
+  // Dependency arrows
+  const im={}; T.forEach((t,i)=>im[t.id]=i);
+  let depPaths='';
+  T.forEach(t=>t.deps.forEach(did=>{
+    const src=T.find(x=>x.id===did); if(!src)return;
+    const si=im[src.id], ti=im[t.id];
+    if(si==null||ti==null)return;
+    const ax1 = px(src.end)+PDF_PPD;
+    const ay1 = PDF_TL + si*PDF_ROW+PDF_ROW/2;
+    const ax2 = px(t.start);
+    const ay2 = PDF_TL + ti*PDF_ROW+PDF_ROW/2;
+    const col = (src.color||accent)+'99';
+    let d;
+    if(depStyle==='ortho'){
+      const gap=5;
+      const mx2=(ax1+ax2)/2;
+      if(ax2>ax1+gap*2){ d=`M${ax1},${ay1} H${mx2} V${ay2} H${ax2}`; }
+      else {
+        const dir=ay2>ay1?1:-1;
+        const hy=Math.max(ay1,ay2)+dir*PDF_ROW*0.6;
+        d=`M${ax1},${ay1} H${ax1+gap} V${hy} H${ax2-gap} V${ay2} H${ax2}`;
+      }
+    } else {
+      const cp=Math.max(Math.abs(ax2-ax1)*.4,12);
+      d=`M${ax1},${ay1} C${ax1+cp},${ay1} ${ax2-cp},${ay2} ${ax2},${ay2}`;
+    }
+    depPaths+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="1" marker-end="url(#parr)"/>`;
+  }));
+  svg += `<defs><marker id="parr" markerWidth="5" markerHeight="4" refX="4.5" refY="2" orient="auto"><polygon points="0 0,5 2,0 4" fill="rgba(168,0,0,.5)"/></marker></defs>`;
+  svg += depPaths;
+  svg += '</svg>';
+
+  // ── Build print HTML ──
+  const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>${projTitle}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Arial Narrow',Arial,sans-serif;font-size:9pt;color:#1a1a1a;background:#fff}
+.hdr{background:${accent};color:#fff;padding:8mm 14mm 6mm;display:flex;justify-content:space-between;align-items:flex-end}
+.hdr-l{display:flex;flex-direction:column;gap:3px}
+.hdr-logo-text{font-size:18pt;font-weight:900;letter-spacing:-.5px;color:#fff}
+.hdr-logo-sub{font-size:9pt;color:rgba(255,255,255,.8);letter-spacing:.5px}
+.hdr-r{text-align:right}
+.hdr-r .title{font-size:13pt;font-weight:700;letter-spacing:.5px}
+.hdr-r .sub{font-size:8pt;opacity:.85;margin-top:2px}
+.body{padding:6mm 8mm}
+.meta{font-size:8pt;color:#888;margin-bottom:4mm;display:flex;gap:12mm}
+.gantt-wrap{width:100%;overflow:hidden;border:1px solid #e0dbd0;border-radius:4px}
+.gantt-wrap img{width:100%;height:auto;display:block}
+.footer{margin-top:4mm;padding-top:2mm;border-top:1px solid #e0dbd0;
+  display:flex;justify-content:space-between;font-size:7pt;color:#bbb}
+@media print{@page{size:A3 landscape;margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-logo-text">${buero}</div>
+    <div class="hdr-logo-sub">BAUZEITENPLAN</div>
+  </div>
+  <div class="hdr-r">
+    <div class="title">${projTitle}</div>
+    <div class="sub">${rangeStr}</div>
+  </div>
+</div>
+<div class="body">
+  <div class="meta">
+    <span><b>Zeitraum:</b> ${rangeStr}</span>
+    <span><b>Vorgänge:</b> ${T.length}</span>
+    ${name?`<span><b>Bearbeiter:</b> ${name}</span>`:''}
+  </div>
+  <div class="gantt-wrap"><img src="${svgB64}" alt="Bauzeitenplan"/></div>
+  <div class="footer">
+    <span>${buero}${name?' · '+name:''}</span>
+    <span>Exportiert ${nowStr}</span>
+  </div>
+</div>
+<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400));<\/script>
+</body></html>`;
+
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const fname = projTitle.replace(/[^a-zA-Z0-9äöüÄÖÜ_-]/g,'_') + '_Bauzeitenplan.html';
+
+  // iOS: share sheet; Desktop: open in new tab
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)){
+    const r = new FileReader();
+    r.onload = e => {
+      const a = document.createElement('a');
+      a.href = e.target.result; a.download = fname; a.target='_blank';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+    r.readAsDataURL(blob);
+    showToast('PDF-Vorschau öffnen → Teilen → Drucken');
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.target='_blank'; a.download=fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    showToast('PDF wird geöffnet …');
+  }
+  closeSettings();
+}
+
 // ── TOAST ─────────────────────────────────────────────
 let _tTmr=null;
 function showToast(msg){
@@ -1102,8 +1487,70 @@ document.addEventListener('touchend', () => {
 });
 
 // ── Scroll: reposition handle vertically ──
-document.getElementById('chart').addEventListener('scroll', positionHandle, { passive: true });
-window.addEventListener('resize', () => { positionHandle(); });
+// Listeners attached in init() below
+window.addEventListener('resize', () => { positionHandle(); computeHdrH(); });
+</script>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="modalSettings">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ Einstellungen</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Darstellung</div>
+      <div class="field-row">
+        <span class="field-label">Erscheinungsbild</span>
+        <div class="seg-ctrl">
+          <button class="seg-btn on" id="dm-auto"  onclick="setDark('auto')">Automatisch</button>
+          <button class="seg-btn"    id="dm-light" onclick="setDark('light')">Hell</button>
+          <button class="seg-btn"    id="dm-dark"  onclick="setDark('dark')">Dunkel</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Abhängigkeitspfeile</span>
+        <div class="seg-ctrl">
+          <button class="seg-btn on" id="dep-curve" onclick="setDepStyle('curve')">Organisch</button>
+          <button class="seg-btn"    id="dep-ortho" onclick="setDepStyle('ortho')">Orthogonal</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Büro / Export</div>
+      <div class="field-row">
+        <label class="field-label" for="sBuero">Büroname</label>
+        <input class="field-input" id="sBuero" type="text" placeholder="desch architekten" oninput="saveSettings()">
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="sName">Bearbeiter</label>
+        <input class="field-input" id="sName" type="text" placeholder="Dipl.-Ing. Max Mustermann" oninput="saveSettings()">
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">PDF Bauzeitenplan</div>
+      <button class="big-btn primary" onclick="exportPDF()">📄 Bauzeitenplan als PDF</button>
+    </div>
+
+    <button class="big-btn secondary" onclick="closeSettings()">Schließen</button>
+  </div>
+</div>
+
+<script>
+// Runs after full DOM is parsed (this script tag is at end of body)
+(function init(){
+  // Settings modal: close on backdrop tap
+  const ms = document.getElementById('modalSettings');
+  if(ms) ms.addEventListener('click', e=>{
+    if(e.target === ms) closeSettings();
+  });
+  // Chart scroll → reposition divider handle
+  const chart = document.getElementById('chart');
+  if(chart) chart.addEventListener('scroll', positionHandle, { passive: true });
+  // Apply saved settings (dark mode, dep style)
+  initSettings();
+})();
 </script>
 </body>
 </html>
