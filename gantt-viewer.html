@@ -30,6 +30,7 @@
 [data-theme="dark"] body{background:#141312}
 [data-theme="dark"] header,[data-theme="dark"] #zbar,[data-theme="dark"] #lp,
 [data-theme="dark"] #tlhdr,[data-theme="dark"] #lp-hdr{background:#1a1918!important;border-color:#2e2c28!important}
+[data-theme="dark"] .sticky-top{background:#1a1918}
 [data-theme="dark"] #chart{background:#141312}
 [data-theme="dark"] .gr.alt{background:rgba(255,255,255,.03)}
 [data-theme="dark"] .gl.maj{background:rgba(255,255,255,.1)}
@@ -54,7 +55,7 @@
 body{font-family:'Arial Narrow',Arial,sans-serif;background:var(--paper);color:var(--ink);height:100vh;width:100vw;overflow:hidden}
 
 /* ── HEADER ── */
-.sticky-top{position:sticky;top:0;z-index:100;background:#fff;-webkit-transform:translateZ(0)}
+.sticky-top{position:fixed;top:0;left:0;right:0;z-index:100;background:#fff;-webkit-transform:translateZ(0)}
 header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--paper-3)}
 .hdr-left{flex:1;min-width:0}
 .hdr-logo-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
@@ -68,6 +69,7 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 
 /* ── ZOOM BAR ── */
 #zbar {
+  position:fixed;top:var(--hdr-h);left:0;right:0;z-index:95;
   background:#fff;
   border-bottom:1px solid var(--paper-3);
   display:none;align-items:center;
@@ -128,7 +130,7 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 /* ── GANTT WRAPPER ── */
 #gwrap{
   display:none;position:fixed;
-  top:var(--hdr-h);left:0;right:0;bottom:0;
+  top:calc(var(--hdr-h) + 36px);left:0;right:0;bottom:0;
 }
 #gwrap.on{display:block}
 
@@ -341,7 +343,14 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 /* cursor during drag */
 body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-select:none !important; }
 
-/* ── MODAL ── */
+/* ── FULLSCREEN MODE ── */
+body.fs header{ display:none !important }
+body.fs #gwrap{
+  top:36px !important;   /* zbar only */
+}
+/* zbar stays, but push it to top:0 in fullscreen */
+body.fs #zbar{ top:0 !important }
+#btn-fs{ font-size:17px; line-height:1 }
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
   display:flex;align-items:flex-end;animation:fadeIn .2s ease}
 .modal-overlay.hidden{display:none}
@@ -513,10 +522,16 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
   <button class="hdr-btn" onclick="document.getElementById('fileIn').click()" title="CSV öffnen">＋</button>
   <input type="file" id="fileIn" accept=".csv,text/*" style="display:none">
 </header>
+</div><!-- /sticky-top -->
 
 <!-- ZOOM BAR -->
 <div id="zbar">
-  <div id="zbar-left"></div>
+  <div id="zbar-left">
+    <div id="zslider-wrap">
+      <input type="range" id="zslider" min="0" max="8" step="1" value="4"
+        oninput="onSlider(this.value)" title="Zeilenhöhe">
+    </div>
+  </div>
   <div id="zbar-right">
     <button class="zbtn" onclick="adjZ(-1)">−</button>
     <button class="zbtn" onclick="adjZ(1)">+</button>
@@ -524,9 +539,10 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
     <button class="zmodeBtn on" id="zm-day"   onclick="setMode('day')">Tag</button>
     <button class="zmodeBtn"    id="zm-week"  onclick="setMode('week')">Woche</button>
     <button class="zmodeBtn"    id="zm-month" onclick="setMode('month')">Monat</button>
+    <div class="zsep"></div>
+    <button class="zbtn" id="btn-fs" onclick="toggleFullscreen()" title="Vollbild">⛶</button>
   </div>
 </div>
-</div><!-- /sticky-top -->
 
 
 <!-- EMPTY STATE -->
@@ -779,10 +795,13 @@ function load(text,filename){
 
 // ── HDR HEIGHT ────────────────────────────────────────
 function computeHdrH(){
-  const hdr=document.querySelector('.sticky-top');
+  const hdr = document.querySelector('header');
   if(hdr){
-    const h=hdr.offsetHeight;
-    document.documentElement.style.setProperty('--hdr-h',h+'px');
+    const h = hdr.offsetHeight;
+    document.documentElement.style.setProperty('--hdr-h', h + 'px');
+    // Also update zbar top position (= header height)
+    const zbar = document.getElementById('zbar');
+    if(zbar) zbar.style.top = h + 'px';
   }
 }
 
@@ -1432,6 +1451,17 @@ async function exportPDF(){
   setTimeout(()=>URL.revokeObjectURL(url),3000);
   showToast('SVG gespeichert – in Browser oder Illustrator öffnen');
   closeSettings();
+}
+
+// ── FULLSCREEN ───────────────────────────────────────
+function toggleFullscreen(){
+  const on = document.body.classList.toggle('fs');
+  const btn = document.getElementById('btn-fs');
+  btn.textContent = on ? '⊠' : '⛶';
+  btn.title = on ? 'Vollbild beenden' : 'Vollbild';
+  btn.style.color = on ? 'var(--accent)' : '';
+  computeHdrH();
+  setTimeout(positionHandle, 50);
 }
 
 // ── TOAST ─────────────────────────────────────────────
