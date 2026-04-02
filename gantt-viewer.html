@@ -57,30 +57,38 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 #zbar.on{display:flex}
 /* left portion = spacer aligned with left panel */
 #zbar-left{width:var(--left-w);flex-shrink:0;display:flex;align-items:center;padding-left:12px;gap:4px;transition:width 0s}
-#zbar-right{flex:1;display:flex;align-items:center;gap:4px;padding-left:8px}
-/* size slider */
-#zslider-wrap{display:flex;align-items:center;gap:8px;flex:1;padding:0 6px 0 2px}
-#zslider-wrap label{font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.6px;color:var(--ink-3);white-space:nowrap}
+#zbar-right{flex:1;display:flex;align-items:center;gap:4px;padding:0 8px;justify-content:flex-end}
+/* zoom bar controls */
+.zmodeBtn{background:none;border:1.5px solid var(--paper-3);border-radius:20px;
+  color:var(--ink-3);cursor:pointer;padding:3px 9px;
+  font-size:11px;font-family:'Arial Narrow',Arial,sans-serif;letter-spacing:.04em;
+  transition:all .15s;white-space:nowrap;flex-shrink:0}
+.zmodeBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.zbtn{background:none;border:1.5px solid var(--paper-3);border-radius:50%;
+  color:var(--ink-3);cursor:pointer;width:26px;height:26px;
+  font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;font-weight:300}
+.zbtn:active{background:var(--paper-2);color:var(--accent)}
+.zsep{width:1px;height:18px;background:var(--paper-3);flex-shrink:0;margin:0 2px}
+/* row-height slider */
+#zslider-wrap{display:flex;align-items:center;padding:0 10px;width:100%}
 #zslider{
   -webkit-appearance:none;appearance:none;
-  flex:1;height:3px;border-radius:2px;
+  width:100%;height:3px;border-radius:2px;
   background:var(--paper-3);outline:none;cursor:pointer;
 }
 #zslider::-webkit-slider-thumb{
   -webkit-appearance:none;appearance:none;
-  width:22px;height:22px;border-radius:50%;
+  width:18px;height:18px;border-radius:50%;
   background:#fff;border:2px solid var(--accent);
-  box-shadow:0 1px 4px rgba(0,0,0,0.15);
-  cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,0.12);cursor:pointer;
 }
 #zslider::-moz-range-thumb{
-  width:22px;height:22px;border-radius:50%;
+  width:18px;height:18px;border-radius:50%;
   background:#fff;border:2px solid var(--accent);
-  box-shadow:0 1px 4px rgba(0,0,0,0.15);cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,0.12);cursor:pointer;
 }
-#zlbl{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;
-  min-width:34px;text-align:right;white-space:nowrap}
+#zlbl{display:none}
 
 /* ── EMPTY STATE ── */
 #empty{
@@ -431,15 +439,18 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 <!-- ZOOM BAR -->
 <div id="zbar">
   <div id="zbar-left" style="width:var(--left-w)">
-    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3)">Vorgänge</span>
+    <div id="zslider-wrap">
+      <input type="range" id="zslider" min="0" max="8" step="1" value="4"
+        oninput="onSlider(this.value)" title="Zeilenhöhe">
+    </div>
   </div>
   <div id="zbar-right">
-    <div id="zslider-wrap">
-      <label>Ansicht</label>
-      <input type="range" id="zslider" min="0" max="8" step="1" value="4"
-        oninput="onSlider(this.value)">
-      <span id="zlbl">–</span>
-    </div>
+    <button class="zbtn" onclick="adjZ(-1)">−</button>
+    <button class="zbtn" onclick="adjZ(1)">+</button>
+    <div class="zsep"></div>
+    <button class="zmodeBtn on" id="zm-day"   onclick="setMode('day')">Tag</button>
+    <button class="zmodeBtn"    id="zm-week"  onclick="setMode('week')">Woche</button>
+    <button class="zmodeBtn"    id="zm-month" onclick="setMode('month')">Monat</button>
   </div>
 </div>
 </div><!-- /sticky-top -->
@@ -476,33 +487,41 @@ body.col-resizing, body.col-resizing *{ cursor:col-resize !important; user-selec
 "use strict";
 
 // ── CONFIG ────────────────────────────────────────────
-// Size steps: [rowHeight, fontSize, ppd]
+// Size steps: [rowHeight, fontSize]
 const SIZE_STEPS = [
-  [16, 8,  4],
-  [18, 9,  5],
-  [20, 9,  7],
-  [22, 10, 10],
-  [24, 10, 14],   // default (index 4)
-  [28, 11, 18],
-  [32, 11, 24],
-  [38, 12, 32],
-  [44, 12, 42],
+  [16, 8 ],
+  [18, 9 ],
+  [20, 9 ],
+  [22, 10],
+  [24, 10],  // default (index 4)
+  [28, 11],
+  [32, 11],
+  [38, 12],
+  [44, 12],
 ];
+// px-per-day per mode + zoom level
+const ZPRE = {
+  day:   [4, 6, 9, 14, 20, 30],
+  week:  [1, 2, 3,  5,  8, 12],
+  month: [0.4, 0.7, 1.2, 2, 3.5, 5.5],
+};
 let sizeIdx = 4;
+let mode = 'day';
+let zIdx  = 3;   // default mid-zoom
 const HDR_H = 96;
 
 function getStep(){ return SIZE_STEPS[sizeIdx]; }
-function rowH(){ return getStep()[0]; }
-function rowFs(){ return getStep()[1]; }
+function rowH()  { return getStep()[0]; }
+function rowFs() { return getStep()[1]; }
 const MO    = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const PAL   = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#666'];
 
 // ── STATE ─────────────────────────────────────────────
-let T=[], mode='day';
+let T=[];
 let cStart=null, cDays=0;
 let selId=null, tipTmr=null;
 
-const ppd=()=>getStep()[2];
+const ppd=()=>ZPRE[mode][zIdx];
 
 // ── FILE ─────────────────────────────────────────────
 document.getElementById('fileIn').addEventListener('change',function(e){
@@ -669,7 +688,7 @@ function computeHdrH(){
   }
 }
 
-// ── SLIDER ───────────────────────────────────────────
+// ── SLIDER (row height / font size only) ─────────────
 function onSlider(val){
   sizeIdx = parseInt(val);
   applySize();
@@ -677,11 +696,22 @@ function onSlider(val){
 }
 
 function applySize(){
-  const [rh, fs, p] = getStep();
+  const [rh, fs] = getStep();
   document.documentElement.style.setProperty('--row-h', rh + 'px');
-  // Label: show row height as proxy for size
-  const labels = ['XS','XS','S','S','M','L','L','XL','XL'];
-  document.getElementById('zlbl').textContent = labels[sizeIdx] + ' ' + rh + 'px';
+}
+
+// ── MODE + ZOOM BUTTONS ───────────────────────────────
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('.zmodeBtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('zm-'+m).classList.add('on');
+  build();
+}
+
+function adjZ(d){
+  const L = ZPRE[mode];
+  zIdx = Math.max(0, Math.min(L.length-1, zIdx+d));
+  build();
 }
 
 // ── X POSITION ───────────────────────────────────────
@@ -691,7 +721,6 @@ function x2(d){return Math.round((d-cStart)/86400000*ppd());}
 function build(){
   if(!T.length)return;
   applySize();
-
   // Date range
   const dates=T.flatMap(t=>[t.start,t.end]).filter(Boolean);
   let mn=new Date(Math.min(...dates)), mx=new Date(Math.max(...dates));
