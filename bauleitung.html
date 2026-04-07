@@ -850,6 +850,29 @@
   </div>
 
   <div class="card">
+    <div class="card-header"><span class="card-title">🏗 Gewerke verwalten</span></div>
+    <div class="card-body">
+      <div id="gewerkeList" style="margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="newGewerk" placeholder="Neues Gewerk…" style="flex:1">
+        <button class="header-btn" onclick="addGewerk()">+ Hinzufügen</button>
+      </div>
+      <button class="big-btn secondary" style="margin-top:10px;margin-bottom:0" onclick="resetGewerke()">Standardliste wiederherstellen</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏢 Firmen-Verwaltung</span></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px">Exportiert alle Firmen aus allen Projekten als CSV-Datei. Diese kann extern bearbeitet und wieder importiert werden.</p>
+      <button class="big-btn secondary" onclick="exportFirmen()">⬇️ Firmen exportieren (CSV)</button>
+      <button class="big-btn secondary" onclick="document.getElementById('firmenImportInput').click()">⬆️ Firmen importieren (CSV)</button>
+      <input type="file" id="firmenImportInput" accept=".csv,text/csv" onchange="importFirmen(this)" style="display:none">
+      <p style="font-size:11px;color:var(--ink-3);margin-top:8px">Format: Projektname, Firmenname, Gewerk (eine Firma pro Zeile)</p>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-header"><span class="card-title">📦 Import / Export</span></div>
     <div class="card-body">
       <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px">Exportiert alle Projekte, Einstellungen und Protokolle als JSON-Datei. Zum Importieren dieselbe Datei wieder einlesen.</p>
@@ -915,13 +938,7 @@
       <div id="mProjFirmen" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
         <input type="text" id="mProjFirmaName" placeholder="Firmenname" style="flex:1">
-        <select id="mProjFirmaGewerk" style="flex:1">
-          <option>Rohbau</option><option>Zimmerei</option><option>Dachdecker</option>
-          <option>Maurer</option><option>Elektriker</option><option>Sanitär/HK</option>
-          <option>Trockenbau</option><option>Maler</option><option>Fliesen</option>
-          <option>Fenster/Türen</option><option>Estrich</option><option>Außenanlage</option>
-          <option>Gerüst</option><option>Abriss</option><option>Sonstiges</option>
-        </select>
+        <select id="mProjFirmaGewerk" style="flex:1"></select>
       </div>
       <button class="add-btn" style="margin-top:6px" onclick="addProjFirma()">+ Firma hinzufügen</button>
     </div>
@@ -939,13 +956,7 @@
     <div class="modal-title">Firma hinzufügen</div>
     <div class="field"><label>Firmenname</label><input type="text" id="mFirmaName" placeholder="Musterbau GmbH"></div>
     <div class="field"><label>Gewerk</label>
-      <select id="mFirmaGewerk">
-        <option>Rohbau</option><option>Zimmerei</option><option>Dachdecker</option>
-        <option>Maurer</option><option>Elektriker</option><option>Sanitär / Heizung</option>
-        <option>Trockenbau</option><option>Maler</option><option>Fliesen</option>
-        <option>Fenster / Türen</option><option>Estrich</option><option>Außenanlage</option>
-        <option>Gerüst</option><option>Abriss</option><option>Sonstiges</option>
-      </select>
+      <select id="mFirmaGewerk"></select>
     </div>
     <div class="field"><label>Anzahl Arbeiter vor Ort</label><input type="text" id="mFirmaAnzahl" placeholder="3"></div>
     <div class="field"><label>Ansprechpartner</label><input type="text" id="mFirmaAP" placeholder="Herr Muster"></div>
@@ -1031,6 +1042,8 @@ function load() {
 window.addEventListener('DOMContentLoaded', () => {
   load();
   loadSettings();
+  populateGewerkSelects();
+  renderGewerkeList();
   initBlocks();
   renderSections();
   renderProjekte();
@@ -1064,6 +1077,7 @@ function switchTab(id, btn) {
   if (screen) screen.classList.add('active');
   if (btn) btn.classList.add('active');
   if (id === 'protokoll') loadWeather();
+  if (id === 'einstellungen') renderGewerkeList();
 }
 
 // ══════════════════════════════════
@@ -1071,45 +1085,50 @@ function switchTab(id, btn) {
 // ══════════════════════════════════
 async function loadWeather() {
   const wDesc = document.getElementById('wDesc');
-  if (wDesc) wDesc.textContent = 'Wetter wird geladen…';
+  const wTemp = document.getElementById('wTemp');
+  if (wDesc) wDesc.textContent = '…';
 
-  // Try project address first if a project is selected
   const projektName = document.getElementById('pProjekt') ? document.getElementById('pProjekt').value : '';
   const proj = projektName ? state.projekte.find(p => p.name === projektName) : null;
-  const geoQuery = proj ? [proj.strasse, proj.plz, proj.ort].filter(Boolean).join(' ').trim() : '';
+
+  // Build best possible geocoding query: prefer PLZ+Ort, fall back to full address
+  let geoQuery = '';
+  if (proj) {
+    if (proj.plz && proj.ort) geoQuery = proj.plz + ' ' + proj.ort + ' Germany';
+    else if (proj.ort) geoQuery = proj.ort + ' Germany';
+    else if (proj.strasse) geoQuery = [proj.strasse, proj.plz, proj.ort].filter(Boolean).join(' ');
+  }
 
   if (geoQuery) {
     try {
-      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geoQuery)}&format=json&limit=1`;
-      const geoResp = await fetch(geoUrl, { headers: { 'Accept-Language': 'de' } });
-      const geoData = await geoResp.json();
-      if (geoData && geoData.length > 0) {
-        await fetchWeather(parseFloat(geoData[0].lat), parseFloat(geoData[0].lon), geoData[0].display_name.split(',')[0]);
-        return;
+      const geoUrl = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(geoQuery) + '&format=json&limit=1&countrycodes=de,at,ch';
+      const geoResp = await fetch(geoUrl, {
+        headers: { 'Accept': 'application/json', 'Accept-Language': 'de' }
+      });
+      if (geoResp.ok) {
+        const geoData = await geoResp.json();
+        if (geoData && geoData.length > 0) {
+          const lat = parseFloat(geoData[0].lat);
+          const lon = parseFloat(geoData[0].lon);
+          const label = proj.ort || geoData[0].display_name.split(',')[0];
+          await fetchWeather(lat, lon, label);
+          return;
+        }
       }
     } catch(e) {
-      // Geocoding failed, fall through to GPS
+      // Geocoding failed, try GPS
     }
   }
 
   // GPS fallback
   if (!navigator.geolocation) {
-    if (wDesc) wDesc.textContent = 'Standort nicht verfügbar';
+    if (wDesc) wDesc.textContent = 'Kein Standort';
     return;
   }
-
   navigator.geolocation.getCurrentPosition(
-    async pos => {
-      await fetchWeather(pos.coords.latitude, pos.coords.longitude, '');
-    },
-    err => {
-      if (wDesc) {
-        if (err.code === 1) wDesc.textContent = 'Standort: Zugriff verweigert';
-        else if (geoQuery) wDesc.textContent = 'Adresse nicht gefunden';
-        else wDesc.textContent = 'Standort nicht ermittelbar';
-      }
-    },
-    { timeout: 10000, maximumAge: 60000 }
+    async pos => { await fetchWeather(pos.coords.latitude, pos.coords.longitude, ''); },
+    err => { if (wDesc) wDesc.textContent = err.code === 1 ? 'Standort gesperrt' : 'Standort unbekannt'; },
+    { timeout: 8000, maximumAge: 300000 }
   );
 }
 
@@ -1215,7 +1234,6 @@ function renderProjektVerlauf(projektName) {
 }
 
 function neuesProtokollFuerProjekt() {
-  // Start new protocol for current project
   const p = currentProjektIndex >= 0 ? state.projekte[currentProjektIndex] : null;
   state.firmen = [];
   state.blocks = {};
@@ -1224,6 +1242,7 @@ function neuesProtokollFuerProjekt() {
 
   if (p) {
     document.getElementById('pProjekt').value = p.name;
+    document.getElementById('headerSub').textContent = ' – ' + p.name;
     if (p.email) document.getElementById('pEmail').value = p.email;
     if (p.cc) document.getElementById('pEmailCC').value = p.cc;
   }
@@ -1232,11 +1251,20 @@ function neuesProtokollFuerProjekt() {
   setDatum();
   save();
 
-  // Show zurück button
   const btn = document.getElementById('btnZurueckVerlauf');
   if (btn) btn.style.display = 'block';
 
+  // Clear weather display and load fresh for this project
+  document.getElementById('wTemp').textContent = '–°C';
+  document.getElementById('wDesc').textContent = 'Wird geladen…';
+  document.getElementById('wIcon').textContent = '🌤';
+  document.getElementById('wHumidity').textContent = '';
+  document.getElementById('wWind').textContent = '';
+  document.getElementById('pWetter').value = '';
+
   switchTab('protokoll', null);
+  // Explicit weather load after switching (gives DOM time to update)
+  setTimeout(loadWeather, 100);
 }
 
 function starteNeuesProtokoll() { neuesProtokollFuerProjekt(); }
@@ -1799,12 +1827,15 @@ function generiereProtokoll() {
     `<tr><td>${f.name}</td><td>${f.gewerk}</td><td style="text-align:center">${f.ma||'–'}</td></tr>`
   ).join('');
 
+  const s = getSettings();
+  const accentColor = s.sAccentColor || '#A80000';
+
   function sectionHtml(id) {
     const blocks = (state.blocks && state.blocks[id]) || [];
-    const hasContent = blocks.some(b => b.type==='photo' || (b.type==='text' && b.text.trim()));
+    const hasContent = blocks.some(b => b.type==='photo' || (b.type==='sketch' && b.data) || (b.type==='text' && b.text.trim()));
     if (!hasContent) return '';
     return blocks.map(b => {
-      if (b.type==='photo') return `<div style="margin:8px 0"><img src="${b.data}" style="max-width:100%;max-height:300px;border-radius:6px;display:block"></div>`;
+      if (b.type==='photo' || b.type==='sketch') return `<div style="margin:8px 0"><img src="${b.data}" style="max-width:100%;max-height:300px;border-radius:6px;display:block"></div>`;
       if (!b.text.trim()) return '';
       return `<div style="display:flex;gap:6px;margin:3px 0 4px"><span style="color:${accentColor};font-weight:700;flex-shrink:0">·</span><span style="line-height:1.5">${b.text.trim()}</span></div>`;
     }).join('');
@@ -1813,9 +1844,6 @@ function generiereProtokoll() {
     const c = sectionHtml(id);
     return c ? `<h2>${title}</h2>${c}` : '';
   }
-
-  const s = getSettings();
-  const accentColor = s.sAccentColor || '#A80000';
   const buero = s.sBuero || 'desch architekten+ingenieure';
   const stellvHtml = s.sStellvName ? `<br>Stellvertretung: ${s.sStellvName}${s.sStellvMail?' · '+s.sStellvMail:''}` : '';
   const signaturHtml = s.sSignatur ? `<div style="margin-top:12px;white-space:pre-wrap;font-size:9pt;color:#555">${s.sSignatur}</div>` : '';
@@ -1849,7 +1877,7 @@ function generiereProtokoll() {
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Bauleitungsprotokoll ${projekt} - ${datumDE}</title>
+<title>Protokoll ${projekt} ${datumDE}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; background: #fff; line-height: 1.45; }
@@ -2341,8 +2369,141 @@ function bearbeiteProtokoll() {
   const btn = document.getElementById('btnZurueckVerlauf');
   if (btn) btn.style.display = currentProjektIndex >= 0 ? 'block' : 'none';
 
+  // Restore old weather text (don't reload - keep the original weather)
+  if (p.wetter) {
+    document.getElementById('pWetter').value = p.wetter;
+    document.getElementById('wDesc').textContent = p.wetter.split(',')[0] || '–';
+  }
+
   switchTab('protokoll', null);
   toast('Protokoll wird bearbeitet – neu generieren zum Speichern');
+}
+
+// ══════════════════════════════════
+// GEWERKE
+// ══════════════════════════════════
+const DEFAULT_GEWERKE = ['Rohbau','Zimmerei','Dachdecker','Maurer','Elektriker','Sanitär/HK','Trockenbau','Maler','Fliesen','Fenster/Türen','Estrich','Außenanlage','Gerüst','Abriss','Sonstiges'];
+
+function getGewerke() {
+  try {
+    const stored = localStorage.getItem('blpro_gewerke');
+    return stored ? JSON.parse(stored) : [...DEFAULT_GEWERKE];
+  } catch(e) { return [...DEFAULT_GEWERKE]; }
+}
+
+function saveGewerke(list) {
+  localStorage.setItem('blpro_gewerke', JSON.stringify(list));
+  populateGewerkSelects();
+  renderGewerkeList();
+}
+
+function populateGewerkSelects() {
+  const list = getGewerke();
+  const opts = list.map(g => `<option>${g}</option>`).join('');
+  ['mProjFirmaGewerk','mFirmaGewerk'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+function renderGewerkeList() {
+  const el = document.getElementById('gewerkeList');
+  if (!el) return;
+  const list = getGewerke();
+  if (!list.length) { el.innerHTML = '<p style="color:var(--ink-3);font-size:12px">Keine Gewerke definiert.</p>'; return; }
+  el.innerHTML = list.map((g, i) => `
+    <div class="firma-row">
+      <span class="firma-row-label"><span class="firma-row-name">${g}</span></span>
+      <button class="remove-btn" onclick="removeGewerk(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function addGewerk() {
+  const input = document.getElementById('newGewerk');
+  const val = input.value.trim();
+  if (!val) { toast('Bitte Gewerk eingeben'); return; }
+  const list = getGewerke();
+  if (list.includes(val)) { toast('Gewerk bereits vorhanden'); return; }
+  list.push(val);
+  saveGewerke(list);
+  input.value = '';
+  toast('Gewerk hinzugefügt');
+}
+
+function removeGewerk(i) {
+  const list = getGewerke();
+  list.splice(i, 1);
+  saveGewerke(list);
+}
+
+function resetGewerke() {
+  if (!confirm('Standardliste wiederherstellen? Eigene Gewerke werden entfernt.')) return;
+  localStorage.removeItem('blpro_gewerke');
+  populateGewerkSelects();
+  renderGewerkeList();
+  toast('Standardliste wiederhergestellt');
+}
+
+// ══════════════════════════════════
+// FIRMEN CSV IMPORT / EXPORT
+// ══════════════════════════════════
+function exportFirmen() {
+  const rows = ['Projektname,Firmenname,Gewerk'];
+  state.projekte.forEach(p => {
+    (p.firmen || []).forEach(f => {
+      rows.push(`"${p.name}","${f.name}","${f.gewerk}"`);
+    });
+  });
+  // Also add global ad-hoc firmen if any
+  const csv = rows.join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bauleitung-firmen-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  toast('Firmen-CSV gespeichert');
+}
+
+function importFirmen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const lines = e.target.result.replace(/^\uFEFF/, '').split('\n').filter(Boolean);
+      const header = lines[0].toLowerCase();
+      if (!header.includes('firma') && !header.includes('gewerk')) {
+        toast('Ungültige CSV – Spalten fehlen'); return;
+      }
+      let imported = 0;
+      lines.slice(1).forEach(line => {
+        // Parse CSV row (handles quoted fields)
+        const cols = line.match(/(".*?"|[^,]+)/g) || [];
+        const clean = cols.map(c => c.replace(/^"|"$/g,'').trim());
+        const [projName, firmaName, gewerk] = clean;
+        if (!projName || !firmaName) return;
+        // Find or skip project
+        const projIdx = state.projekte.findIndex(p => p.name === projName);
+        if (projIdx < 0) return; // project must exist
+        if (!state.projekte[projIdx].firmen) state.projekte[projIdx].firmen = [];
+        // Add if not already there
+        const exists = state.projekte[projIdx].firmen.some(f => f.name === firmaName);
+        if (!exists) {
+          state.projekte[projIdx].firmen.push({ name: firmaName, gewerk: gewerk || 'Sonstiges', aktiv: false, ma: 0, leistung: '' });
+          imported++;
+        }
+      });
+      save();
+      renderProjekte();
+      toast(`${imported} Firma(en) importiert`);
+    } catch(err) {
+      toast('Fehler beim Import: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+  input.value = '';
 }
 
 // ══════════════════════════════════
