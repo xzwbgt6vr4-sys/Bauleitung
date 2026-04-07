@@ -1446,16 +1446,41 @@ let mProjFirmenList = []; // temp list while modal is open
 
 function renderMProjFirmen() {
   const el = document.getElementById('mProjFirmen');
-  if(!mProjFirmenList.length) { el.innerHTML = '<p style="color:var(--ink-3);font-size:12px;margin-bottom:4px">Noch keine Firmen definiert.</p>'; return; }
-  el.innerHTML = mProjFirmenList.map((f,i) => `
-    <div class="firma-item" style="margin-bottom:6px">
-      <div style="flex:1">
-        <div class="firma-name">${f.name}</div>
-        <div class="firma-gewerk">${f.gewerk}</div>
+  if (!mProjFirmenList.length) { el.innerHTML = '<p style="color:var(--ink-3);font-size:12px;margin-bottom:4px">Noch keine Firmen definiert.</p>'; return; }
+  const gewerke = getGewerke();
+  const gewerkeOpts = gewerke.map(g => `<option${''}>` + escHtml(g) + '</option>').join('');
+  el.innerHTML = mProjFirmenList.map((f, i) => `
+    <div style="background:var(--paper-2);border-radius:var(--radius-sm);padding:8px;margin-bottom:6px">
+      <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
+        <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+          <button onclick="moveProjFirma(${i},-1)" style="background:none;border:1px solid var(--paper-3);border-radius:4px;width:24px;height:18px;font-size:10px;cursor:pointer;${i===0?'opacity:0.3;pointer-events:none':''}">▲</button>
+          <button onclick="moveProjFirma(${i},1)" style="background:none;border:1px solid var(--paper-3);border-radius:4px;width:24px;height:18px;font-size:10px;cursor:pointer;${i===mProjFirmenList.length-1?'opacity:0.3;pointer-events:none':''}">▼</button>
+        </div>
+        <input type="text" value="${escHtml(f.name)}" placeholder="Firmenname"
+          style="flex:1;padding:7px 9px;font-size:13px;border:1.5px solid var(--paper-3);border-radius:6px;background:#fff;font-family:'Arial Narrow',Arial,sans-serif"
+          onchange="renameProjFirma(${i},'name',this.value)"
+          onblur="renameProjFirma(${i},'name',this.value)">
+        <button class="remove-btn" onclick="removeMProjFirma(${i})" style="font-size:18px">×</button>
       </div>
-      <button class="remove-btn" onclick="removeMProjFirma(${i})">×</button>
+      <select style="width:100%;padding:7px 9px;font-size:13px;border:1.5px solid var(--paper-3);border-radius:6px;background:#fff;font-family:'Arial Narrow',Arial,sans-serif"
+        onchange="renameProjFirma(${i},'gewerk',this.value)">
+        ${gewerke.map(g => `<option${g===f.gewerk?' selected':''}>${escHtml(g)}</option>`).join('')}
+      </select>
     </div>
   `).join('');
+}
+
+function moveProjFirma(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= mProjFirmenList.length) return;
+  [mProjFirmenList[i], mProjFirmenList[j]] = [mProjFirmenList[j], mProjFirmenList[i]];
+  renderMProjFirmen();
+}
+
+function renameProjFirma(i, field, value) {
+  value = value.trim();
+  if (!value || !mProjFirmenList[i]) return;
+  mProjFirmenList[i][field] = value;
 }
 
 function addProjFirma() {
