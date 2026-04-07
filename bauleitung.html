@@ -198,7 +198,7 @@
     width: 100%; padding: 12px 14px; border: 1.5px solid var(--paper-3);
     border-radius: var(--radius-sm); font-size: 16px; font-family: 'Arial Narrow', Arial, sans-serif;
     background: #fff; color: var(--ink); outline: none; transition: border-color 0.15s;
-    -webkit-appearance: none; appearance: none;
+    -webkit-appearance: none; appearance: none; text-align: left;
   }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   textarea { min-height: 80px; resize: vertical; }
@@ -879,7 +879,11 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modalProjektTitle">Neues Projekt</div>
     <div class="field"><label>Projektname</label><input type="text" id="mProjName" placeholder="z. B. Wohnhaus Musterstraße 5"></div>
-    <div class="field"><label>Ort / Adresse</label><input type="text" id="mProjOrt" placeholder="Musterstraße 5, 97070 Würzburg"></div>
+    <div class="field"><label>Straße / Hausnummer</label><input type="text" id="mProjStrasse" placeholder="Musterstraße 5"></div>
+    <div style="display:flex;gap:8px">
+      <div class="field" style="flex:0 0 100px"><label>PLZ</label><input type="text" id="mProjPLZ" placeholder="97070" inputmode="numeric"></div>
+      <div class="field" style="flex:1"><label>Ort</label><input type="text" id="mProjOrt" placeholder="Würzburg"></div>
+    </div>
     <div class="field"><label>Bauherr</label><input type="text" id="mProjBauherr" placeholder="Name des Bauherrn"></div>
     <div class="field"><label>Projektnummer</label><input type="text" id="mProjNr" placeholder="2024-001"></div>
     <div class="field">
@@ -1069,7 +1073,9 @@ async function loadWeather() {
   // Try to get coords from project address first
   const projektName = document.getElementById('pProjekt').value;
   const proj = state.projekte.find(p => p.name === projektName);
-  const adresse = proj && proj.ort ? proj.ort.trim() : '';
+  // Build geocoding query from PLZ+Ort (more precise) or full address
+  const geoQuery = proj ? [proj.strasse, proj.plz, proj.ort].filter(Boolean).join(' ').trim() : '';
+  const adresse = geoQuery;
 
   if (adresse) {
     try {
@@ -1147,7 +1153,7 @@ function renderProjekte() {
       <div class="project-icon">${p.imgData ? `<img src="${p.imgData}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : (p.icon||'🏗')}</div>
       <div class="project-info">
         <div class="project-name">${p.name}</div>
-        <div class="project-meta">${p.ort||''} ${p.nr ? '· Nr. '+p.nr : ''}</div>
+        <div class="project-meta">${p.strasse?p.strasse+', ':''} ${p.plz||''} ${p.ort||''} ${p.nr ? '· Nr. '+p.nr : ''}</div>
       </div>
       <button class="edit-proj-btn" onclick="event.stopPropagation();openEditProjekt(${i})">✏️</button>
     </div>
@@ -1281,6 +1287,8 @@ function selectIcon(ic) {
 function openNewProjektModal() {
   document.getElementById('modalProjektTitle').textContent = 'Neues Projekt';
   document.getElementById('mProjName').value = '';
+  document.getElementById('mProjStrasse').value = '';
+  document.getElementById('mProjPLZ').value = '';
   document.getElementById('mProjOrt').value = '';
   document.getElementById('mProjBauherr').value = '';
   document.getElementById('mProjNr').value = '';
@@ -1303,6 +1311,8 @@ function openEditProjekt(i) {
   const p = state.projekte[i];
   document.getElementById('modalProjektTitle').textContent = 'Projekt bearbeiten';
   document.getElementById('mProjName').value = p.name || '';
+  document.getElementById('mProjStrasse').value = p.strasse || '';
+  document.getElementById('mProjPLZ').value = p.plz || '';
   document.getElementById('mProjOrt').value = p.ort || '';
   document.getElementById('mProjBauherr').value = p.bauherr || '';
   document.getElementById('mProjNr').value = p.nr || '';
@@ -1336,7 +1346,10 @@ function saveProjekt() {
   if(!name) { toast('Bitte Projektname eingeben'); return; }
   const editIndex = parseInt(document.getElementById('mProjEditIndex').value);
   const data = {
-    name, ort: document.getElementById('mProjOrt').value.trim(),
+    name,
+    strasse: document.getElementById('mProjStrasse').value.trim(),
+    plz: document.getElementById('mProjPLZ').value.trim(),
+    ort: document.getElementById('mProjOrt').value.trim(),
     bauherr: document.getElementById('mProjBauherr').value.trim(),
     nr: document.getElementById('mProjNr').value.trim(),
     icon: document.getElementById('mProjIcon').value||'🏗',
