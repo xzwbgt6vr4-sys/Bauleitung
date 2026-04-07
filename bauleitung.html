@@ -2030,25 +2030,44 @@ function oeffneProtokoll() {
 }
 
 function saveAsPDF() {
-  const { projekt, datumDE } = buildMailParts();
-  // Inject print CSS + auto-print into protocol HTML
+  // Use a hidden iframe to trigger print dialog without window.open()
+  // This works on iOS Safari without popup-blocker issues
   const printHtml = state.currentProtokoll
     .replace('</style>', `
   @media print {
-    @page { margin: 15mm; }
+    @page { size: A4; margin: 18mm 20mm; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { padding: 0 !important; max-width: 100% !important; }
   }
-</style>`)
-    .replace('</body>', '<script>window.onload=function(){window.focus();window.print();}<\/script></body>');
+</style>`);
 
-  const blob = new Blob([printHtml], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Protokoll_${projekt.replace(/\s+/g,'-')}_${datumDE.replace(/\./g,'-')}.html`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  toast('Datei gespeichert – im Browser als PDF drucken');
+  // Remove any existing print iframe
+  const existing = document.getElementById('printFrame');
+  if (existing) existing.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'printFrame';
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;opacity:0;';
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch(e) {
+        // Fallback: open in new tab with auto-print
+        const blob = new Blob([printHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (win) win.onload = () => { win.print(); };
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+    }, 300);
+  };
+
+  iframe.srcdoc = printHtml;
+  toast('Druckdialog öffnet sich… → „Als PDF sichern" wählen');
 }
 
 function downloadProtokoll() {
