@@ -305,8 +305,8 @@
 
   /* ── PROTOKOLL PREVIEW ── */
   .protokoll-box {
-    background: #fff; border: 1px solid var(--paper-3); border-radius: var(--radius);
-    overflow: hidden; margin-bottom: 14px; min-height: 200px;
+    margin-bottom: 14px;
+    touch-action: pinch-zoom pan-x pan-y;
   }
 
   /* ── STATUS BADGE ── */
@@ -994,6 +994,7 @@
     <div class="protokoll-box" id="protokollPreview"></div>
     <button class="big-btn success" onclick="sendeEmail()">📧 Als Mail senden</button>
     <button class="big-btn primary" onclick="saveAsPDF()">📄 Als PDF speichern</button>
+    <button class="big-btn secondary" onclick="bearbeiteProtokoll()">✏️ Bearbeiten</button>
     <button class="big-btn secondary" onclick="oeffneProtokoll()">🌐 Im Browser öffnen</button>
     <button class="big-btn secondary" onclick="closeModal('modalProtokoll')">Schließen</button>
   </div>
@@ -1062,43 +1063,53 @@ function switchTab(id, btn) {
   const screen = document.getElementById('tab-'+id);
   if (screen) screen.classList.add('active');
   if (btn) btn.classList.add('active');
+  if (id === 'protokoll') loadWeather();
 }
 
 // ══════════════════════════════════
 // WETTER
 // ══════════════════════════════════
 async function loadWeather() {
-  document.getElementById('wDesc').textContent = 'Wetter wird geladen…';
+  const wDesc = document.getElementById('wDesc');
+  if (wDesc) wDesc.textContent = 'Wetter wird geladen…';
 
-  // Try to get coords from project address first
-  const projektName = document.getElementById('pProjekt').value;
-  const proj = state.projekte.find(p => p.name === projektName);
-  // Build geocoding query from PLZ+Ort (more precise) or full address
+  // Try project address first if a project is selected
+  const projektName = document.getElementById('pProjekt') ? document.getElementById('pProjekt').value : '';
+  const proj = projektName ? state.projekte.find(p => p.name === projektName) : null;
   const geoQuery = proj ? [proj.strasse, proj.plz, proj.ort].filter(Boolean).join(' ').trim() : '';
-  const adresse = geoQuery;
 
-  if (adresse) {
+  if (geoQuery) {
     try {
-      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1`;
+      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(geoQuery)}&format=json&limit=1`;
       const geoResp = await fetch(geoUrl, { headers: { 'Accept-Language': 'de' } });
       const geoData = await geoResp.json();
       if (geoData && geoData.length > 0) {
-        const lat = parseFloat(geoData[0].lat);
-        const lon = parseFloat(geoData[0].lon);
-        await fetchWeather(lat, lon, geoData[0].display_name.split(',')[0]);
+        await fetchWeather(parseFloat(geoData[0].lat), parseFloat(geoData[0].lon), geoData[0].display_name.split(',')[0]);
         return;
       }
-    } catch(e) {}
+    } catch(e) {
+      // Geocoding failed, fall through to GPS
+    }
   }
 
-  // Fallback: GPS
+  // GPS fallback
   if (!navigator.geolocation) {
-    document.getElementById('wDesc').textContent = 'Standort nicht verfügbar';
+    if (wDesc) wDesc.textContent = 'Standort nicht verfügbar';
     return;
   }
+
   navigator.geolocation.getCurrentPosition(
-    async pos => { await fetchWeather(pos.coords.latitude, pos.coords.longitude, ''); },
-    () => { document.getElementById('wDesc').textContent = 'Standort-Zugriff verweigert'; }
+    async pos => {
+      await fetchWeather(pos.coords.latitude, pos.coords.longitude, '');
+    },
+    err => {
+      if (wDesc) {
+        if (err.code === 1) wDesc.textContent = 'Standort: Zugriff verweigert';
+        else if (geoQuery) wDesc.textContent = 'Adresse nicht gefunden';
+        else wDesc.textContent = 'Standort nicht ermittelbar';
+      }
+    },
+    { timeout: 10000, maximumAge: 60000 }
   );
 }
 
@@ -1896,9 +1907,21 @@ function generiereProtokoll() {
   state.currentProtokoll = htmlContent;
 
   const eintrag = {
-    id: Date.now(), datum: datumDE, projekt, bauleiter,
+    id: Date.now(), datum: datumDE, projekt, bauleiter, wetter,
     text: htmlContent, email,
-    erstellt: new Date().toISOString()
+    erstellt: new Date().toISOString(),
+    // Store all form data for later editing
+    formData: {
+      pDatum: document.getElementById('pDatum').value,
+      pBauleiter: document.getElementById('pBauleiter').value,
+      pWetter: document.getElementById('pWetter').value,
+      pEmail: document.getElementById('pEmail').value,
+      pEmailCC: document.getElementById('pEmailCC').value,
+      pBetreff: document.getElementById('pBetreff') ? document.getElementById('pBetreff').value : '',
+      firmen: JSON.parse(JSON.stringify(getAllFirmen())),
+      blocks: JSON.parse(JSON.stringify(state.blocks || {})),
+      fotos: JSON.parse(JSON.stringify(state.fotos || []))
+    }
   };
   state.protokolle.unshift(eintrag);
 
@@ -1908,11 +1931,7 @@ function generiereProtokoll() {
   if (currentProjektIndex >= 0 && state.projekte[currentProjektIndex]) renderProjektVerlauf(projekt);
 
   const preview = document.getElementById('protokollPreview');
-  preview.innerHTML = '';
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'width:100%;height:480px;border:none;border-radius:8px;';
-  iframe.srcdoc = htmlContent;
-  preview.appendChild(iframe);
+  createProtokollPreview(htmlContent, preview);
   openModal('modalProtokoll');
 }
 
@@ -2160,15 +2179,125 @@ function renderVerlauf() {
   `).join('');
 }
 
+function createProtokollPreview(htmlContent, previewEl) {
+  previewEl.innerHTML = '';
+
+  const A4_WIDTH = 794; // px at 96dpi
+  const containerWidth = previewEl.clientWidth || window.innerWidth - 40;
+  const scale = containerWidth / A4_WIDTH;
+
+  // Wrapper that sets the scaled height
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = `
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--paper-3);
+    background: #fff;
+    cursor: zoom-in;
+    -webkit-overflow-scrolling: touch;
+    overflow: auto;
+    touch-action: pinch-zoom pan-x pan-y;
+  `;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = `
+    width: ${A4_WIDTH}px;
+    height: 1123px;
+    border: none;
+    display: block;
+    transform-origin: top left;
+    transform: scale(${scale.toFixed(4)});
+  `;
+
+  // Allow iframe to auto-size its height after load
+  iframe.onload = () => {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 1123);
+      iframe.style.height = h + 'px';
+      wrapper.style.height = Math.ceil(h * scale) + 'px';
+    } catch(e) {
+      wrapper.style.height = Math.ceil(1123 * scale) + 'px';
+    }
+  };
+
+  wrapper.style.height = Math.ceil(1123 * scale) + 'px';
+  wrapper.appendChild(iframe);
+  previewEl.appendChild(wrapper);
+
+  // Use srcdoc
+  iframe.srcdoc = htmlContent;
+}
+let currentProtokollIndex = -1;
+
 function showProtokollDetail(i) {
+  currentProtokollIndex = i;
   state.currentProtokoll = state.protokolle[i].text;
   const preview = document.getElementById('protokollPreview');
-  preview.innerHTML = '';
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'width:100%;height:480px;border:none;border-radius:8px;';
-  iframe.srcdoc = state.currentProtokoll;
-  preview.appendChild(iframe);
+  createProtokollPreview(state.currentProtokoll, preview);
   openModal('modalProtokoll');
+}
+
+function bearbeiteProtokoll() {
+  const p = state.protokolle[currentProtokollIndex];
+  if (!p) return;
+  const fd = p.formData;
+
+  closeModal('modalProtokoll');
+
+  // Restore form fields
+  if (fd) {
+    if (fd.pDatum) document.getElementById('pDatum').value = fd.pDatum;
+    if (fd.pBauleiter) document.getElementById('pBauleiter').value = fd.pBauleiter;
+    if (fd.pWetter) document.getElementById('pWetter').value = fd.pWetter;
+    if (fd.pEmail) document.getElementById('pEmail').value = fd.pEmail;
+    if (fd.pEmailCC) document.getElementById('pEmailCC').value = fd.pEmailCC;
+    const betreffEl = document.getElementById('pBetreff');
+    if (betreffEl && fd.pBetreff) betreffEl.value = fd.pBetreff;
+
+    // Restore projekt
+    if (p.projekt) {
+      document.getElementById('pProjekt').value = p.projekt;
+      document.getElementById('headerSub').textContent = ' – ' + p.projekt;
+    }
+
+    // Restore blocks
+    if (fd.blocks) {
+      state.blocks = JSON.parse(JSON.stringify(fd.blocks));
+    } else {
+      state.blocks = {};
+      initBlocks();
+    }
+
+    // Restore firmen (aktiv/ma states)
+    if (fd.firmen) {
+      const projIdx = state.projekte.findIndex(pr => pr.name === p.projekt);
+      if (projIdx >= 0) {
+        state.projekte[projIdx].firmen = fd.firmen.filter(f => f.stamm).map(f => ({...f}));
+      }
+      state.firmen = fd.firmen.filter(f => !f.stamm);
+    }
+
+    // Restore fotos
+    if (fd.fotos) state.fotos = JSON.parse(JSON.stringify(fd.fotos));
+  }
+
+  // Remove old entry (will be replaced when re-generated)
+  state.protokolle.splice(currentProtokollIndex, 1);
+  currentProtokollIndex = -1;
+  save();
+
+  renderFirmenChips();
+  renderSections();
+
+  // Show zurück button
+  const btn = document.getElementById('btnZurueckVerlauf');
+  if (btn) btn.style.display = currentProjektIndex >= 0 ? 'block' : 'none';
+
+  switchTab('protokoll', null);
+  toast('Protokoll wird bearbeitet – neu generieren zum Speichern');
 }
 
 // ══════════════════════════════════
