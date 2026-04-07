@@ -2182,54 +2182,80 @@ function renderVerlauf() {
 function createProtokollPreview(htmlContent, previewEl) {
   previewEl.innerHTML = '';
 
-  const A4_WIDTH = 794; // px at 96dpi
-  const containerWidth = previewEl.clientWidth || window.innerWidth - 40;
-  const scale = containerWidth / A4_WIDTH;
+  const A4_WIDTH = 794; // A4 at 96dpi
 
-  // Wrapper that sets the scaled height
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = `
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid var(--paper-3);
-    background: #fff;
-    cursor: zoom-in;
-    -webkit-overflow-scrolling: touch;
-    overflow: auto;
-    touch-action: pinch-zoom pan-x pan-y;
-  `;
+  // Wait for modal to be visible so we get real clientWidth
+  requestAnimationFrame(() => {
+    const containerWidth = previewEl.clientWidth || (window.innerWidth - 40);
+    const scale = containerWidth / A4_WIDTH;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = `
-    width: ${A4_WIDTH}px;
-    height: 1123px;
-    border: none;
-    display: block;
-    transform-origin: top left;
-    transform: scale(${scale.toFixed(4)});
-  `;
+    // Outer scroll container — fixed width, scrollable vertically
+    const scrollContainer = document.createElement('div');
+    scrollContainer.style.cssText = `
+      width: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      border: 1px solid var(--paper-3);
+      background: #f5f2ed;
+      touch-action: pan-y pinch-zoom;
+    `;
 
-  // Allow iframe to auto-size its height after load
-  iframe.onload = () => {
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 1123);
-      iframe.style.height = h + 'px';
-      wrapper.style.height = Math.ceil(h * scale) + 'px';
-    } catch(e) {
-      wrapper.style.height = Math.ceil(1123 * scale) + 'px';
-    }
-  };
+    // Scale wrapper: A4_WIDTH wide, scaled down, height collapses
+    const scaleWrap = document.createElement('div');
+    scaleWrap.style.cssText = `
+      width: ${A4_WIDTH}px;
+      transform: scale(${scale.toFixed(5)});
+      transform-origin: top left;
+    `;
 
-  wrapper.style.height = Math.ceil(1123 * scale) + 'px';
-  wrapper.appendChild(iframe);
-  previewEl.appendChild(wrapper);
+    // Outer box that compensates for the scale (makes layout space correct)
+    const outerBox = document.createElement('div');
+    outerBox.style.cssText = `
+      width: ${Math.round(A4_WIDTH * scale)}px;
+      overflow: hidden;
+    `;
 
-  // Use srcdoc
-  iframe.srcdoc = htmlContent;
+    const iframe = document.createElement('iframe');
+    iframe.scrolling = 'no';
+    iframe.style.cssText = `
+      width: ${A4_WIDTH}px;
+      height: 1123px;
+      border: none;
+      display: block;
+      background: #fff;
+    `;
+
+    iframe.onload = () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 1123);
+        iframe.style.height = h + 'px';
+        scaleWrap.style.height = h + 'px';
+        outerBox.style.height = Math.ceil(h * scale) + 'px';
+        scrollContainer.style.maxHeight = Math.min(Math.ceil(h * scale), window.innerHeight * 0.6) + 'px';
+      } catch(e) {
+        const fallbackH = Math.ceil(1123 * scale);
+        outerBox.style.height = fallbackH + 'px';
+        scrollContainer.style.maxHeight = fallbackH + 'px';
+      }
+    };
+
+    // Initial height estimate
+    const initH = Math.ceil(1123 * scale);
+    outerBox.style.height = initH + 'px';
+    scrollContainer.style.maxHeight = Math.min(initH, Math.round(window.innerHeight * 0.6)) + 'px';
+
+    scaleWrap.appendChild(iframe);
+    outerBox.appendChild(scaleWrap);
+    scrollContainer.appendChild(outerBox);
+    previewEl.appendChild(scrollContainer);
+
+    iframe.srcdoc = htmlContent;
+  });
 }
+
 let currentProtokollIndex = -1;
 
 function showProtokollDetail(i) {
