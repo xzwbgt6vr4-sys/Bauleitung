@@ -58,7 +58,8 @@
 [data-theme="dark"] .sticky-top{background:#1a1918}
 [data-theme="dark"] .hdr-logo path:not([style*="fill:white"]):not([style*="fill:rgb(168,0,0)"]){ fill:#e2e4e8 }
 [data-theme="dark"] #chart{background:#141312}
-[data-theme="dark"] .gr.alt{background:rgba(255,255,255,.03)}
+[data-theme="dark"] .gr{background:rgba(255,255,255,.02)}
+[data-theme="dark"] .gr.alt{background:rgba(255,255,255,.05)}
 [data-theme="dark"] .gl.maj{background:rgba(255,255,255,.1)}
 [data-theme="dark"] .gl.min{background:rgba(255,255,255,.05)}
 [data-theme="dark"] .wknd{background:rgba(255,255,255,.025)}
@@ -208,10 +209,10 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 .tr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-right:2px}
 
 /* GANTT ROWS */
-.gr{position:absolute;left:0;right:0;height:var(--row-h);border-bottom:1px solid rgba(224,219,208,.7)}
-.gr.alt{background:rgba(236,232,224,.35)}
-.wknd{position:absolute;top:0;bottom:0;background:rgba(168,0,0,.03);pointer-events:none;z-index:0}
-  .exc{position:absolute;top:0;bottom:0;background:rgba(255,150,0,.09);border-left:1px solid rgba(255,150,0,.22);pointer-events:none;z-index:0}
+.gr{position:absolute;left:0;right:0;height:var(--row-h);border-bottom:1px solid rgba(224,219,208,.7);background:#fff}
+.gr.alt{background:rgba(230,226,218,.28)}
+.wknd{position:absolute;top:0;bottom:0;background:rgba(168,0,0,.06);pointer-events:none;z-index:2}
+  .exc{position:absolute;top:0;bottom:0;background:rgba(240,130,0,.18);border-left:1px solid rgba(240,130,0,.35);pointer-events:none;z-index:2}
 .gl{position:absolute;top:0;bottom:0;width:1px;pointer-events:none}
 .gl.maj{background:rgba(180,174,164,.5)}
 .gl.min{background:rgba(224,219,208,.6)}
@@ -1804,6 +1805,8 @@ function renderPreview(){
 // pageW, pageH in mm
 function buildGanttSVG(pageW, pageH){
   const PX_PER_MM = 3.78;
+  // Use only currently visible tasks (respects collapsed state from main view)
+  const T = getVisible();
   const W = Math.round(pageW * PX_PER_MM);
   const H = Math.round(pageH * PX_PER_MM);
 
@@ -1874,7 +1877,7 @@ function buildGanttSVG(pageW, pageH){
   </marker>
   <clipPath id="cc"><rect x="${LEFT}" y="${HDR+TL}" width="${CW}" height="${CH}"/></clipPath>
   <clipPath id="nc"><rect x="0" y="${HDR+TL}" width="${LEFT-2}" height="${CH}"/></clipPath>
-  <clipPath id="tc"><rect x="${LEFT}" y="${HDR}" width="${CW}" height="${TL}"/></clipPath>
+  <clipPath id="tc"><rect x="${LEFT}" y="${HDR}" width="${CW+1}" height="${TL}"/></clipPath>
 </defs>`);
 
   // ── Header strip ──
@@ -1889,21 +1892,21 @@ function buildGanttSVG(pageW, pageH){
   p.push(`<text x="${SVG_W-8}" y="${HDR*0.88}" font-family="Arial Narrow,Arial,sans-serif" font-size="${rfs}" fill="rgba(255,255,255,0.8)" text-anchor="end">${xe(rangeStr)}</text>`);
 
   // ── Body ──
-  p.push(`<rect y="${HDR}" width="${SVG_W}" height="${TL+CH}" fill="#f5f2ed"/>`);
+  p.push(`<rect y="${HDR}" width="${SVG_W}" height="${TL+CH}" fill="#ffffff"/>`);
   p.push(`<rect y="${HDR}" width="${SVG_W}" height="${TL}" fill="#ece8e0"/>`);
   p.push(`<rect y="${HDR}" width="${LEFT}" height="${TL+CH}" fill="rgba(245,242,237,0.97)"/>`);
   p.push(`<line x1="0" y1="${HDR+TL}" x2="${SVG_W}" y2="${HDR+TL}" stroke="#c8c4b8" stroke-width="0.7"/>`);
   p.push(`<line x1="${LEFT}" y1="${HDR}" x2="${LEFT}" y2="${HDR+TL+CH}" stroke="#a8a49c" stroke-width="0.8"/>`);
 
   // ── Grid + timeline labels ──
-  // Timeline always shows: month (top row) + KW/date (bottom row)
-  // Two-row timeline: top = month+year, bottom = KW or day numbers
+  // Separate groups: gridLines+bars clipped to chart area (cc),
+  // timeline text clipped only to timeline strip (tc) so labels are always visible
   const moY  = HDR + TL * 0.44;   // month label baseline (top row)
   const kwY  = HDR + TL * 0.88;   // KW/date baseline (bottom row)
-  // Minimum px needed to draw a KW label (~4 chars)
-  const kwMinPx = TFS * 2.0;      // e.g. "KW5" needs ~2×fontsize px
-  const dayMinPx = TFS * 1.1;     // day number "31" needs ~1.1×fs
-  let grid = `<g clip-path="url(#cc)">`;
+
+  let excRects  = `<g clip-path="url(#cc)">`;   // holiday/vacation overlay (above row stripes)
+  let gridLines = `<g clip-path="url(#cc)">`;   // grid lines only
+  let tlLabels  = `<g clip-path="url(#tc)">`;   // timeline strip: month + KW text
   let prevMo = -1;
   for(let d=0;d<totalDays;d++){
     const cur = new Date(cs); cur.setDate(cur.getDate()+d);
@@ -1911,42 +1914,48 @@ function buildGanttSVG(pageW, pageH){
     const dow = cur.getDay(), is1 = cur.getDate()===1, isMon = dow===1;
     const iso2=cur.toISOString().split('T')[0];
     const isExc2=EXCEPTIONS.has(iso2);
-    if(dow===0||dow===6) grid+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(100,0,0,0.03)"/>`;
-    else if(isExc2) grid+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(255,140,0,0.10)"/>`;
+    // Shading (chart area)
+    if(dow===0||dow===6) excRects+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(100,0,0,0.05)"/>`;
+    if(isExc2)           excRects+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(240,130,0,0.18)"/>`;
+    // Grid lines
     if(is1){
-      grid+=`<line x1="${x}" y1="${HDR}" x2="${x}" y2="${HDR+TL+CH}" stroke="#bbb6ac" stroke-width="0.6"/>`;
+      gridLines+=`<line x1="${x}" y1="${HDR}" x2="${x}" y2="${HDR+TL+CH}" stroke="#bbb6ac" stroke-width="0.6"/>`;
       const mo=cur.getMonth(),yr=cur.getFullYear();
       if(mo!==prevMo){
-        grid+=`<text clip-path="url(#tc)" x="${x+2}" y="${moY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS}" font-weight="700" fill="#444">${MO2[mo]} ${yr}</text>`;
+        tlLabels+=`<text x="${x+2}" y="${moY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS}" font-weight="700" fill="#444">${MO2[mo]} ${yr}</text>`;
         prevMo=mo;
       }
     } else if(isMon){
-      grid+=`<line x1="${x}" y1="${HDR+TL}" x2="${x}" y2="${HDR+TL+CH}" stroke="#ddd8ce" stroke-width="0.35"/>`;
+      gridLines+=`<line x1="${x}" y1="${HDR+TL}" x2="${x}" y2="${HDR+TL+CH}" stroke="#ddd8ce" stroke-width="0.35"/>`;
     }
-    // Bottom row: KW always on every Monday
+    // KW label on every Monday
     if(isMon){
       const kw_=kw(cur);
-      grid+=`<text clip-path="url(#tc)" x="${x+2}" y="${kwY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.85}" fill="#666">KW${kw_}</text>`;
+      tlLabels+=`<text x="${x+2}" y="${kwY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.85}" fill="#555">KW${kw_}</text>`;
     }
   }
-  // Today
+  // Today line + label
   const tod=new Date(); tod.setHours(0,0,0,0);
   const tx2=gx(tod);
   if(tx2>=LEFT&&tx2<=SVG_W){
-    grid+=`<line x1="${tx2}" y1="${HDR}" x2="${tx2}" y2="${HDR+TL+CH}" stroke="${accent}" stroke-width="1.2" opacity="0.55"/>`;
-    grid+=`<text clip-path="url(#tc)" x="${tx2+2}" y="${tlY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.82}" font-weight="700" fill="${accent}">heute</text>`;
+    gridLines+=`<line x1="${tx2}" y1="${HDR}" x2="${tx2}" y2="${HDR+TL+CH}" stroke="${accent}" stroke-width="1.2" opacity="0.55"/>`;
+    tlLabels+=`<text x="${tx2+2}" y="${kwY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.82}" font-weight="700" fill="${accent}">heute</text>`;
   }
-  grid+=`</g>`;
-  p.push(grid);
-
+  gridLines+=`</g>`;
+  excRects +=`</g>`;
+  tlLabels +=`</g>`;
   // ── Row stripes ──
   let rows='';
   T.forEach((_,i)=>{
     const ry=HDR+TL+i*ROW;
-    if(i%2===0) rows+=`<rect y="${ry}" width="${SVG_W}" height="${ROW}" fill="rgba(232,228,218,0.35)"/>`;
+    if(i%2===0) rows+=`<rect y="${ry}" width="${SVG_W}" height="${ROW}" fill="white"/>`;
+    else rows+=`<rect y="${ry}" width="${SVG_W}" height="${ROW}" fill="rgba(225,221,213,0.30)"/>`;
     rows+=`<line x1="0" y1="${ry+ROW}" x2="${SVG_W}" y2="${ry+ROW}" stroke="#ddd8ce" stroke-width="0.3"/>`;
   });
   p.push(rows);
+  p.push(excRects);   // 3. holiday/vacation overlay (on top of rows)
+  p.push(gridLines);  // 4. grid lines
+  p.push(tlLabels);   // 5. timeline labels
 
   // ── Task names ──
   let nms=`<g clip-path="url(#nc)">`;
