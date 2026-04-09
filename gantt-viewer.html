@@ -31,7 +31,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="desch Gantt">
-<title>Gantt Viewer · desch architekten</title>
+<title>Gantt Viewer · desch architekten+ingenieure</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#A80000">
 <style>
@@ -202,6 +202,7 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
 .gr{position:absolute;left:0;right:0;height:var(--row-h);border-bottom:1px solid rgba(224,219,208,.7)}
 .gr.alt{background:rgba(236,232,224,.35)}
 .wknd{position:absolute;top:0;bottom:0;background:rgba(168,0,0,.03);pointer-events:none;z-index:0}
+  .exc{position:absolute;top:0;bottom:0;background:rgba(255,150,0,.09);border-left:1px solid rgba(255,150,0,.22);pointer-events:none;z-index:0}
 .gl{position:absolute;top:0;bottom:0;width:1px;pointer-events:none}
 .gl.maj{background:rgba(180,174,164,.5)}
 .gl.min{background:rgba(224,219,208,.6)}
@@ -524,8 +525,8 @@ body.fs #zbar{ top:0 !important }
       <span id="hrange-val"></span>
     </div>
   </div>
-  <button class="hdr-btn" onclick="document.getElementById('fileIn').click()" title="CSV öffnen">＋</button>
-  <input type="file" id="fileIn" accept=".csv,text/*" style="display:none">
+  <button class="hdr-btn" onclick="document.getElementById('fileIn').click()" title="CSV / MPX / GAN öffnen">＋</button>
+  <input type="file" id="fileIn" accept=".csv,.mpx,.gan,text/*" style="display:none">
 </header>
 </div><!-- /sticky-top -->
 
@@ -550,7 +551,7 @@ body.fs #zbar{ top:0 !important }
   <div class="e-icon">📅</div>
   <div class="e-title">Gantt Viewer</div>
   <div class="e-sub">CSV-Datei aus GanttProject öffnen – farbige Balkenpläne mit Abhängigkeiten auf iPhone und iPad.</div>
-  <button class="e-btn" onclick="document.getElementById('fileIn').click()">CSV-Datei öffnen</button>
+  <button class="e-btn" onclick="document.getElementById('fileIn').click()">CSV / MPX / GAN öffnen</button>
   <div class="e-note">GanttProject · .csv Export</div>
 </div>
 
@@ -611,6 +612,7 @@ const PAL   = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5
 
 // ── STATE ─────────────────────────────────────────────
 let T=[];
+let EXCEPTIONS=new Set(); // calendar exception dates (ISO strings)
 let cStart=null, cDays=0;
 let selId=null, tipTmr=null;
 let depStyle='curve'; // 'curve' | 'ortho'
@@ -653,10 +655,17 @@ const ppd=()=>ZPRE[mode][zIdx];
 // ── FILE ─────────────────────────────────────────────
 document.getElementById('fileIn').addEventListener('change',function(e){
   const f=e.target.files[0]; if(!f)return;
+  const isMpx=/\.mpx$/i.test(f.name);
+  const isGan=/\.gan$/i.test(f.name);
   const r=new FileReader();
-  r.onload=ev=>load(ev.target.result,f.name);
+  r.onload=ev=>{
+    if(isMpx) loadMpx(ev.target.result,f.name);
+    else if(isGan) loadGan(ev.target.result,f.name);
+    else load(ev.target.result,f.name);
+  };
   r.onerror=()=>showToast('Lesefehler');
-  r.readAsText(f,'UTF-8');
+  if(isMpx) r.readAsArrayBuffer(f);
+  else r.readAsText(f,'UTF-8');
   e.target.value='';
 });
 
@@ -711,6 +720,7 @@ function tc(hex){
 // ── LOAD ─────────────────────────────────────────────
 function load(text,filename){
   try{
+    EXCEPTIONS = new Set(); // CSV has no calendar exceptions
     const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
     if(lines.length<2){showToast('CSV zu kurz.');return;}
 
@@ -805,6 +815,348 @@ function load(text,filename){
     setTimeout(positionHandle, 50);
   }catch(e){console.error(e);showToast('Fehler beim Einlesen.');}
 }
+
+
+// ── MPX PARSER ───────────────────────────────────────
+// MPX = Microsoft Project Exchange format
+// Record codes: 20=base calendar, 25=cal hours, 26=cal exception,
+//               60=task column headers, 70=task, 71=task note
+function loadMpx(buffer, filename){
+  try{
+    // Decode as Windows-1252 (latin-1 superset)
+    const dec = new TextDecoder('windows-1252');
+    const text = dec.decode(buffer);
+    const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+
+    // --- Parse calendar exceptions (record 26) ---
+    // Format: 26;DD.MM.YY;DD.MM.YY;type
+    // type 0 = non-working (holiday/vacation)
+    const exceptions = new Set(); // ISO date strings "YYYY-MM-DD"
+    for(const l of lines){
+      if(!l.startsWith('26;')) continue;
+      const parts = l.split(';');
+      // parts[1]=fromDate, parts[2]=toDate, parts[3]=type (0=non-working)
+      const type = parseInt(parts[3]||'0');
+      if(type !== 0) continue; // only non-working days
+      const d1 = mpxDate(parts[1]), d2 = mpxDate(parts[2]);
+      if(!d1) continue;
+      const end = d2||d1;
+      // Add all days in range
+      const cur = new Date(d1);
+      while(cur <= end){
+        exceptions.add(isoDate(cur));
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+
+    // --- Find task column header (record 60) ---
+    let hdrLine = null;
+    for(const l of lines){ if(l.startsWith('60;')){ hdrLine=l; break; } }
+    if(!hdrLine){ showToast('MPX: Kein Task-Header (60) gefunden'); return; }
+    const hdrFields = spl(hdrLine).slice(1).map(s=>s.trim());
+
+    // Map column names to indices (0-based within data part after "70;")
+    const norm = s=>s.toLowerCase().replace(/[^a-z0-9äöüß]/g,'');
+    const ci2 = (...ns)=>{
+      for(const n of ns){
+        const idx = hdrFields.findIndex(h=>norm(h)===norm(n));
+        if(idx>=0) return idx;
+      }
+      return -1;
+    };
+
+    const I = {
+      name:  ci2('Name','Vorgang','Vorgangsname'),
+      start: ci2('Anfang','Start'),
+      end:   ci2('Ende','End'),
+      dur:   ci2('Dauer','Duration'),
+      prog:  ci2('% Abgeschlossen','Fortschritt','Completion'),
+      dep:   ci2('Vorgänger','Predecessors'),
+      gln:   ci2('GliederungsNr','Gliederungsnummer','OutlineNumber','PSP-Code'),
+      ms:    ci2('Meilenstein','Milestone'),
+      sum:   ci2('Sammelvorgang'),
+      nr:    ci2('Nr.','Nr','Number'),
+    };
+
+    if(I.name<0){ showToast('MPX: Spalte Name nicht gefunden'); return; }
+
+    // --- Parse task records (70) ---
+    const raw = [];
+    let lastNote = '';
+    for(let li=0; li<lines.length; li++){
+      const l = lines[li];
+      if(l.startsWith('71;')){
+        // Task note for PREVIOUS task
+        lastNote = l.slice(3).trim();
+        if(raw.length) raw[raw.length-1].note = lastNote;
+        continue;
+      }
+      if(!l.startsWith('70;')) continue;
+      lastNote = '';
+      const parts = spl(l).slice(1); // use spl() to handle quoted semicolons
+
+      const get = (i) => i>=0 && i<parts.length ? parts[i].replace(/"/g,'').trim() : '';
+
+      const name = get(I.name);
+      if(!name) continue;
+
+      // Dates: "Mo. 01.12.25" → strip weekday prefix
+      const start = mpxDate(get(I.start));
+      let   end   = mpxDate(get(I.end));
+      const durS  = get(I.dur);
+      const durDays = parseMpxDur(durS);
+      if(start && !end && durDays>0){
+        end = new Date(start); end.setDate(end.getDate()+durDays-1);
+      }
+      if(!start) continue;
+      if(!end) end = new Date(start);
+
+      const isMilestone = get(I.ms).toLowerCase()==='ja' || durDays===0;
+      const isSummaryField = get(I.sum).toLowerCase()==='ja';
+      const glnStr = get(I.gln);
+      // Try Gliederungsebene (numeric) or count dots in Gliederungsnummer
+      const gleStr = get(2); // Gliederungsebene is always field 2
+      const levelNum = parseInt(gleStr);
+      const level = (!isNaN(levelNum) && levelNum>=0) ? levelNum : lvl(glnStr);
+      const deps = parseMpxDeps(get(I.dep));
+      const nr = get(I.nr) || String(raw.length+1);
+      const prog = parseFloat(get(I.prog))||0;
+
+      raw.push({
+        id: nr,
+        name: name.trim(),
+        start, end,
+        dur: durDays,
+        deps, prog, level,
+        isMilestone,
+        isSummary: isSummaryField,
+        color: null, note:'', res:''
+      });
+    }
+
+    if(!raw.length){ showToast('MPX: Keine Vorgänge gefunden'); return; }
+
+    // Mark summaries from structure if not flagged
+    for(let i=0;i<raw.length-1;i++)
+      if(raw[i+1].level > raw[i].level) raw[i].isSummary=true;
+
+    // Color palette – assign to top-level tasks (min level), inherit downward
+    const minLevel = raw.reduce((m,t)=>Math.min(m,t.level), 99);
+    let palI=0, inherit=PAL[0];
+    for(const t of raw){
+      if(t.level===minLevel && t.name){ t.color=PAL[palI%PAL.length]; inherit=t.color; palI++; }
+      else if(!t.color) t.color=inherit;
+    }
+
+    // Store globally
+    T = raw;
+    EXCEPTIONS = exceptions; // global calendar exceptions
+
+    // Update header
+    const fname = filename.replace(/\.mpx$/i,'');
+    document.getElementById('htitle').textContent = fname;
+    const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
+    const mn=new Date(Math.min(...dates)), mx=new Date(Math.max(...dates));
+    document.getElementById('hrange').style.display='';
+    document.getElementById('hrange-val').textContent=
+      mn.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})+
+      ' – '+mx.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+
+    document.getElementById('empty').style.display='none';
+    document.getElementById('gwrap').classList.add('on');
+    document.getElementById('zbar').classList.add('on');
+
+    computeHdrH();
+    build();
+    buildLegend();
+    applySize();
+    setTimeout(positionHandle,50);
+
+    const exCount = [...exceptions].filter(d=>d>='2020-01-01').length;
+    showToast(`${T.length} Vorgänge geladen · ${exceptions.size} Kalenderausnahmen`);
+  } catch(e){ console.error(e); showToast('MPX-Fehler: '+e.message); }
+}
+
+// MPX date: "Mo. 01.12.25" or "01.12.25" → Date
+function mpxDate(s){
+  if(!s) return null;
+  s = s.trim().replace(/"/g,'');
+  // Strip weekday prefix "Mo. " etc.
+  s = s.replace(/^[A-Za-zÄäÖöÜü]+\.\s*/,'');
+  return pd(s);
+}
+
+// MPX duration: "5t" "5,5t" "0t" → integer days
+function parseMpxDur(s){
+  if(!s) return 0;
+  s = s.replace(',','.').replace(/[^0-9.]/g,'');
+  return Math.round(parseFloat(s)||0);
+}
+
+// MPX deps: "6" or "\"64;25;29\"" (already split by spl, but MPX uses ; in quotes)
+function parseMpxDeps(s){
+  if(!s) return [];
+  // Remove surrounding quotes
+  s = s.replace(/^"+|"+$/g,'').trim();
+  if(!s) return [];
+  return s.split(';').map(p=>{
+    // Strip lag/lead info like "28EA-5t", "28AE"
+    return p.trim().replace(/[A-Za-z].*/,'').trim();
+  }).filter(d=>d && /^\d+$/.test(d));
+}
+
+
+// ── GAN PARSER (GanttProject XML) ────────────────────
+function loadGan(text, filename){
+  try{
+    EXCEPTIONS = new Set();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+    const err = xml.querySelector('parsererror');
+    if(err){ showToast('GAN: XML-Fehler'); return; }
+
+    const root = xml.documentElement;
+
+    // ── Calendars: build exception set ──
+    // Repeating holidays (year='') apply every year
+    const repeatHolidays = []; // {month, date}
+    // Specific dates (year set)
+    const specificDates = new Set();
+
+    for(const d of root.querySelectorAll('calendars > date')){
+      const yr = d.getAttribute('year')||'';
+      const mo = parseInt(d.getAttribute('month'));
+      const da = parseInt(d.getAttribute('date'));
+      const type = d.getAttribute('type');
+      if(type !== 'HOLIDAY') continue;
+      if(yr === ''){
+        repeatHolidays.push({mo, da});
+      } else {
+        specificDates.add(`${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`);
+      }
+    }
+
+    // Build EXCEPTIONS for project date range + 1 year buffer
+    // We'll resolve repeating holidays for years 2020-2030
+    for(let yr=2020; yr<=2030; yr++){
+      for(const {mo,da} of repeatHolidays){
+        specificDates.add(`${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`);
+      }
+    }
+    EXCEPTIONS = specificDates;
+
+    // ── Tasks: flatten nested XML hierarchy ──
+    const raw = [];
+
+    function parseTask(el, depth){
+      const a = el;
+      const id   = a.getAttribute('id');
+      const name = a.getAttribute('name')||'';
+      if(!name) return;
+
+      const startS = a.getAttribute('start')||'';
+      const durD   = parseInt(a.getAttribute('duration')||'0');
+      const prog   = parseInt(a.getAttribute('complete')||'0');
+      const isMeet = a.getAttribute('meeting')==='true';
+      const colorRaw = a.getAttribute('color')||'';
+
+      const start = pd(startS);
+      if(!start) return;
+
+      // end = start + duration (working days, but we approximate as calendar days)
+      let end = new Date(start);
+      if(durD > 0) end.setDate(end.getDate() + durD - 1);
+
+      // Color: keep task color if it's a real color (not gray/white/black)
+      const color = ganColor(colorRaw);
+
+      // Dependencies from <depend> children
+      const deps = [];
+      for(const dep of el.querySelectorAll(':scope > depend')){
+        deps.push(dep.getAttribute('id'));
+      }
+
+      // Notes
+      const notesEl = el.querySelector(':scope > notes');
+      const note = notesEl ? (notesEl.textContent||'').trim() : '';
+
+      raw.push({id, name: name.trim(), start, end, dur: durD, deps, prog,
+                level: depth, isMilestone: isMeet && durD===0,
+                isSummary: false, color, note, res:''});
+
+      // Recurse into child tasks
+      for(const child of el.children){
+        if(child.tagName === 'task') parseTask(child, depth+1);
+      }
+    }
+
+    const tasksEl = root.querySelector('tasks');
+    if(!tasksEl){ showToast('GAN: Kein <tasks>-Element'); return; }
+    for(const child of tasksEl.children){
+      if(child.tagName === 'task') parseTask(child, 0);
+    }
+
+    if(!raw.length){ showToast('GAN: Keine Vorgänge gefunden'); return; }
+
+    // Mark summaries (has children at deeper level)
+    for(let i=0; i<raw.length-1; i++)
+      if(raw[i+1].level > raw[i].level) raw[i].isSummary = true;
+
+    // Color inheritance: if task has no color, inherit from parent
+    // Walk and carry a color stack per depth
+    const colorStack = {};
+    for(const t of raw){
+      if(t.color){
+        colorStack[t.level] = t.color;
+      } else {
+        // find nearest ancestor color
+        for(let d = t.level-1; d >= 0; d--){
+          if(colorStack[d]){ t.color = colorStack[d]; break; }
+        }
+        if(!t.color) t.color = PAL[0];
+      }
+    }
+
+    T = raw;
+
+    // Update header
+    const projName = root.getAttribute('name') || filename.replace(/\.gan$/i,'');
+    document.getElementById('htitle').textContent = projName;
+    const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
+    const mn=new Date(Math.min(...dates)), mx=new Date(Math.max(...dates));
+    document.getElementById('hrange').style.display='';
+    document.getElementById('hrange-val').textContent=
+      mn.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})+
+      ' – '+mx.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+
+    document.getElementById('empty').style.display='none';
+    document.getElementById('gwrap').classList.add('on');
+    document.getElementById('zbar').classList.add('on');
+
+    computeHdrH();
+    build();
+    buildLegend();
+    applySize();
+    setTimeout(positionHandle,50);
+
+    showToast(`${T.length} Vorgänge · ${EXCEPTIONS.size} Feiertage`);
+  } catch(e){ console.error(e); showToast('GAN-Fehler: '+e.message); }
+}
+
+// GAN color: keep if it's a meaningful color, else return null for palette
+function ganColor(hex){
+  if(!hex || hex.length < 7) return null;
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const brightness = 0.299*r + 0.587*g + 0.114*b;
+  const saturation = Math.max(r,g,b) - Math.min(r,g,b);
+  // Skip near-white, near-black, and near-gray (low saturation)
+  if(brightness > 230) return null; // too white
+  if(brightness < 40)  return null; // too black
+  if(saturation < 25)  return null; // too gray (#cccccc, #999999, #eeeeee)
+  return hex;
+}
+
+function isoDate(d){ return d.toISOString().split('T')[0]; }
 
 // ── HDR HEIGHT ────────────────────────────────────────
 function computeHdrH(){
@@ -911,12 +1263,16 @@ function build(){
   let h='';
   const tod=new Date(); tod.setHours(0,0,0,0);
 
-  // Grid + weekends
+  // Grid + weekends + calendar exceptions
   for(let d=0;d<cDays;d++){
     const cur=new Date(cStart); cur.setDate(cur.getDate()+d);
     const px=d*P, dow=cur.getDay();
+    const iso=cur.toISOString().split('T')[0];
+    const isExc = EXCEPTIONS.has(iso);
     if((dow===0||dow===6)&&P>=4)
       h+=`<div class="wknd" style="left:${px}px;width:${Math.max(P,1)}px"></div>`;
+    else if(isExc&&P>=4)
+      h+=`<div class="exc" style="left:${px}px;width:${Math.max(P,1)}px"></div>`;
     if(cur.getDate()===1)
       h+=`<div class="gl maj" style="left:${px}px"></div>`;
     else if(dow===1&&P>=3)
@@ -1156,7 +1512,7 @@ function buildLegend(){
       groups.push({name:t.name,color:t.color});
     }
   });
-  if(!groups.length||!showLegend){leg.classList.remove('on');return;}
+  if(!groups.length&&!EXCEPTIONS.size||!showLegend){leg.classList.remove('on');return;}
   leg.classList.add('on');
   leg.innerHTML=`<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);margin-bottom:2px;font-family:'Arial Narrow',Arial,sans-serif">Legende</div>`+
     groups.slice(0,8).map(g=>
@@ -1168,7 +1524,8 @@ function buildLegend(){
         <path d="M0,4 L16,4" stroke="rgba(168,0,0,.6)" stroke-width="1.2" marker-end="url(#la)" fill="none"/>
       </svg>
       <span>Abhängigkeit</span>
-    </div>`;
+    </div>`+
+    (EXCEPTIONS.size?`<div class="leg-item" style="margin-top:3px"><div style="width:10px;height:10px;background:rgba(255,150,0,.45);border:1px solid rgba(255,150,0,.5);border-radius:2px;flex-shrink:0"></div><span>Feiertag / Urlaub</span></div>`:'');
 }
 
 
@@ -1341,199 +1698,215 @@ function renderPreview(){
   info.textContent = `${previewFormat} ${previewOrientation==='land'?'Querformat':'Hochformat'} · ${pw}×${ph} mm`;
 }
 
-// Shared SVG builder used by both preview and export
+// Shared SVG builder – all sizes relative to ROW height
 // pageW, pageH in mm
 function buildGanttSVG(pageW, pageH){
-  const PX_PER_MM = 3.78;   // 96 dpi
+  const PX_PER_MM = 3.78;
   const W = Math.round(pageW * PX_PER_MM);
   const H = Math.round(pageH * PX_PER_MM);
 
   const s      = getSavedSettings();
-  const buero  = s.buero || 'desch architekten';
+  const buero  = s.buero || 'desch architekten+ingenieure';
   const name   = s.name  || '';
   const accent = '#A80000';
   const MO2    = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
-  // Layout – first estimate ROW to get font size, then measure names
-  const HDR   = Math.round(H * 0.065);   // header strip height
-  const FTR   = Math.round(H * 0.025);   // footer strip height
-  const BODY  = H - HDR - FTR;           // chart body height
-  const TL    = Math.round(BODY * 0.08); // timeline header height
-  const CH    = BODY - TL;               // chart rows height
-  const ROW   = Math.max(8, Math.floor(CH / Math.max(T.length, 1)));
+  // ── 1. Row height drives everything ──────────────────
+  // Target: content rows fill 85% of H; rest for header/timeline/footer
+  const nRows  = Math.max(T.length, 1);
+  const ROW    = Math.max(6, Math.floor(H * 0.85 / nRows));
+  const CH     = ROW * nRows;          // exact chart content height
 
-  // Measure LEFT: fit the longest visible task name + indent
-  // Use a hidden SVG text element for measurement
-  const nameFs0 = Math.max(5, Math.min(10, Math.round(ROW * 0.58)));
-  const AVG_CHAR_W = nameFs0 * 0.52; // Arial Narrow average char width ratio
-  const PAD_RIGHT  = 8;
-  let LEFT = 60; // absolute minimum
+  // All font sizes derived from ROW
+  const NFS    = Math.min(ROW * 0.62, 11);  // task name font size
+  const TFS    = Math.min(ROW * 0.55, 9);   // timeline font size
+  const HFS    = Math.min(ROW * 0.90, 12);  // header font size (Büroname)
+
+  // Fixed pixel heights, capped relative to ROW
+  const HDR = Math.round(Math.min(HFS * 2.6, H * 0.06));   // coloured header strip
+  const TL  = Math.round(Math.min(TFS * 4.2, H * 0.07));   // timeline header (2 rows)
+  const FTR = Math.round(Math.min(TFS * 2.4, H * 0.04));   // footer strip
+
+  // ── 2. Left column width = longest name ──────────────
+  const INDENT_STEP = Math.max(5, Math.round(NFS * 0.9));
+  const PAD = 10;
+  let LEFT = 50;
   T.forEach(t => {
-    const indent = 4 + t.level * Math.max(6, Math.round(W * 0.022));
-    const fs = t.level === 0 ? Math.round(nameFs0 * 1.05) : t.level === 1 ? nameFs0 : Math.round(nameFs0 * 0.92);
-    const nameW = t.name.length * fs * 0.52 + indent + PAD_RIGHT;
-    if (nameW > LEFT) LEFT = nameW;
+    const ind  = 4 + t.level * INDENT_STEP;
+    const fs   = t.level === 0 ? NFS : t.level === 1 ? NFS * 0.95 : NFS * 0.88;
+    const nameW = t.name.length * fs * 0.52 + ind + PAD;
+    if(nameW > LEFT) LEFT = nameW;
   });
-  // Add 14px arrow column on left
-  LEFT += 14;
-  // Cap at 35% of total width
-  LEFT = Math.round(Math.min(LEFT, W * 0.35));
+  LEFT = Math.round(Math.min(LEFT + 12, W * 0.38));
 
-  const CW    = W - LEFT;               // chart columns width
+  const CW  = W - LEFT;
+  const CHtotal = HDR + TL + CH + FTR;  // total used height
 
+  // ── 3. Date range & px-per-day ───────────────────────
   const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
   let cs = new Date(Math.min(...dates)), ce = new Date(Math.max(...dates));
-  cs.setDate(cs.getDate()-4); ce.setDate(ce.getDate()+12);
+  cs.setDate(cs.getDate()-3); ce.setDate(ce.getDate()+10);
   const wd = cs.getDay(); cs.setDate(cs.getDate()-(wd===0?6:wd-1));
   const totalDays = Math.ceil((ce-cs)/86400000)+1;
-  const PPD = CW / totalDays;   // px per day – fills exact width
+  const PPD = CW / totalDays;
 
   function gx(d){ return LEFT + Math.round((d-cs)/86400000*PPD); }
-  function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function xe(v){ return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  const fmt = d => d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const fmt = d => d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
   const mn = new Date(Math.min(...dates)), mx = new Date(Math.max(...dates));
   const rangeStr = fmt(mn)+' – '+fmt(mx);
   const projTitle = document.getElementById('htitle').textContent||'Bauzeitenplan';
   const nowStr = new Date().toLocaleString('de-DE');
 
+  // SVG viewBox = exact content size (no wasted space)
+  const SVG_W = W, SVG_H = CHtotal;
   const p = [];
-  p.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`);
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_W} ${SVG_H}" width="${SVG_W}" height="${SVG_H}">`);
 
-  // Defs
-  const arrSz = Math.max(3, ROW*0.35);
+  // ── Defs ──
+  const arrSz = Math.max(2.5, ROW*0.28);
   p.push(`<defs>
-  <marker id="arr" markerWidth="${arrSz}" markerHeight="${arrSz*0.67}" refX="${arrSz-0.5}" refY="${arrSz*0.33}" orient="auto">
-    <polygon points="0 0,${arrSz} ${arrSz*0.33},0 ${arrSz*0.67}" fill="${accent}" opacity="0.5"/>
+  <marker id="arr" markerWidth="${arrSz}" markerHeight="${arrSz*0.7}" refX="${arrSz-0.3}" refY="${arrSz*0.35}" orient="auto">
+    <polygon points="0 0,${arrSz} ${arrSz*0.35},0 ${arrSz*0.7}" fill="${accent}" opacity="0.5"/>
   </marker>
   <clipPath id="cc"><rect x="${LEFT}" y="${HDR+TL}" width="${CW}" height="${CH}"/></clipPath>
   <clipPath id="nc"><rect x="0" y="${HDR+TL}" width="${LEFT-2}" height="${CH}"/></clipPath>
   <clipPath id="tc"><rect x="${LEFT}" y="${HDR}" width="${CW}" height="${TL}"/></clipPath>
 </defs>`);
 
-  // Header
-  p.push(`<rect width="${W}" height="${HDR}" fill="${accent}"/>`);
-  const hfs = Math.max(8, Math.round(HDR*0.42));
-  const hsfs = Math.max(6, Math.round(HDR*0.28));
-  p.push(`<text x="${Math.round(W*0.015)}" y="${Math.round(HDR*0.65)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${hfs}" font-weight="900" fill="white">${xe(buero)}</text>`);
-  p.push(`<text x="${W-Math.round(W*0.012)}" y="${Math.round(HDR*0.48)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${Math.round(hfs*0.85)}" font-weight="700" fill="white" text-anchor="end">${xe(projTitle)}</text>`);
-  p.push(`<text x="${W-Math.round(W*0.012)}" y="${Math.round(HDR*0.82)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${hsfs}" fill="rgba(255,255,255,0.8)" text-anchor="end">${xe(rangeStr)}</text>`);
+  // ── Header strip ──
+  const hY  = HDR * 0.68;
+  const hsY = HDR * 0.68; // single baseline centered
+  p.push(`<rect width="${SVG_W}" height="${HDR}" fill="${accent}"/>`);
+  p.push(`<text x="8" y="${hY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${HFS}" font-weight="900" fill="white">${xe(buero)}</text>`);
+  // Project title right – two lines if fits, else one
+  const pfs = Math.min(HFS*0.82, 10);
+  const rfs = Math.min(HFS*0.62, 8);
+  p.push(`<text x="${SVG_W-8}" y="${HDR*0.5}" font-family="Arial Narrow,Arial,sans-serif" font-size="${pfs}" font-weight="700" fill="white" text-anchor="end">${xe(projTitle)}</text>`);
+  p.push(`<text x="${SVG_W-8}" y="${HDR*0.88}" font-family="Arial Narrow,Arial,sans-serif" font-size="${rfs}" fill="rgba(255,255,255,0.8)" text-anchor="end">${xe(rangeStr)}</text>`);
 
-  // Body background
-  p.push(`<rect y="${HDR}" width="${W}" height="${BODY}" fill="#f5f2ed"/>`);
-  // Timeline header bg
-  p.push(`<rect y="${HDR}" width="${W}" height="${TL}" fill="#ece8e0"/>`);
-  // Left panel bg
-  p.push(`<rect y="${HDR}" width="${LEFT}" height="${BODY}" fill="rgba(245,242,237,0.95)"/>`);
-  // Timeline/left separator line
-  p.push(`<line x1="0" y1="${HDR+TL}" x2="${W}" y2="${HDR+TL}" stroke="#c8c4b8" stroke-width="0.8"/>`);
-  p.push(`<line x1="${LEFT}" y1="${HDR}" x2="${LEFT}" y2="${HDR+BODY}" stroke="#a8a49c" stroke-width="1"/>`);
+  // ── Body ──
+  p.push(`<rect y="${HDR}" width="${SVG_W}" height="${TL+CH}" fill="#f5f2ed"/>`);
+  p.push(`<rect y="${HDR}" width="${SVG_W}" height="${TL}" fill="#ece8e0"/>`);
+  p.push(`<rect y="${HDR}" width="${LEFT}" height="${TL+CH}" fill="rgba(245,242,237,0.97)"/>`);
+  p.push(`<line x1="0" y1="${HDR+TL}" x2="${SVG_W}" y2="${HDR+TL}" stroke="#c8c4b8" stroke-width="0.7"/>`);
+  p.push(`<line x1="${LEFT}" y1="${HDR}" x2="${LEFT}" y2="${HDR+TL+CH}" stroke="#a8a49c" stroke-width="0.8"/>`);
 
-  // Header label
-  const tlfs = Math.max(5, Math.round(TL*0.32));
-  p.push(`<text x="6" y="${HDR+TL-Math.round(TL*0.18)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${tlfs}" font-weight="700" fill="#999" letter-spacing="0.4">VORGANG</text>`);
-
-  // Grid
-  let grid=`<g clip-path="url(#cc)">`;
-  let prevMo=-1;
+  // ── Grid + timeline labels ──
+  // Timeline always shows: month (top row) + KW/date (bottom row)
+  // Two-row timeline: top = month+year, bottom = KW or day numbers
+  const moY  = HDR + TL * 0.44;   // month label baseline (top row)
+  const kwY  = HDR + TL * 0.88;   // KW/date baseline (bottom row)
+  // Minimum px needed to draw a KW label (~4 chars)
+  const kwMinPx = TFS * 2.0;      // e.g. "KW5" needs ~2×fontsize px
+  const dayMinPx = TFS * 1.1;     // day number "31" needs ~1.1×fs
+  let grid = `<g clip-path="url(#cc)">`;
+  let prevMo = -1;
   for(let d=0;d<totalDays;d++){
-    const cur=new Date(cs); cur.setDate(cur.getDate()+d);
-    const x=LEFT+Math.round(d*PPD), dow=cur.getDay();
-    const is1=cur.getDate()===1, isMon=dow===1;
+    const cur = new Date(cs); cur.setDate(cur.getDate()+d);
+    const x = LEFT + Math.round(d*PPD);
+    const dow = cur.getDay(), is1 = cur.getDate()===1, isMon = dow===1;
+    const iso2=cur.toISOString().split('T')[0];
+    const isExc2=EXCEPTIONS.has(iso2);
     if(dow===0||dow===6) grid+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(100,0,0,0.03)"/>`;
+    else if(isExc2) grid+=`<rect x="${x}" y="${HDR+TL}" width="${Math.ceil(PPD)}" height="${CH}" fill="rgba(255,140,0,0.10)"/>`;
     if(is1){
-      grid+=`<line x1="${x}" y1="${HDR}" x2="${x}" y2="${HDR+BODY}" stroke="#bbb6ac" stroke-width="0.6"/>`;
+      grid+=`<line x1="${x}" y1="${HDR}" x2="${x}" y2="${HDR+TL+CH}" stroke="#bbb6ac" stroke-width="0.6"/>`;
       const mo=cur.getMonth(),yr=cur.getFullYear();
       if(mo!==prevMo){
-        grid+=`<text clip-path="url(#tc)" x="${x+3}" y="${HDR+TL-Math.round(TL*0.18)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${tlfs}" font-weight="700" fill="#666">${MO2[mo]} ${yr}</text>`;
+        grid+=`<text clip-path="url(#tc)" x="${x+2}" y="${moY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS}" font-weight="700" fill="#444">${MO2[mo]} ${yr}</text>`;
         prevMo=mo;
       }
-    } else if(isMon && PPD>=2){
-      grid+=`<line x1="${x}" y1="${HDR+TL}" x2="${x}" y2="${HDR+BODY}" stroke="#ddd8ce" stroke-width="0.35"/>`;
+    } else if(isMon){
+      grid+=`<line x1="${x}" y1="${HDR+TL}" x2="${x}" y2="${HDR+TL+CH}" stroke="#ddd8ce" stroke-width="0.35"/>`;
+    }
+    // Bottom row: KW always on every Monday
+    if(isMon){
+      const kw_=kw(cur);
+      grid+=`<text clip-path="url(#tc)" x="${x+2}" y="${kwY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.85}" fill="#666">KW${kw_}</text>`;
     }
   }
-  // Today line
+  // Today
   const tod=new Date(); tod.setHours(0,0,0,0);
   const tx2=gx(tod);
-  if(tx2>=LEFT&&tx2<=W){
-    grid+=`<line x1="${tx2}" y1="${HDR}" x2="${tx2}" y2="${HDR+BODY}" stroke="${accent}" stroke-width="1.5" opacity="0.5"/>`;
-    grid+=`<text x="${tx2+3}" y="${HDR+TL-Math.round(TL*0.18)}" font-family="Arial Narrow,Arial,sans-serif" font-size="${Math.max(5,Math.round(tlfs*0.85))}" font-weight="700" fill="${accent}">heute</text>`;
+  if(tx2>=LEFT&&tx2<=SVG_W){
+    grid+=`<line x1="${tx2}" y1="${HDR}" x2="${tx2}" y2="${HDR+TL+CH}" stroke="${accent}" stroke-width="1.2" opacity="0.55"/>`;
+    grid+=`<text clip-path="url(#tc)" x="${tx2+2}" y="${tlY}" font-family="Arial Narrow,Arial,sans-serif" font-size="${TFS*0.82}" font-weight="700" fill="${accent}">heute</text>`;
   }
   grid+=`</g>`;
   p.push(grid);
 
-  // Row stripes
+  // ── Row stripes ──
   let rows='';
   T.forEach((_,i)=>{
     const ry=HDR+TL+i*ROW;
-    if(i%2===0) rows+=`<rect y="${ry}" width="${W}" height="${ROW}" fill="rgba(232,228,218,0.4)"/>`;
-    rows+=`<line x1="0" y1="${ry+ROW}" x2="${W}" y2="${ry+ROW}" stroke="#ddd8ce" stroke-width="0.3"/>`;
+    if(i%2===0) rows+=`<rect y="${ry}" width="${SVG_W}" height="${ROW}" fill="rgba(232,228,218,0.35)"/>`;
+    rows+=`<line x1="0" y1="${ry+ROW}" x2="${SVG_W}" y2="${ry+ROW}" stroke="#ddd8ce" stroke-width="0.3"/>`;
   });
   p.push(rows);
 
-  // Task names
-  const nameFs = Math.max(5, Math.min(10, Math.round(ROW*0.58)));
+  // ── Task names ──
   let nms=`<g clip-path="url(#nc)">`;
   T.forEach((t,i)=>{
-    const ry=HDR+TL+i*ROW;
-    const ind=4+t.level*Math.max(6, Math.round(LEFT*0.04));
-    const fs=t.level===0?Math.round(nameFs*1.05):t.level===1?nameFs:Math.round(nameFs*0.92);
-    const fw=t.level<=1?'bold':'normal';
-    const fc=t.level===0?'#1a1a1a':t.level<=2?'#444':'#666';
-    const maxC=Math.floor((LEFT-ind-6)/(fs*0.52));
-    const lbl=t.name.length>maxC?t.name.slice(0,maxC-1)+'…':t.name;
-    nms+=`<text x="${ind}" y="${ry+ROW*0.68}" font-family="Arial Narrow,Arial,sans-serif" font-size="${fs}" font-weight="${fw}" fill="${fc}">${xe(lbl)}</text>`;
+    const ry  = HDR+TL+i*ROW;
+    const ind = 4+t.level*INDENT_STEP;
+    const fs  = t.level===0?NFS:t.level===1?NFS*0.95:NFS*0.88;
+    const fw  = t.level<=1?'bold':'normal';
+    const fc  = t.level===0?'#1a1a1a':t.level<=2?'#444':'#666';
+    const maxC= Math.floor((LEFT-ind-PAD)/(fs*0.52));
+    const lbl = t.name.length>maxC?t.name.slice(0,maxC-1)+'…':t.name;
+    nms+=`<text x="${ind}" y="${ry+ROW*0.70}" font-family="Arial Narrow,Arial,sans-serif" font-size="${fs}" font-weight="${fw}" fill="${fc}">${xe(lbl)}</text>`;
   });
   nms+=`</g>`;
   p.push(nms);
 
-  // Bars
-  const barPad = Math.max(1, Math.round(ROW*0.18));
+  // ── Bars ──
+  const barPad = Math.max(1, ROW*0.15);
   let bars=`<g clip-path="url(#cc)">`;
   T.forEach((t,i)=>{
-    const ry=HDR+TL+i*ROW;
-    const bx=gx(t.start), bx2=gx(t.end)+Math.ceil(PPD), bw=Math.max(bx2-bx,1);
-    const bg=t.color||accent;
+    const ry  = HDR+TL+i*ROW;
+    const bx  = gx(t.start), bx2=gx(t.end)+Math.ceil(PPD), bw=Math.max(bx2-bx,1);
+    const bg  = t.color||accent;
     if(t.isMilestone){
-      const mx2=gx(t.start)+PPD/2, my2=ry+ROW/2, r2=Math.min(ROW*0.38,8);
+      const mx2=gx(t.start)+PPD/2, my2=ry+ROW/2, r2=Math.min(ROW*0.35,6);
       bars+=`<polygon points="${mx2},${my2-r2} ${mx2+r2},${my2} ${mx2},${my2+r2} ${mx2-r2},${my2}" fill="${bg}"/>`;
     } else {
-      const bh=t.isSummary?ROW-barPad*1.5:ROW-barPad*2;
-      const by=ry+(ROW-bh)/2;
-      const rx2=t.isSummary?1:Math.max(1.5,Math.round(bh*0.25));
+      const bh = t.isSummary?ROW-barPad:ROW-barPad*2;
+      const by = ry+(ROW-bh)/2;
+      const rx2= t.isSummary?1:Math.max(1,bh*0.22);
       bars+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${rx2}" fill="${bg}"/>`;
-      if(t.prog>0) bars+=`<rect x="${bx}" y="${by}" width="${Math.max(bw*t.prog/100,0)}" height="${bh}" rx="${rx2}" fill="rgba(0,0,0,0.22)"/>`;
-      // Label
-      if(bw>20){
-        const lfs=Math.max(5,Math.round(bh*0.65));
-        const maxC2=Math.floor((bw-4)/(lfs*0.55));
+      if(t.prog>0) bars+=`<rect x="${bx}" y="${by}" width="${Math.max(bw*t.prog/100,0)}" height="${bh}" rx="${rx2}" fill="rgba(0,0,0,0.2)"/>`;
+      if(bw>16){
+        const lfs=Math.max(4,Math.round(bh*0.62));
+        const maxC2=Math.floor((bw-4)/(lfs*0.52));
         const lbl=t.name.length>maxC2?t.name.slice(0,maxC2-1)+'…':t.name;
         const r2=parseInt(bg.slice(1,3),16),g2=parseInt(bg.slice(3,5),16),b2=parseInt(bg.slice(5,7),16);
         const lc=0.299*r2+0.587*g2+0.114*b2>145?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.9)';
-        bars+=`<text x="${bx+3}" y="${by+bh*0.73}" font-family="Arial Narrow,Arial,sans-serif" font-size="${lfs}" font-weight="700" fill="${lc}">${xe(lbl)}</text>`;
+        bars+=`<text x="${bx+3}" y="${by+bh*0.74}" font-family="Arial Narrow,Arial,sans-serif" font-size="${lfs}" font-weight="700" fill="${lc}">${xe(lbl)}</text>`;
       }
     }
   });
   bars+=`</g>`;
   p.push(bars);
 
-  // Dependencies
+  // ── Dependencies ──
   const im={}; T.forEach((t,k)=>im[t.id]=k);
-  let deps=`<g clip-path="url(#cc)" fill="none" stroke-width="${Math.max(0.5, ROW*0.05)}">`;
+  const sw=Math.max(0.4, ROW*0.05);
+  let deps=`<g clip-path="url(#cc)" fill="none" stroke-width="${sw}">`;
   T.forEach(t=>t.deps.forEach(did=>{
     const src=T.find(x=>x.id===did); if(!src)return;
-    const si=im[src.id],ti=im[t.id];
-    if(si==null||ti==null)return;
+    const si=im[src.id],ti=im[t.id]; if(si==null||ti==null)return;
     const ax1=gx(src.end)+Math.ceil(PPD), ay1=HDR+TL+si*ROW+ROW/2;
     const ax2=gx(t.start),               ay2=HDR+TL+ti*ROW+ROW/2;
     const col=src.color||accent;
     let dp;
     if(depStyle==='ortho'){
-      const gap=Math.max(4,Math.round(PPD*1.5)), mid=(ax1+ax2)/2;
+      const gap=Math.max(3,PPD*1.2), mid=(ax1+ax2)/2;
       if(ax2>ax1+gap*2){dp=`M${ax1},${ay1} H${mid} V${ay2} H${ax2}`;}
       else{const dir=ay2>=ay1?1:-1,hy=Math.max(ay1,ay2)+dir*ROW*0.7;dp=`M${ax1},${ay1} H${ax1+gap} V${hy} H${ax2-gap} V${ay2} H${ax2}`;}
     } else {
-      const cp=Math.max(Math.abs(ax2-ax1)*.42, ROW*0.8);
+      const cp=Math.max(Math.abs(ax2-ax1)*.42, ROW*0.5);
       dp=`M${ax1},${ay1} C${ax1+cp},${ay1} ${ax2-cp},${ay2} ${ax2},${ay2}`;
     }
     deps+=`<path d="${dp}" stroke="${col}" opacity="0.45" marker-end="url(#arr)"/>`;
@@ -1541,12 +1914,13 @@ function buildGanttSVG(pageW, pageH){
   deps+=`</g>`;
   p.push(deps);
 
-  // Footer
-  const ffs = Math.max(5, Math.round(FTR*0.38));
-  p.push(`<rect y="${HDR+BODY}" width="${W}" height="${FTR}" fill="#ece8e0"/>`);
-  p.push(`<line x1="0" y1="${HDR+BODY}" x2="${W}" y2="${HDR+BODY}" stroke="#c8c4b8" stroke-width="0.7"/>`);
-  p.push(`<text x="8" y="${HDR+BODY+FTR*0.65}" font-family="Arial Narrow,Arial,sans-serif" font-size="${ffs}" fill="#888">${xe(buero)}${name?' · '+xe(name):''}</text>`);
-  p.push(`<text x="${W-8}" y="${HDR+BODY+FTR*0.65}" font-family="Arial Narrow,Arial,sans-serif" font-size="${ffs}" fill="#888" text-anchor="end">Exportiert ${xe(nowStr)}</text>`);
+  // ── Footer ──
+  const fy = HDR+TL+CH;
+  const ffs = Math.min(TFS*0.9, 8);
+  p.push(`<rect y="${fy}" width="${SVG_W}" height="${FTR}" fill="#ece8e0"/>`);
+  p.push(`<line x1="0" y1="${fy}" x2="${SVG_W}" y2="${fy}" stroke="#c8c4b8" stroke-width="0.6"/>`);
+  p.push(`<text x="8" y="${fy+FTR*0.68}" font-family="Arial Narrow,Arial,sans-serif" font-size="${ffs}" fill="#888">${xe(buero)}${name?' · '+xe(name):''}</text>`);
+  p.push(`<text x="${SVG_W-8}" y="${fy+FTR*0.68}" font-family="Arial Narrow,Arial,sans-serif" font-size="${ffs}" fill="#888" text-anchor="end">${xe(nowStr)}</text>`);
 
   p.push(`</svg>`);
   return p.join('\n');
@@ -1556,32 +1930,69 @@ function buildGanttSVG(pageW, pageH){
 async function exportPDF(){
   if(!T.length){ showToast('Keine Daten zum Exportieren'); return; }
 
-  // Use current preview format/orientation (default A3 landscape)
   let [pw, ph] = DIN[previewFormat];
   if(previewOrientation==='land'){ [pw, ph] = [ph, pw]; }
 
-  const svgTxt = buildGanttSVG(pw, ph);
+  const svgTxt   = buildGanttSVG(pw, ph);
   const projTitle = document.getElementById('htitle').textContent||'Bauzeitenplan';
-  const fname = projTitle.replace(/[^\wäöüÄÖÜ\s-]/g,'_').trim()
-    + '_' + previewFormat + '_' + (previewOrientation==='land'?'quer':'hoch') + '.svg';
-  const blob  = new Blob([svgTxt],{type:'image/svg+xml;charset=utf-8'});
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const orient   = previewOrientation==='land' ? 'landscape' : 'portrait';
+  const fmtLabel = previewFormat + ' ' + (previewOrientation==='land'?'Querformat':'Hochformat');
+  const fname    = projTitle.replace(/[^\wäöüÄÖÜ\s-]/g,'_').trim()
+                 + '_' + previewFormat + '_' + (previewOrientation==='land'?'quer':'hoch') + '.html';
 
-  if(isIOS && navigator.share){
-    try{
-      const file = new File([blob], fname, {type:'image/svg+xml'});
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:fname});
-        closePreview(); return;
-      }
-    }catch(e){ if(e.name==='AbortError'){ closePreview(); return; } }
+  // Build a minimal print-HTML: inline SVG scales to fill the page exactly
+  const printHTML = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>${projTitle} – ${fmtLabel}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%}
+  .page{
+    width:${pw}mm;height:${ph}mm;
+    display:flex;align-items:stretch;
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download=fname;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
-  showToast('SVG gespeichert – ' + previewFormat + ' ' + (previewOrientation==='land'?'Querformat':'Hochformat'));
+  .page svg{width:100%;height:100%;display:block}
+  @media print{
+    @page{size:${pw}mm ${ph}mm;margin:0}
+    html,body{width:${pw}mm;height:${ph}mm}
+    .page{page-break-after:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="page">${svgTxt}</div>
+<script>
+  window.addEventListener('load',function(){
+    setTimeout(function(){ window.print(); },400);
+  });
+<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([printHTML], {type:'text/html;charset=utf-8'});
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+             || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+  if(isIOS){
+    // iOS: download HTML, open in Safari → Teilen → Drucken → Als PDF
+    const r = new FileReader();
+    r.onload = ev => {
+      const a = document.createElement('a');
+      a.href = ev.target.result;
+      a.download = fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+    r.readAsDataURL(blob);
+    showToast('Öffnen → Teilen → Drucken → Als PDF sichern');
+  } else {
+    // Desktop: open in new tab → print dialog appears automatically
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 10000);
+    showToast('Druckdialog öffnet sich – „Als PDF speichern" wählen');
+  }
   closePreview();
 }
 
@@ -1732,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="preview-info" id="previewInfo"></div>
 
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="big-btn primary" style="flex:1;margin:0" onclick="exportPDF()">⬇ SVG exportieren</button>
+      <button class="big-btn primary" style="flex:1;margin:0" onclick="exportPDF()">🖨 Als PDF drucken / speichern</button>
       <button class="big-btn secondary" style="flex:0 0 auto;margin:0;padding:13px 16px" onclick="closePreview()">✕</button>
     </div>
   </div>
@@ -1774,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="modal-section-title">Büro / Export</div>
       <div class="field-row">
         <label class="field-label" for="sBuero">Büroname</label>
-        <input class="field-input" id="sBuero" type="text" placeholder="desch architekten" oninput="saveSettings()">
+        <input class="field-input" id="sBuero" type="text" placeholder="desch architekten+ingenieure" oninput="saveSettings()">
       </div>
       <div class="field-row">
         <label class="field-label" for="sName">Bearbeiter</label>
