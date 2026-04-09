@@ -148,6 +148,15 @@ header{background:#fff;padding:calc(var(--safe-top) + 12px) 16px 8px;display:fle
   font-weight:700;cursor:pointer;margin-top:6px}
 .e-btn:active{opacity:.8}
 .e-note{font-size:11px;color:var(--ink-3);letter-spacing:.06em}
+.e-recent{margin-top:8px;width:100%;max-width:320px}
+.e-recent-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-3);margin-bottom:6px}
+.e-recent-item{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:var(--card);border-radius:var(--radius-sm);margin-bottom:5px;
+  cursor:pointer;border:1.5px solid transparent;transition:border-color .15s}
+.e-recent-item:hover,.e-recent-item:active{border-color:var(--accent)}
+.e-recent-icon{font-size:18px;flex-shrink:0}
+.e-recent-name{flex:1;font-size:13px;font-weight:600;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.e-recent-meta{font-size:10px;color:var(--ink-3);text-align:right;flex-shrink:0}
 
 /* ── GANTT WRAPPER ── */
 #gwrap{
@@ -552,7 +561,11 @@ body.fs #zbar{ top:0 !important }
   <div class="e-title">Gantt Viewer</div>
   <div class="e-sub">CSV-Datei aus GanttProject öffnen – farbige Balkenpläne mit Abhängigkeiten auf iPhone und iPad.</div>
   <button class="e-btn" onclick="document.getElementById('fileIn').click()">CSV / MPX / GAN öffnen</button>
-  <div class="e-note">GanttProject · .csv Export</div>
+  <div class="e-note">.gan · .mpx · .csv</div>
+  <div class="e-recent" id="eRecent" style="display:none">
+    <div class="e-recent-title">Zuletzt geöffnet</div>
+    <div id="eRecentList"></div>
+  </div>
 </div>
 
 <!-- GANTT -->
@@ -651,6 +664,83 @@ function toggleAllSummaries(){
 }
 
 const ppd=()=>ZPRE[mode][zIdx];
+
+
+// ── RECENT FILES ─────────────────────────────────────
+const RECENT_KEY = 'gantt_recent';
+const RECENT_MAX = 5;
+
+function saveRecent(filename, content){
+  try{
+    let items = getRecent();
+    // Remove duplicate
+    items = items.filter(i=>i.name !== filename);
+    // Add to front
+    items.unshift({ name: filename, content, ts: Date.now() });
+    // Keep max
+    items = items.slice(0, RECENT_MAX);
+    // Try to save – if quota exceeded, remove oldest until it fits
+    while(items.length > 0){
+      try{
+        localStorage.setItem(RECENT_KEY, JSON.stringify(items));
+        break;
+      } catch(e){
+        items.pop(); // remove oldest
+      }
+    }
+  } catch(e){}
+}
+
+function getRecent(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]'); } catch(e){ return []; }
+}
+
+function renderRecent(){
+  const items = getRecent();
+  const wrap = document.getElementById('eRecent');
+  const list = document.getElementById('eRecentList');
+  if(!items.length){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  list.innerHTML = items.map((item,i) => {
+    const ext = item.name.split('.').pop().toLowerCase();
+    const icon = ext==='gan'?'🗂':ext==='mpx'?'📋':'📄';
+    const name = item.name;
+    const age = formatAge(item.ts);
+    return `<div class="e-recent-item" onclick="openRecent(${i})">
+      <span class="e-recent-icon">${icon}</span>
+      <span class="e-recent-name">${esc(name)}</span>
+      <span class="e-recent-meta">${age}</span>
+    </div>`;
+  }).join('');
+}
+
+function openRecent(i){
+  const items = getRecent();
+  const item = items[i]; if(!item) return;
+  const ext = item.name.split('.').pop().toLowerCase();
+  if(ext==='gan') loadGan(item.content, item.name);
+  else if(ext==='mpx'){
+    // MPX content was stored as latin-1 decoded string – re-encode to ArrayBuffer
+    const ab = str2ab(item.content);
+    loadMpx(ab, item.name);
+  } else load(item.content, item.name);
+}
+
+function str2ab(str){
+  const buf = new ArrayBuffer(str.length);
+  const view = new Uint8Array(buf);
+  for(let i=0;i<str.length;i++) view[i]=str.charCodeAt(i)&0xff;
+  return buf;
+}
+
+function formatAge(ts){
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'gerade eben';
+  if(s<3600) return Math.floor(s/60)+'min';
+  if(s<86400) return Math.floor(s/3600)+'h';
+  if(s<86400*7) return Math.floor(s/86400)+'d';
+  return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+}
 
 // ── FILE ─────────────────────────────────────────────
 document.getElementById('fileIn').addEventListener('change',function(e){
@@ -792,6 +882,7 @@ function load(text,filename){
 
     T=raw;
     if(!T.length){showToast('Keine Vorgänge gefunden.');return;}
+    saveRecent(filename, text);
 
     // Update header
     const fname=filename.replace(/\.csv$/i,'');
@@ -951,6 +1042,11 @@ function loadMpx(buffer, filename){
     // Store globally
     T = raw;
     EXCEPTIONS = exceptions; // global calendar exceptions
+    // Save to recent – convert ArrayBuffer back to string for storage
+    try{
+      const dec2 = new TextDecoder('windows-1252');
+      saveRecent(filename, dec2.decode(buffer));
+    } catch(e){}
 
     // Update header
     const fname = filename.replace(/\.mpx$/i,'');
@@ -1118,6 +1214,7 @@ function loadGan(text, filename){
     }
 
     T = raw;
+    saveRecent(filename, text);
 
     // Update header
     const projName = root.getAttribute('name') || filename.replace(/\.gan$/i,'');
