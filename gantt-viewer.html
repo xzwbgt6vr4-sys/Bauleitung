@@ -1354,15 +1354,32 @@ function buildGanttSVG(pageW, pageH){
   const accent = '#A80000';
   const MO2    = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
-  // Layout
+  // Layout – first estimate ROW to get font size, then measure names
   const HDR   = Math.round(H * 0.065);   // header strip height
   const FTR   = Math.round(H * 0.025);   // footer strip height
   const BODY  = H - HDR - FTR;           // chart body height
-  const LEFT  = Math.round(W * 0.22);    // task name column width
   const TL    = Math.round(BODY * 0.08); // timeline header height
   const CH    = BODY - TL;               // chart rows height
-  const CW    = W - LEFT;               // chart columns width
   const ROW   = Math.max(8, Math.floor(CH / Math.max(T.length, 1)));
+
+  // Measure LEFT: fit the longest visible task name + indent
+  // Use a hidden SVG text element for measurement
+  const nameFs0 = Math.max(5, Math.min(10, Math.round(ROW * 0.58)));
+  const AVG_CHAR_W = nameFs0 * 0.52; // Arial Narrow average char width ratio
+  const PAD_RIGHT  = 8;
+  let LEFT = 60; // absolute minimum
+  T.forEach(t => {
+    const indent = 4 + t.level * Math.max(6, Math.round(W * 0.022));
+    const fs = t.level === 0 ? Math.round(nameFs0 * 1.05) : t.level === 1 ? nameFs0 : Math.round(nameFs0 * 0.92);
+    const nameW = t.name.length * fs * 0.52 + indent + PAD_RIGHT;
+    if (nameW > LEFT) LEFT = nameW;
+  });
+  // Add 14px arrow column on left
+  LEFT += 14;
+  // Cap at 35% of total width
+  LEFT = Math.round(Math.min(LEFT, W * 0.35));
+
+  const CW    = W - LEFT;               // chart columns width
 
   const dates = T.flatMap(t=>[t.start,t.end]).filter(Boolean);
   let cs = new Date(Math.min(...dates)), ce = new Date(Math.max(...dates));
