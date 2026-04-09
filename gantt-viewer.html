@@ -535,7 +535,7 @@ body.fs #zbar{ top:0 !important }
     </div>
   </div>
   <button class="hdr-btn" onclick="document.getElementById('fileIn').click()" title="CSV / MPX / GAN öffnen">＋</button>
-  <input type="file" id="fileIn" accept=".csv,.mpx,.gan,text/*" style="display:none">
+  <input type="file" id="fileIn" accept="*" style="display:none">
 </header>
 </div><!-- /sticky-top -->
 
@@ -745,8 +745,13 @@ function formatAge(ts){
 // ── FILE ─────────────────────────────────────────────
 document.getElementById('fileIn').addEventListener('change',function(e){
   const f=e.target.files[0]; if(!f)return;
-  const isMpx=/\.mpx$/i.test(f.name);
-  const isGan=/\.gan$/i.test(f.name);
+  const ext=(f.name.split('.').pop()||'').toLowerCase();
+  const isMpx=ext==='mpx';
+  const isGan=ext==='gan'||ext==='xml';
+  const isCsv=ext==='csv'||ext==='txt';
+  if(!isMpx&&!isGan&&!isCsv){
+    // Accept anyway and try CSV parse as fallback
+  }
   const r=new FileReader();
   r.onload=ev=>{
     if(isMpx) loadMpx(ev.target.result,f.name);
