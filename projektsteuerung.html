@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="desch PS">
+<title>Projektsteuerung - desch architekten</title>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#1a1a1a; --ink-2:#444; --ink-3:#888;
+    --paper:#f5f2ed; --paper-2:#ece8e0; --paper-3:#e0dbd0;
+    --accent:#A80000; --accent-2:#d43333;
+    --green:#2a7a4e; --blue:#1e5a8c; --amber:#b87000;
+    --card:#faf8f4;
+    --shadow:0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+    --radius:14px; --radius-sm:8px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Arial Narrow',Arial,sans-serif;background:#e8e4de;color:var(--ink);min-height:100vh;overflow-x:hidden;}
+
+  /* -- STICKY TOP -- */
+  .sticky-top{position:sticky;top:0;z-index:100;}
+  header{background:#fff;color:var(--ink);padding:calc(var(--safe-top) + 14px) 20px 0;display:flex;align-items:center;justify-content:space-between;}
+  .header-logo-wrap{flex:1;}
+  .header-logo-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+  .pro-badge{font-family:'Permanent Marker','Segoe Script',cursive;font-size:22px;font-weight:900;color:#00A8A8;line-height:1;transform:rotate(-20deg);display:inline-block;margin-left:4px;margin-top:4px;letter-spacing:-0.5px;position:relative;z-index:1;}
+  .header-logo{width:260px;height:32px;flex-shrink:0;}
+  .header-logo svg{display:block;width:100%;height:100%;}
+  .header-sub{font-size:13px;color:var(--ink-3);display:flex;align-items:center;margin-top:2px;padding-left:10px;}
+  .header-sub span:first-child{color:var(--ink-2);font-weight:600;letter-spacing:0.3px;text-transform:uppercase;}
+  .header-sub span:last-child{color:var(--ink-3);font-weight:600;}
+  .header-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;white-space:nowrap;}
+
+  /* -- TABS -- */
+  .tabs{display:flex;background:#fff;padding:0 14px 0;gap:2px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-bottom:1px solid #ddd8d0;box-shadow:0 2px 8px rgba(0,0,0,0.07);white-space:nowrap;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex-shrink:0;padding:10px 14px 11px;font-size:12px;font-weight:500;color:var(--ink-3);border:none;background:transparent;cursor:pointer;font-family:'Arial Narrow',Arial,sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;white-space:nowrap;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+  /* -- MAIN -- */
+  main{padding:16px 16px calc(var(--safe-bottom) + 80px);max-width:760px;margin:0 auto;}
+
+  /* -- SCREENS -- */
+  .screen{display:none;animation:fadeUp 0.2s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* -- KPI STRIP -- */
+  .kpi-strip{display:flex;gap:0;overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--paper-3);}
+  .kpi-strip::-webkit-scrollbar{display:none;}
+  .kpi-item{padding:12px 16px;border-right:1px solid var(--paper-3);min-width:120px;flex-shrink:0;}
+  .kpi-item:last-child{border-right:none;}
+  .kpi-label{font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:3px;}
+  .kpi-value{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:var(--ink);line-height:1;}
+  .kpi-delta{font-size:10px;margin-top:2px;color:var(--ink-3);}
+  .kpi-delta.pos{color:var(--green);} .kpi-delta.neg{color:var(--accent);}
+
+  /* -- CARDS -- */
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;}
+  .card-header{padding:12px 16px;border-bottom:1px solid var(--paper-3);display:flex;align-items:center;justify-content:space-between;background:var(--paper-2);}
+  .card-title{font-family:'Arial Narrow',Arial,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-2);}
+  .card-body{padding:0;}
+
+  /* -- SEC LABEL -- */
+  .sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin:16px 0 8px;}
+  .sec-label:first-child{margin-top:0;}
+
+  /* -- TABLE -- */
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead{background:var(--paper-3);}
+  thead th{padding:7px 11px;text-align:left;font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:700;border-bottom:1px solid var(--paper-3);white-space:nowrap;}
+  thead th.r{text-align:right;}
+  tbody tr{border-bottom:1px solid rgba(0,0,0,0.05);}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:var(--paper-2);}
+  tbody tr.grp-row{background:var(--paper-3);}
+  tbody tr.grp-row td{font-size:9px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);padding:5px 11px;}
+  tbody tr.tot-row{background:var(--paper-3);border-top:2px solid var(--paper-3);}
+  tbody tr.tot-row td{font-weight:700;}
+  td{padding:7px 11px;vertical-align:middle;}
+  td.r{text-align:right;font-variant-numeric:tabular-nums;}
+  td.pos{color:var(--green);} td.neg{color:var(--accent);} td.dim{color:var(--ink-3);}
+
+  /* -- BADGES -- */
+  .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+  .badge-green{background:rgba(42,122,78,0.1);color:var(--green);}
+  .badge-red{background:rgba(168,0,0,0.08);color:var(--accent);}
+  .badge-amber{background:rgba(184,112,0,0.10);color:var(--amber);}
+  .badge-blue{background:rgba(30,90,140,0.10);color:var(--blue);}
+  .badge-gray{background:var(--paper-3);color:var(--ink-3);}
+
+  /* -- PROGRESS -- */
+  .prog-wrap{background:var(--paper-3);height:5px;border-radius:3px;overflow:hidden;min-width:50px;}
+  .prog-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.3s;}
+  .prog-fill.ok{background:var(--green);} .prog-fill.warn{background:var(--amber);} .prog-fill.over{background:var(--accent);}
+
+  /* -- FORM -- */
+  .field{margin-bottom:12px;}
+  .field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-2);display:block;margin-bottom:5px;}
+  input[type=text],input[type=number],input[type=date],input[type=email],textarea,select{width:100%;padding:10px 12px;border:1.5px solid var(--paper-3);border-radius:var(--radius-sm);font-size:14px;font-family:'Arial Narrow',Arial,sans-serif;background:#fff;color:var(--ink);outline:none;-webkit-appearance:none;appearance:none;transition:border-color 0.15s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+  textarea{min-height:70px;resize:vertical;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+
+  /* -- BIG BTN -- */
+  .big-btn{width:100%;padding:14px;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:'Arial Narrow',Arial,sans-serif;border:none;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;}
+  .big-btn.primary{background:var(--accent);color:#fff;}
+  .big-btn.secondary{background:var(--paper-2);color:var(--ink);}
+  .big-btn.success{background:var(--green);color:#fff;}
+  .big-btn:active{transform:scale(0.98);}
+
+  /* -- ADD BTN -- */
+  .add-btn{width:100%;padding:9px;border:2px dashed var(--paper-3);border-radius:var(--radius-sm);background:transparent;color:var(--ink-3);font-size:12px;font-family:'Arial Narrow',Arial,sans-serif;cursor:pointer;margin-bottom:8px;}
+
+  /* -- INLINE ACTION BTN -- */
+  .act-btn{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;padding:2px 5px;line-height:1;}
+  .act-btn:hover{color:var(--accent);}
+  .act-btn.ok{color:var(--green);}
+
+  /* -- BESPRECHUNG CARD -- */
+  .bspr-card{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--paper-3);padding:12px 14px;margin-bottom:10px;}
+  .bspr-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .bspr-title{font-size:13px;font-weight:700;}
+  .bspr-beschl{font-size:12px;background:var(--paper-2);border-radius:4px;padding:8px 10px;line-height:1.6;color:var(--ink-2);}
+
+  /* -- TIMELINE -- */
+  .tl-row{display:flex;align-items:stretch;border-bottom:1px solid var(--paper-3);}
+  .tl-row:last-child{border-bottom:none;}
+  .tl-row:hover{background:var(--paper-2);}
+  .tl-date{width:80px;flex-shrink:0;padding:8px 10px;font-size:10px;color:var(--ink-3);font-weight:600;border-right:1px solid var(--paper-3);display:flex;align-items:center;}
+  .tl-dot-col{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--paper-3);}
+  .tl-dot{width:8px;height:8px;border-radius:50%;border:2px solid currentColor;background:var(--card);}
+  .tl-body{flex:1;padding:8px 12px;}
+  .tl-title{font-size:12px;font-weight:700;}
+  .tl-desc{font-size:11px;color:var(--ink-3);margin-top:1px;}
+  .tl-right{padding:8px 11px;font-size:12px;display:flex;align-items:center;white-space:nowrap;color:var(--ink-2);font-weight:700;flex-shrink:0;}
+
+  /* -- GAUGE -- */
+  .gauge-row{margin-bottom:10px;padding:0 14px;}
+  .gauge-head{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;}
+
+  /* -- BAR CHART -- */
+  .bar-chart{display:flex;gap:6px;align-items:flex-end;padding:14px;}
+  .bar-group{display:flex;flex-direction:column;align-items:center;flex:1;gap:4px;}
+  .bar-stack{display:flex;flex-direction:column;justify-content:flex-end;width:100%;flex:1;gap:1px;}
+  .bar-seg{min-height:2px;position:relative;border-radius:2px 2px 0 0;}
+  .bar-seg:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:3px 8px;font-size:10px;white-space:nowrap;z-index:30;border-radius:4px;pointer-events:none;}
+  .bar-label{font-size:9px;color:var(--ink-3);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:5px 12px;padding:0 14px 12px;}
+  .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink-3);font-weight:600;}
+  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+  /* -- TWO/THREE COL -- */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+  @media(max-width:600px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+  /* -- EMPTY -- */
+  .empty{text-align:center;padding:30px 20px;color:var(--ink-3);}
+  .empty-text{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+
+  /* -- TOAST -- */
+  .toast{position:fixed;bottom:calc(var(--safe-bottom) + 80px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* -- MODAL -- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;padding-bottom:var(--safe-bottom);animation:fadeIn 0.2s ease;}
+  .modal-overlay.hidden{display:none;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-sheet{background:var(--paper);border-radius:20px 20px 0 0;width:100%;padding:20px 16px 24px;animation:slideUp 0.25s ease;max-height:90vh;overflow-y:auto;}
+  @keyframes slideUp{from{transform:translateY(40px)}to{transform:none}}
+  .modal-handle{width:40px;height:4px;background:var(--paper-3);border-radius:2px;margin:-10px auto 16px;}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:14px;font-family:'Arial Narrow',Arial,sans-serif;}
+
+  /* -- CONTACT LINK -- */
+  a.tel-link{color:var(--blue);text-decoration:none;font-weight:600;}
+  a.mail-link{color:var(--blue);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="sticky-top">
+<header>
+  <div class="header-logo-wrap">
+    <div class="header-logo-row">
+      <div class="header-logo"><svg width="100%" height="100%" viewBox="0 0 5438 575" version="1.1" xmlns="http://www.w3.org/2000/svg" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g transform="matrix(4.166667,0,0,4.166667,0,0)"><g transform="matrix(4.171943,0,0,4.171943,0.250145,0)"><g transform="matrix(1,0,0,1,-435.9013,-427.6508)"><path d="M435.901,427.651L512.274,427.651L512.274,460.921L435.901,460.921L435.901,427.651" style="fill:rgb(168,0,0);"/></g><g transform="matrix(1,0,0,1,-435.9013,-381.0785)"><g transform="matrix(21.99062,0,0,21.99062,447.9831,410.78878)"><path d="M0.064,-0.322C0.064,-0.346 0.07,-0.367 0.082,-0.387C0.106,-0.43 0.143,-0.451 0.193,-0.451L0.322,-0.451L0.322,-0.612C0.322,-0.634 0.333,-0.645 0.354,-0.645C0.376,-0.645 0.387,-0.634 0.387,-0.612L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322ZM0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387L0.193,-0.387Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,461.216849,410.78878)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,474.450598,410.78878)"><path d="M0.322,-0.113C0.322,-0.133 0.313,-0.148 0.295,-0.157L0.129,-0.236C0.086,-0.257 0.064,-0.291 0.064,-0.338C0.064,-0.375 0.08,-0.404 0.11,-0.424C0.137,-0.442 0.17,-0.451 0.209,-0.451C0.257,-0.451 0.3,-0.439 0.337,-0.415C0.349,-0.408 0.354,-0.398 0.354,-0.387C0.354,-0.378 0.351,-0.37 0.345,-0.364C0.339,-0.358 0.331,-0.354 0.322,-0.354C0.316,-0.354 0.311,-0.356 0.307,-0.358C0.276,-0.377 0.243,-0.386 0.209,-0.386C0.156,-0.386 0.129,-0.37 0.129,-0.338C0.129,-0.318 0.138,-0.304 0.155,-0.295L0.322,-0.215C0.365,-0.194 0.387,-0.16 0.387,-0.113C0.387,-0.074 0.371,-0.044 0.34,-0.025C0.314,-0.008 0.28,-0 0.238,-0C0.176,-0 0.125,-0.012 0.083,-0.036C0.07,-0.042 0.064,-0.052 0.064,-0.064C0.064,-0.073 0.068,-0.081 0.074,-0.087C0.08,-0.094 0.088,-0.097 0.097,-0.097C0.101,-0.097 0.105,-0.096 0.109,-0.094C0.119,-0.09 0.135,-0.084 0.155,-0.076C0.184,-0.068 0.213,-0.064 0.24,-0.064C0.295,-0.064 0.322,-0.081 0.322,-0.113Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,487.684347,410.78878)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(21.99062,0,0,21.99062,499.500732,410.78878)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill:white;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,522.2775,410.97808)"><path d="M0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129C0.064,-0.152 0.07,-0.174 0.082,-0.194C0.106,-0.236 0.143,-0.258 0.193,-0.258L0.322,-0.258L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387C0.107,-0.387 0.097,-0.397 0.097,-0.419C0.097,-0.44 0.107,-0.451 0.129,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0ZM0.322,-0.193L0.193,-0.193C0.175,-0.193 0.16,-0.187 0.148,-0.175C0.135,-0.162 0.129,-0.147 0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,533.529575,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,543.622843,410.97808)"><path d="M0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.29,-0.064C0.312,-0.064 0.322,-0.054 0.322,-0.032C0.322,-0.011 0.312,-0 0.29,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,553.716111,410.97808)"><path d="M0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.451L0.258,-0.451C0.293,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.36 0.387,-0.325L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,564.968186,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,571.585033,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,581.678301,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,592.930376,410.97808)"><path d="M0.129,-0.209L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.291L0.335,-0.445C0.34,-0.449 0.347,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419C0.387,-0.408 0.382,-0.399 0.374,-0.393L0.249,-0.299L0.383,-0.047C0.386,-0.043 0.387,-0.038 0.387,-0.032C0.387,-0.023 0.384,-0.016 0.377,-0.01C0.371,-0.003 0.363,-0 0.354,-0C0.342,-0 0.332,-0.006 0.326,-0.017L0.197,-0.26L0.129,-0.209Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,604.182451,410.97808)"><path d="M0.129,-0.387L0.097,-0.387C0.075,-0.387 0.064,-0.397 0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.129,-0.451L0.129,-0.612C0.129,-0.634 0.14,-0.645 0.161,-0.645C0.183,-0.645 0.193,-0.634 0.193,-0.612L0.193,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419C0.322,-0.397 0.312,-0.387 0.29,-0.387L0.193,-0.387L0.193,-0.032C0.193,-0.011 0.183,-0 0.161,-0C0.14,-0 0.129,-0.011 0.129,-0.032L0.129,-0.387Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,614.275719,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,625.527794,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,636.779869,410.97808)"><path d="M0.193,-0.193L0.097,-0.193C0.075,-0.193 0.064,-0.204 0.064,-0.226C0.064,-0.247 0.075,-0.258 0.097,-0.258L0.193,-0.258L0.193,-0.354C0.193,-0.376 0.204,-0.387 0.226,-0.387C0.247,-0.387 0.258,-0.376 0.258,-0.354L0.258,-0.258L0.354,-0.258C0.376,-0.258 0.387,-0.247 0.387,-0.226C0.387,-0.204 0.376,-0.193 0.354,-0.193L0.258,-0.193L0.258,-0.097C0.258,-0.075 0.247,-0.064 0.226,-0.064C0.204,-0.064 0.193,-0.075 0.193,-0.097L0.193,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,648.031945,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,654.648791,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,665.900866,410.97808)"><path d="M0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419L0.387,0.064C0.387,0.101 0.374,0.131 0.349,0.156C0.324,0.181 0.294,0.193 0.258,0.193L0.129,0.193C0.107,0.193 0.097,0.183 0.097,0.161C0.097,0.14 0.107,0.129 0.129,0.129L0.258,0.129C0.276,0.129 0.291,0.123 0.303,0.11C0.316,0.098 0.322,0.082 0.322,0.064L0.322,-0L0.193,-0C0.143,-0 0.106,-0.021 0.082,-0.064C0.07,-0.084 0.064,-0.105 0.064,-0.129L0.064,-0.322C0.064,-0.358 0.077,-0.389 0.102,-0.414C0.127,-0.439 0.157,-0.451 0.193,-0.451L0.354,-0.451ZM0.322,-0.387L0.193,-0.387C0.175,-0.387 0.16,-0.38 0.148,-0.368C0.135,-0.355 0.129,-0.34 0.129,-0.322L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.387Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,677.152941,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,688.405016,410.97808)"><path d="M0.064,-0.032L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.258,-0.451C0.294,-0.451 0.324,-0.439 0.349,-0.414C0.374,-0.389 0.387,-0.358 0.387,-0.322L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0C0.333,-0 0.322,-0.011 0.322,-0.032L0.322,-0.322C0.322,-0.34 0.316,-0.356 0.304,-0.368C0.291,-0.381 0.276,-0.387 0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,699.657092,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419ZM0.064,-0.58L0.064,-0.612C0.064,-0.634 0.075,-0.645 0.097,-0.645C0.118,-0.645 0.129,-0.634 0.129,-0.612L0.129,-0.58C0.129,-0.559 0.118,-0.548 0.097,-0.548C0.075,-0.548 0.064,-0.559 0.064,-0.58Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,706.273938,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,717.526013,410.97808)"><path d="M0.387,-0.419L0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451C0.118,-0.451 0.129,-0.44 0.129,-0.419L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.322,-0.064L0.322,-0.419C0.322,-0.44 0.333,-0.451 0.354,-0.451C0.376,-0.451 0.387,-0.44 0.387,-0.419Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,728.778088,410.97808)"><path d="M0.064,-0.419C0.064,-0.44 0.075,-0.451 0.097,-0.451L0.29,-0.451C0.312,-0.451 0.322,-0.44 0.322,-0.419L0.322,-0.354C0.322,-0.333 0.312,-0.322 0.29,-0.322C0.269,-0.322 0.258,-0.333 0.258,-0.354L0.258,-0.387L0.129,-0.387L0.129,-0.032C0.129,-0.011 0.118,-0 0.097,-0C0.075,-0 0.064,-0.011 0.064,-0.032L0.064,-0.419Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g><g transform="matrix(17.97907,0,0,17.97907,738.871356,410.97808)"><path d="M0.226,-0.387C0.199,-0.387 0.176,-0.377 0.157,-0.358C0.138,-0.34 0.129,-0.317 0.129,-0.29L0.129,-0.258L0.322,-0.258L0.322,-0.29C0.322,-0.317 0.313,-0.34 0.294,-0.358C0.275,-0.377 0.252,-0.387 0.226,-0.387ZM0.129,-0.193L0.129,-0.129C0.129,-0.111 0.135,-0.096 0.148,-0.083C0.161,-0.071 0.176,-0.064 0.193,-0.064L0.354,-0.064C0.376,-0.064 0.387,-0.054 0.387,-0.032C0.387,-0.011 0.376,-0 0.354,-0L0.193,-0C0.157,-0 0.127,-0.012 0.102,-0.037C0.077,-0.062 0.064,-0.093 0.064,-0.129L0.064,-0.29C0.064,-0.335 0.08,-0.373 0.112,-0.404C0.143,-0.435 0.181,-0.451 0.226,-0.451C0.271,-0.451 0.309,-0.436 0.34,-0.405C0.371,-0.373 0.387,-0.335 0.387,-0.29L0.387,-0.193L0.129,-0.193Z" style="fill:#1a1a1a;fill-rule:nonzero;"/></g></g></g></g></svg></div>
+      <span class="pro-badge">PS</span>
+    </div>
+    <div class="header-sub">
+      <span>Projektsteuerung</span>
+      <span id="headerSub"></span>
+    </div>
+  </div>
+  <button class="header-btn" onclick="openAddModal()">+</button>
+</header>
+<div class="tabs" id="tabBar"></div>
+</div>
+
+<main id="mainContent"></main>
+<div class="toast" id="toast"></div>
+
+<!-- MODAL CONTAINER -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Neuer Eintrag</div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DESCH PROJEKTSTEUERUNG
+   Exakter Stil: bauleitung / zeiterfassung / gantt
+============================================================ */
+
+var KG={200:'Herrichten',300:'Baukonstruktion',310:'Baugrube',320:'Grundlagen',330:'Aussenwaende',340:'Innenwaende',350:'Decken',360:'Daecher',400:'Techn.Anlagen',410:'Abwasser',420:'Waerme',430:'Lueftung',440:'Elektro',500:'Aussenanlagen',600:'Ausstattung',700:'Baunebenkosten'};
+var LP_NAMES=['Grundlagenermittlung','Vorplanung','Entwurfsplanung','Genehmigungsplanung','Ausführungsplanung','Vorbereitung Vergabe','Mitwirkung Vergabe','Bauueberwachung','Objektbetreuung'];
+var LP_PCT=[2,7,15,3,25,10,4,31,3];
+var TABS=[
+  {id:'dashboard',label:'Dashboard'},
+  {id:'kosten',label:'Kosten'},
+  {id:'termine',label:'Termine'},
+  {id:'nachtraege',label:'Nachträge'},
+  {id:'maengel',label:'Mängel'},
+  {id:'besprechungen',label:'Besprechungen'},
+  {id:'beteiligte',label:'Beteiligte'},
+  {id:'honorar',label:'Honorar'},
+  {id:'kennzahlen',label:'Kennzahlen'},
+  {id:'projekte',label:'Projekte'},
+  {id:'einstellungen',label:'Einstellungen'},
+];
+
+var SAMPLE=[{
+  name:'WH Muehlgasse',nr:'2024-001',bh:'Familie Mayer',start:'2024-01-15',end:'2025-06-30',budget:350250,honorar:42000,
+  kosten_sch:[{kg:'300',bez:'Rohbau gesamt',bem:'BGF 240m2',n:185000},{kg:'400',bez:'TGA gesamt',bem:'',n:72000},{kg:'200',bez:'Erschliessung',bem:'',n:18000},{kg:'500',bez:'Aussenanlagen',bem:'Terrasse+Carport',n:28000},{kg:'700',bez:'Baunebenkosten',bem:'ca.15%',n:47250}],
+  kosten_ber:[{kg:'300',bez:'Rohbau gesamt',bem:'Pos.Ausschreibung',n:192400},{kg:'400',bez:'TGA gesamt',bem:'inkl.Lueftung',n:78500},{kg:'200',bez:'Erschliessung',bem:'',n:21000},{kg:'500',bez:'Aussenanlagen',bem:'',n:31200},{kg:'700',bez:'Baunebenkosten',bem:'',n:48900}],
+  angebote:[{gw:'Rohbau',firma:'Bau GmbH Mayer',dat:'2024-03-10',st:'beauftragt',n:194800},{gw:'Rohbau',firma:'Hochbau Steiner',dat:'2024-03-10',st:'abgelehnt',n:208500},{gw:'Heizung',firma:'Haustechnik Berger',dat:'2024-04-02',st:'beauftragt',n:31400},{gw:'Sanitaer',firma:'Haustechnik Berger',dat:'2024-04-02',st:'beauftragt',n:18900},{gw:'Elektro',firma:'E-Technik Huber',dat:'2024-04-05',st:'beauftragt',n:24800}],
+  rechnungen:[{nr:'RE-001',firma:'Bau GmbH Mayer',gw:'Rohbau',dat:'2024-06-01',faell:'2024-06-22',st:'bezahlt',n:58440},{nr:'RE-002',firma:'Bau GmbH Mayer',gw:'Rohbau',dat:'2024-07-15',faell:'2024-08-05',st:'bezahlt',n:77920},{nr:'RE-003',firma:'Haustechnik Berger',gw:'Heizung',dat:'2024-09-03',faell:'2024-09-24',st:'bezahlt',n:31400},{nr:'RE-004',firma:'Bau GmbH Mayer',gw:'Rohbau',dat:'2024-09-20',faell:'2024-10-11',st:'offen',n:58440},{nr:'RE-005',firma:'E-Technik Huber',gw:'Elektro',dat:'2024-10-10',faell:'2024-10-31',st:'offen',n:24800}],
+  nachtraege:[{gw:'Rohbau',firma:'Bau GmbH Mayer',dat:'2024-07-20',bez:'Zusaetzliche Bodenplatte Garage',urs:'Planungsaenderung',st:'beauftragt',n:8400},{gw:'Elektro',firma:'E-Technik Huber',dat:'2024-09-05',bez:'Zusaetzliche Aussensteckdosen',urs:'Bauherrenwunsch',st:'pruefung',n:1200}],
+  termine:[{lp:1,bez:'Grundlagenermittlung',ss:'2024-01-15',se:'2024-01-31',ie:'2024-01-30',st:'abgeschlossen'},{lp:2,bez:'Vorplanung',ss:'2024-02-01',se:'2024-02-28',ie:'2024-03-05',st:'abgeschlossen'},{lp:3,bez:'Entwurfsplanung',ss:'2024-03-01',se:'2024-04-15',ie:'2024-04-10',st:'abgeschlossen'},{lp:4,bez:'Genehmigungsplanung',ss:'2024-04-16',se:'2024-05-31',ie:'2024-06-20',st:'abgeschlossen'},{lp:5,bez:'Ausführungsplanung',ss:'2024-05-01',se:'2024-07-31',ie:'',st:'laufend'},{lp:8,bez:'Bauueberwachung',ss:'2024-06-01',se:'2025-05-31',ie:'',st:'laufend'}],
+  maengel:[{gw:'Rohbau',firma:'Bau GmbH Mayer',dat:'2024-08-10',bez:'Risse im Estrich EG',schw:'mittel',frist:'2024-09-01',st:'behoben'},{gw:'Heizung',firma:'Haustechnik Berger',dat:'2024-09-15',bez:'Undichte Verbindung Heizkreis Bad OG',schw:'hoch',frist:'2024-09-25',st:'offen'},{gw:'Elektro',firma:'E-Technik Huber',dat:'2024-10-02',bez:'Fehlende Abdeckung Aussensteckdose',schw:'gering',frist:'2024-10-20',st:'offen'}],
+  besprechungen:[{dat:'2024-04-05',titel:'Baubesprechung 01',teiln:'Mayer, Berger, Bauherr',beschl:'Positionierung Heizkoerper gemaess Plan Rev.2. Farbwahl Fassade bis 20.04. durch BH.'},{dat:'2024-06-12',titel:'Baubesprechung 02',teiln:'Mayer, Huber, Berger',beschl:'Rohbau Kellerdecke abgenommen. Elektroleerrohre bis 25.06. einzubringen.'},{dat:'2024-09-18',titel:'Baubesprechung 03',teiln:'Mayer, Berger, Huber, Bauherr',beschl:'Mängel-Protokoll erstellt. Behebung bis 25.09. Abnahme Rohbau fuer 02.10. angesetzt.'}],
+  beteiligte:[{name:'Bau GmbH Mayer',rolle:'Rohbau',kont:'Hans Mayer',tel:'08531 1234',mail:'mayer@baugmbh.de'},{name:'Haustechnik Berger',rolle:'Heizung/Sanitaer',kont:'K. Berger',tel:'08531 5678',mail:'berger@haustechnik.de'},{name:'E-Technik Huber',rolle:'Elektro',kont:'F. Huber',tel:'08531 9012',mail:'huber@etechnik.de'},{name:'Statik Ingenieure',rolle:'Statik',kont:'Dr. Braun',tel:'089 3456',mail:'braun@statik.de'}],
+  honorar_abg:[{lp:1,betrag:840,dat:'2024-02-01',st:'bezahlt'},{lp:2,betrag:2940,dat:'2024-03-15',st:'bezahlt'},{lp:3,betrag:6300,dat:'2024-05-01',st:'bezahlt'},{lp:4,betrag:1260,dat:'2024-07-01',st:'offen'}]
+},{
+  name:'GH Bergstrasse',nr:'2024-002',bh:'Hr. u. Fr. Gruber',start:'2024-03-01',end:'2025-02-28',budget:251000,honorar:28000,
+  kosten_sch:[{kg:'300',bez:'Umbau Bestand',bem:'BGF 180m2',n:145000},{kg:'400',bez:'TGA Erneuerung',bem:'',n:55000},{kg:'700',bez:'Baunebenkosten',bem:'',n:36000}],
+  kosten_ber:[{kg:'300',bez:'Umbau Bestand',bem:'',n:152000},{kg:'400',bez:'TGA Erneuerung',bem:'',n:61000},{kg:'700',bez:'Baunebenkosten',bem:'',n:38000}],
+  angebote:[{gw:'Umbau',firma:'Renovierung Schmidt',dat:'2024-02-14',st:'beauftragt',n:149500}],
+  rechnungen:[{nr:'RE-010',firma:'Renovierung Schmidt',gw:'Umbau',dat:'2024-04-01',faell:'2024-04-22',st:'bezahlt',n:44850},{nr:'RE-011',firma:'Renovierung Schmidt',gw:'Umbau',dat:'2024-05-15',faell:'2024-06-05',st:'offen',n:44850}],
+  nachtraege:[],termine:[{lp:3,bez:'Entwurfsplanung',ss:'2024-03-01',se:'2024-04-30',ie:'2024-05-10',st:'abgeschlossen'},{lp:8,bez:'Bauueberwachung',ss:'2024-05-01',se:'2025-01-31',ie:'',st:'laufend'}],
+  maengel:[{gw:'Umbau',firma:'Renovierung Schmidt',dat:'2024-06-10',bez:'Putz im Bad nicht gemaess Ausschreibung',schw:'mittel',frist:'2024-07-01',st:'behoben'}],
+  besprechungen:[{dat:'2024-05-08',titel:'Baubesprechung 01',teiln:'Schmidt, Bauherr',beschl:'Fliesenwahl BH bis 15.05. Estrich ab 22.05.'}],
+  beteiligte:[{name:'Renovierung Schmidt',rolle:'Umbau',kont:'A. Schmidt',tel:'08541 111',mail:'schmidt@renovierung.de'}],
+  honorar_abg:[{lp:3,betrag:4200,dat:'2024-05-01',st:'bezahlt'}]
+}];
+
+var cp=0;
+var data=JSON.parse(localStorage.getItem('desch_ps_v1')||'null')||SAMPLE;
+var cv='dashboard';
+
+function save(){localStorage.setItem('desch_ps_v1',JSON.stringify(data));}
+function p(){return data[cp];}
+function fmt(n){if(!n&&n!==0)return'-';return n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' EUR';}
+function fmtK(n){if(!n&&n!==0)return'-';if(n>=1000000)return(n/1000000).toLocaleString('de-DE',{maximumFractionDigits:2})+' Mio';if(n>=1000)return(n/1000).toLocaleString('de-DE',{maximumFractionDigits:0})+' T';return n.toLocaleString('de-DE')+' EUR';}
+function br(n){return n*1.19;}
+function sm(arr,f){var s=0;for(var i=0;i<arr.length;i++)s+=(arr[i][f]||0);return s;}
+function pct(a,b){return b?((a-b)/b*100):null;}
+function pS(a,b){var q=pct(a,b);if(q===null)return'-';return(q>0?'+':'')+q.toFixed(1)+'%';}
+function pC(a,b){var q=pct(a,b);if(q===null)return'dim';return q>3?'neg':q<-3?'pos':'dim';}
+function gv(id){var e=document.getElementById(id);return e?e.value:'';}
+function el(id){return document.getElementById(id);}
+function td(t){return new Date().toISOString().slice(0,10);}
+function daysDiff(a,b){return Math.round((new Date(b)-new Date(a))/(86400000));}
+function prC(r){return r>1.05?'over':r>0.88?'warn':'ok';}
+
+/* NAV */
+function buildTabs(){
+  var tb=el('tabBar');tb.innerHTML='';
+  TABS.forEach(function(t){
+    var b=document.createElement('button');b.className='tab'+(t.id===cv?' active':'');
+    b.textContent=t.label;b.onclick=(function(id){return function(){switchTab(id);};})(t.id);
+    tb.appendChild(b);
+  });
+}
+function switchTab(id){cv=id;buildTabs();renderMain();}
+function switchProject(idx){cp=parseInt(idx);el('headerSub').textContent=' - '+p().name;renderKPI();renderMain();}
+
+/* KPI */
+function renderKPI(){
+  var pr=p();
+  var sch=sm(pr.kosten_sch,'n'),ber=sm(pr.kosten_ber,'n');
+  var auftr=pr.angebote.filter(function(a){return a.st==='beauftragt';});
+  var verg=sm(auftr,'n');
+  var rech=sm(pr.rechnungen,'n');
+  var bez=sm(pr.rechnungen.filter(function(r){return r.st==='bezahlt';}),'n');
+  var nt=sm(pr.nachtraege.filter(function(n){return n.st==='beauftragt';}),'n');
+  var mo=pr.maengel.filter(function(m){return m.st==='offen';}).length;
+  var strip=el('kpiStrip')||document.createElement('div');
+  function kpi(l,v,d,dc){return '<div class="kpi-item"><div class="kpi-label">'+l+'</div><div class="kpi-value">'+v+'</div>'+(d?'<div class="kpi-delta '+(dc||'')+'">'+d+'</div>':'')+'</div>';}
+  strip.innerHTML=
+    kpi('Kostenschaetzung',fmtK(sch),'LP 1-2 DIN 276','')+
+    kpi('Kostenberechnung',ber?fmtK(ber):'-',ber?pS(ber,sch)+' gg.Sch.':'',(ber&&sch)?pC(ber,sch):'')+
+    kpi('Vergabe',verg?fmtK(verg):'-',verg?pS(verg,ber||sch)+' gg.Ber.':'',(verg&&ber)?pC(verg,ber):'')+
+    kpi('Rechnungen',rech?fmtK(rech):'-',bez&&rech?Math.round(bez/rech*100)+'% bez.':'')+
+    kpi('Nachträge',nt?fmtK(nt):'-',pr.nachtraege.length+' gesamt','')+
+    kpi('Off. Mängel',mo,mo>0?'In Bearbeitung':'Alle behoben',mo>0?'neg':'pos');
+}
+
+/* MAIN RENDER */
+function renderMain(){
+  var mc=el('mainContent');mc.innerHTML='';
+  if(cv==='dashboard')   renderDashboard(mc);
+  else if(cv==='kosten') renderKosten(mc);
+  else if(cv==='termine')renderTermine(mc);
+  else if(cv==='nachtraege')renderNachträge(mc);
+  else if(cv==='maengel')renderMängel(mc);
+  else if(cv==='besprechungen')renderBesprechungen(mc);
+  else if(cv==='beteiligte')renderBeteiligte(mc);
+  else if(cv==='honorar')renderHonorar(mc);
+  else if(cv==='kennzahlen')renderKennzahlen(mc);
+  else if(cv==='projekte')renderProjekte(mc);
+  else if(cv==='einstellungen')renderEinstellungen(mc);
+}
+
+/* -- HELPERS -- */
+function secLabel(mc,txt){var d=document.createElement('p');d.className='sec-label';d.textContent=txt;mc.appendChild(d);}
+function addBtn(mc,lbl,fn){var b=document.createElement('button');b.className='big-btn secondary';b.style.marginTop='4px';b.textContent=lbl;b.onclick=fn;mc.appendChild(b);}
+function card(mc,titleTxt,btnLbl,btnFn){
+  var c=document.createElement('div');c.className='card';
+  if(titleTxt||btnLbl){
+    var h=document.createElement('div');h.className='card-header';
+    h.innerHTML='<span class="card-title">'+(titleTxt||'')+'</span>';
+    if(btnLbl){var b=document.createElement('button');b.className='header-btn';b.style.cssText='font-size:11px;padding:5px 10px;';b.textContent=btnLbl;b.onclick=btnFn;h.appendChild(b);}
+    c.appendChild(h);
+  }
+  mc.appendChild(c);return c;
+}
+function tbl(card,heads,rows){
+  var w=document.createElement('div');w.className='tbl-wrap';
+  var t=document.createElement('table');
+  var th=document.createElement('thead');var tr=document.createElement('tr');
+  heads.forEach(function(h){var td=document.createElement('th');td.innerHTML=h.l;if(h.r)td.className='r';if(h.w)td.style.width=h.w;tr.appendChild(td);});
+  th.appendChild(tr);t.appendChild(th);
+  var tb=document.createElement('tbody');rows.forEach(function(r){tb.appendChild(r);});
+  t.appendChild(tb);w.appendChild(t);card.appendChild(w);return tb;
+}
+function mkTr(cells,cls){
+  var tr=document.createElement('tr');if(cls)tr.className=cls;
+  cells.forEach(function(c){var td=document.createElement('td');td.innerHTML=c.v||'';if(c.cls)td.className=c.cls;if(c.st)td.style.cssText=c.st;tr.appendChild(td);});return tr;}
+function badge(txt,cls){return '<span class="badge '+cls+'">'+txt+'</span>';}
+function tlRow(dat,color,title,desc,right,c){
+  var r=document.createElement('div');r.className='tl-row';
+  r.innerHTML='<div class="tl-date">'+dat+'</div><div class="tl-dot-col"><div class="tl-dot" style="color:'+color+'"></div></div><div class="tl-body"><div class="tl-title">'+title+'</div><div class="tl-desc">'+desc+'</div></div><div class="tl-right">'+right+'</div>';
+  c.appendChild(r);}
+function gwToKG(gw){var g=gw.toLowerCase();return g.indexOf('rohbau')>=0||g.indexOf('umbau')>=0?'300':g.indexOf('heizung')>=0||g.indexOf('sanitaer')>=0||g.indexOf('elektro')>=0?'400':g.indexOf('aussen')>=0?'500':'300';}
+function progRow(wrap,lbl,val,base,color){
+  var ratio=base?val/base:0;
+  var row=document.createElement('div');row.className='gauge-row';
+  row.innerHTML='<div class="gauge-head"><span>'+lbl+'</span><span>'+fmtK(val)+'</span></div><div class="prog-wrap"><div class="prog-fill '+prC(ratio)+'" style="width:'+Math.min(100,ratio*100)+'%;background:'+color+'"></div></div>';
+  wrap.appendChild(row);}
+
+/* ==========================================
+   DASHBOARD
+========================================== */
+function renderDashboard(mc){
+  var pr=p();
+  var sch=sm(pr.kosten_sch,'n'),ber=sm(pr.kosten_ber,'n');
+  var auftr=pr.angebote.filter(function(a){return a.st==='beauftragt';});
+  var verg=sm(auftr,'n'),rech=sm(pr.rechnungen,'n');
+  var bez=sm(pr.rechnungen.filter(function(r){return r.st==='bezahlt';}),'n');
+  var nt=sm(pr.nachtraege.filter(function(n){return n.st==='beauftragt';}),'n');
+
+  // Chart row
+  var twoCol=document.createElement('div');twoCol.className='two-col';mc.appendChild(twoCol);
+
+  // Bar chart
+  var cc=card(twoCol,'Kostenentwicklung');
+  var bc=document.createElement('div');bc.className='bar-chart';bc.style.height='90px';
+  var vals=[['Schaetz.',sch,'#b8d0e8'],['Berechn.',ber,'#5b8ab5'],['Vergabe',verg,'#2a7a4e'],['Rechnung',rech,'#A80000']];
+  var maxV=Math.max.apply(null,vals.map(function(v){return v[1]||0;}))||1;
+  vals.forEach(function(item){
+    var bg=document.createElement('div');bg.className='bar-group';
+    var st=document.createElement('div');st.className='bar-stack';
+    var s=document.createElement('div');s.className='bar-seg';s.style.background=item[2];s.style.flex=(item[1]||0)/maxV;s.setAttribute('data-tip',item[0]+': '+fmt(item[1]));
+    st.appendChild(s);var lbl=document.createElement('div');lbl.className='bar-label';lbl.textContent=item[0];
+    bg.appendChild(st);bg.appendChild(lbl);bc.appendChild(bg);});
+  cc.appendChild(bc);
+  var leg=document.createElement('div');leg.className='chart-legend';
+  [['#b8d0e8','Schaetzung'],['#5b8ab5','Berechnung'],['#2a7a4e','Vergabe'],['#A80000','Rechnung']].forEach(function(l){
+    leg.innerHTML+='<div class="legend-item"><div class="legend-dot" style="background:'+l[0]+'"></div>'+l[1]+'</div>';});
+  cc.appendChild(leg);
+
+  // Gauge
+  var gc=card(twoCol,'Budget-Auslastung');
+  var base=ber||sch||1;
+  [['Berechnung',ber,'#5b8ab5'],['Vergabe+NT',verg+nt,'#2a7a4e'],['Rechnungen',rech,'#A80000'],['Bezahlt',bez,'#4caf7d']].forEach(function(g){if(g[1])progRow(gc,g[0],g[1],base,g[2]);});
+
+  // LP status
+  secLabel(mc,'Leistungsphasen');
+  var lpCard=card(mc);var lpBody=document.createElement('div');lpBody.style.padding='12px 16px';
+  pr.termine.forEach(function(t){
+    var cls=t.st==='abgeschlossen'?'badge-green':t.st==='laufend'?'badge-amber':'badge-gray';
+    var row=document.createElement('div');row.style.cssText='margin-bottom:10px;';
+    var verz='';if(t.se&&t.ie){var d=daysDiff(t.se,t.ie);verz=d>0?' <span style="color:var(--accent);font-size:10px;">+'+d+'d Verzoegerung</span>':'';}
+    row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:13px;font-weight:700;">LP '+t.lp+' - '+t.bez+'</span><span class="badge '+cls+'">'+t.st+'</span></div><div style="font-size:11px;color:var(--ink-3);">Soll: '+t.ss+' bis '+t.se+(t.ie?' | Ist: '+t.ie:'')+verz+'</div>';
+    lpBody.appendChild(row);});
+  if(!pr.termine.length)lpBody.innerHTML='<div class="empty"><div class="empty-text">Noch keine Termine</div></div>';
+  lpCard.appendChild(lpBody);
+
+  // Recent
+  secLabel(mc,'Letzte Aktivitaeten');
+  var actCard=card(mc);var events=[];
+  pr.rechnungen.forEach(function(r){events.push({d:r.dat,c:r.st==='bezahlt'?'#2a7a4e':'#A80000',t:r.nr+' - '+r.firma,s:fmt(r.n)+' / '+r.st,r:badge(r.st==='bezahlt'?'Bezahlt':r.st==='offen'?'Offen':'Teil','badge-'+(r.st==='bezahlt'?'green':r.st==='offen'?'red':'amber'))});});
+  pr.besprechungen.forEach(function(b){events.push({d:b.dat,c:'#1e5a8c',t:b.titel,s:b.teiln,r:badge('Besprechung','badge-blue')});});
+  pr.maengel.filter(function(m){return m.st==='offen';}).forEach(function(m){events.push({d:m.dat,c:'#A80000',t:'Mangel: '+m.gw,s:m.bez,r:badge('Offen','badge-red')});});
+  events.sort(function(a,b){return b.d>a.d?1:-1;}).slice(0,8).forEach(function(ev){tlRow(ev.d,ev.c,ev.t,ev.s,ev.r,actCard);});
+  if(!events.length)actCard.innerHTML='<div class="empty"><div class="empty-text">Noch keine Aktivitaeten</div></div>';
+}
+
+/* ==========================================
+   KOSTEN
+========================================== */
+function renderKosten(mc){
+  var pr=p();
+  // Vergleichstabelle
+  secLabel(mc,'Kostenvergleich DIN 276');
+  var cmp=card(mc);
+  var kgs={};
+  function addK(arr,f){arr.forEach(function(it){if(!kgs[it.kg])kgs[it.kg]={s:0,b:0,v:0,nt:0,r:0};kgs[it.kg][f]+=it.n||0;});}
+  addK(pr.kosten_sch,'s');addK(pr.kosten_ber,'b');
+  pr.angebote.filter(function(a){return a.st==='beauftragt';}).forEach(function(a){var kg=gwToKG(a.gw);if(!kgs[kg])kgs[kg]={s:0,b:0,v:0,nt:0,r:0};kgs[kg].v+=a.n;});
+  pr.nachtraege.filter(function(n){return n.st==='beauftragt';}).forEach(function(n){var kg=gwToKG(n.gw);if(!kgs[kg])kgs[kg]={s:0,b:0,v:0,nt:0,r:0};kgs[kg].nt+=n.n;});
+  pr.rechnungen.forEach(function(r){var kg=gwToKG(r.gw);if(!kgs[kg])kgs[kg]={s:0,b:0,v:0,nt:0,r:0};kgs[kg].r+=r.n;});
+  var tot={s:0,b:0,v:0,nt:0,r:0};var rows=[];
+  Object.keys(kgs).sort().forEach(function(kg){var v=kgs[kg];Object.keys(tot).forEach(function(k){tot[k]+=v[k];});
+    var base=v.b||v.s;var curr=v.r||v.v||v.b||v.s;var rat=base?curr/base:0;
+    rows.push(mkTr([{v:'<strong>'+kg+'</strong>'},{v:KG[kg]||'-'},{v:v.s?fmt(v.s):'-',cls:'r'},{v:v.b?fmt(v.b):'-',cls:'r'},{v:v.v?fmt(v.v):'-',cls:'r'},{v:v.nt?badge('+'+fmt(v.nt),'badge-amber'):'-',cls:'r'},{v:v.r?fmt(v.r):'-',cls:'r'},{v:'<span class="'+pC(curr,base)+'">'+pS(curr,base)+'</span>',cls:'r'},{v:'<div class="prog-wrap"><div class="prog-fill '+prC(rat)+'" style="width:'+Math.min(100,rat*100)+'%"></div></div>'}]));});
+  var tBase=tot.b||tot.s;var tCurr=tot.r||tot.v||tot.b;
+  rows.push(mkTr([{v:'<strong>GESAMT</strong>'},{v:''},{v:'<strong>'+fmt(tot.s)+'</strong>',cls:'r'},{v:'<strong>'+fmt(tot.b)+'</strong>',cls:'r'},{v:'<strong>'+fmt(tot.v)+'</strong>',cls:'r'},{v:tot.nt?'<strong>+'+fmt(tot.nt)+'</strong>':'-',cls:'r'},{v:'<strong>'+fmt(tot.r)+'</strong>',cls:'r'},{v:'<strong><span class="'+pC(tCurr,tBase)+'">'+pS(tCurr,tBase)+'</span></strong>',cls:'r'},{v:''}],'tot-row'));
+  tbl(cmp,[{l:'KGR',w:'48px'},{l:'Bezeichnung'},{l:'Schaetzung',r:true,w:'100px'},{l:'Berechnung',r:true,w:'100px'},{l:'Vergabe',r:true,w:'100px'},{l:'Nachträge',r:true,w:'100px'},{l:'Rechnung',r:true,w:'100px'},{l:'Abw.%',r:true,w:'60px'},{l:'Stand',w:'70px'}],rows);
+
+  // Angebote
+  secLabel(mc,'Angebote / Bietervergleich');
+  var ac=card(mc,null,'+ Angebot',function(){openModal('angebot');});
+  var gwMap={};pr.angebote.forEach(function(a){if(!gwMap[a.gw])gwMap[a.gw]=[];gwMap[a.gw].push(a);});
+  var aRows=[];
+  Object.keys(gwMap).forEach(function(gw){
+    aRows.push(mkTr([{v:gw}],'grp-row'));
+    var items=gwMap[gw].slice().sort(function(a,b){return a.n-b.n;});var minN=items[0].n;
+    items.forEach(function(a){var ri=pr.angebote.indexOf(a);
+      var sb=a.st==='beauftragt'?badge('Beauftragt','badge-green'):a.st==='abgelehnt'?badge('Abgelehnt','badge-gray'):badge('Prüfung','badge-amber');
+      aRows.push(mkTr([{v:gw},{v:(a.n===minN?'<strong>':'')+a.firma+(a.n===minN?'</strong>':'')},{v:a.dat||'-',cls:'dim'},{v:sb},{v:fmt(a.n),cls:'r'},{v:fmt(br(a.n)),cls:'r dim'},{v:a.n>minN?'<span class="neg">+'+fmt(a.n-minN)+'</span>':'-',cls:'r'},{v:'<button class="act-btn" onclick="del(\'angebote\','+ri+')">&#215;</button>',st:'text-align:right'}]));});});
+  if(!aRows.length)aRows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Angebote</div></div>'}]));
+  tbl(ac,[{l:'Gewerk'},{l:'Firma'},{l:'Datum',w:'85px'},{l:'Status',w:'95px'},{l:'Netto',r:true,w:'105px'},{l:'Brutto',r:true,w:'100px'},{l:'vs.Min.',r:true,w:'100px'},{l:'',w:'30px'}],aRows);
+
+  // Rechnungen
+  secLabel(mc,'Rechnungen');
+  var rc=card(mc,null,'+ Rechnung',function(){openModal('rechnung');});
+  var rRows=[];var rTot=0,rBez=0;var tod=new Date().toISOString().slice(0,10);
+  pr.rechnungen.forEach(function(r,i){rTot+=r.n;if(r.st==='bezahlt')rBez+=r.n;
+    var ov=r.st!=='bezahlt'&&r.faell<tod;
+    var sb=r.st==='bezahlt'?badge('Bezahlt','badge-green'):r.st==='offen'?badge('Offen','badge-red'):badge('Teilbez.','badge-amber');
+    var tr=mkTr([{v:'<strong>'+r.nr+'</strong>'},{v:r.firma},{v:r.dat,cls:'dim'},{v:'<span class="'+(ov?'neg':'dim')+'">'+r.faell+(ov?' !':'')+'</span>'},{v:sb},{v:fmt(r.n),cls:'r'},{v:'<div style="display:flex;gap:4px;justify-content:flex-end;">'+(r.st!=='bezahlt'?'<button class="act-btn ok" onclick="markBez('+i+')">&#10003;</button>':'')+'<button class="act-btn" onclick="del(\'rechnungen\','+i+')">&#215;</button></div>',st:'text-align:right;'}]);
+    if(ov)tr.style.background='rgba(168,0,0,0.04)';rRows.push(tr);});
+  if(!rRows.length)rRows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Rechnungen</div></div>'}]));
+  else rRows.push(mkTr([{v:'<strong>GESAMT</strong>'},{v:''},{v:''},{v:''},{v:''},{v:'<strong>'+fmt(rTot)+'</strong>',cls:'r'},{v:'<span style="font-size:10px;color:var(--ink-3)">Bez.: '+fmt(rBez)+'</span>',st:'text-align:right'}],'tot-row'));
+  tbl(rc,[{l:'Re-Nr.',w:'75px'},{l:'Firma'},{l:'Datum',w:'85px'},{l:'Fälligkeit',w:'95px'},{l:'Status',w:'90px'},{l:'Netto',r:true,w:'105px'},{l:'',w:'70px'}],rRows);
+}
+
+/* ==========================================
+   TERMINE
+========================================== */
+function renderTermine(mc){
+  var pr=p();secLabel(mc,'Leistungsphasen Soll/Ist');
+  var tc=card(mc,null,'+ Termin',function(){openModal('termin');});var rows=[];
+  pr.termine.forEach(function(t,i){
+    var cls=t.st==='abgeschlossen'?'badge-green':t.st==='laufend'?'badge-amber':'badge-gray';
+    var verz='';
+    if(t.se&&t.ie){var d=daysDiff(t.se,t.ie);verz=d>0?'<span class="neg">+'+d+'d</span>':d<0?'<span class="pos">'+d+'d</span>':'-';}
+    else if(t.se&&!t.ie&&t.st==='laufend'){var d2=daysDiff(t.se,new Date().toISOString().slice(0,10));if(d2>0)verz='<span class="neg">'+d2+'d ueber</span>';}
+    rows.push(mkTr([{v:'<strong>LP '+t.lp+'</strong>'},{v:t.bez},{v:t.ss||'-',cls:'dim'},{v:t.se||'-',cls:'dim'},{v:t.ie||'-'},{v:verz||'-',cls:'r'},{v:badge(t.st,cls)},{v:'<button class="act-btn" onclick="del(\'termine\','+i+')">&#215;</button>',st:'text-align:right'}]));});
+  if(!rows.length)rows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Termine</div></div>'}]));
+  tbl(tc,[{l:'LP',w:'40px'},{l:'Bezeichnung'},{l:'Soll-Start',w:'90px'},{l:'Soll-Ende',w:'90px'},{l:'Ist-Ende',w:'90px'},{l:'Verz.',r:true,w:'80px'},{l:'Status',w:'105px'},{l:'',w:'30px'}],rows);
+}
+
+/* ==========================================
+   NACHTRAEGE
+========================================== */
+function renderNachträge(mc){
+  var pr=p();
+  var auftr=pr.angebote.filter(function(a){return a.st==='beauftragt';});
+  var verg=sm(auftr,'n');var ntAuftr=pr.nachtraege.filter(function(n){return n.st==='beauftragt';});var ntSum=sm(ntAuftr,'n');
+  var twoCol=document.createElement('div');twoCol.className='two-col';mc.appendChild(twoCol);
+  [{l:'Urspr. Auftragssumme',v:fmt(verg),d:auftr.length+' beauftragte Gewerke'},{l:'Nachträge beauftragt',v:fmt(ntSum),d:(verg?(ntSum/verg*100).toFixed(1):'0')+'% der Auftragssumme'}].forEach(function(item){
+    var c=document.createElement('div');c.className='card';c.style.padding='14px 16px';
+    c.innerHTML='<div class="kpi-label">'+item.l+'</div><div class="kpi-value">'+item.v+'</div><div class="kpi-delta">'+item.d+'</div>';twoCol.appendChild(c);});
+  secLabel(mc,'Nachtragsmanagement');
+  var nc=card(mc,null,'+ Nachtrag',function(){openModal('nachtrag');});var rows=[];
+  pr.nachtraege.forEach(function(n,i){
+    var sb=n.st==='beauftragt'?badge('Beauftragt','badge-green'):n.st==='abgelehnt'?badge('Abgelehnt','badge-gray'):badge('Prüfung','badge-amber');
+    var ub=n.urs==='Planungsaenderung'?badge('Planung','badge-blue'):n.urs==='Bauherrenwunsch'?badge('BH-Wunsch','badge-amber'):badge(n.urs,'badge-gray');
+    rows.push(mkTr([{v:n.gw},{v:n.firma,cls:'dim'},{v:n.dat||'-',cls:'dim'},{v:n.bez},{v:ub},{v:sb},{v:'<span class="'+(n.st==='beauftragt'?'neg':'dim')+'">'+fmt(n.n)+'</span>',cls:'r'},{v:'<button class="act-btn" onclick="del(\'nachtraege\','+i+')">&#215;</button>',st:'text-align:right'}]));});
+  if(!rows.length)rows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Nachträge</div></div>'}]));
+  else rows.push(mkTr([{v:'<strong>GESAMT beauftragt</strong>'},{v:''},{v:''},{v:''},{v:''},{v:''},{v:'<strong class="neg">'+fmt(ntSum)+'</strong>',cls:'r'},{v:''}],'tot-row'));
+  tbl(nc,[{l:'Gewerk'},{l:'Firma'},{l:'Datum',w:'85px'},{l:'Beschreibung'},{l:'Ursache',w:'95px'},{l:'Status',w:'95px'},{l:'Betrag',r:true,w:'105px'},{l:'',w:'30px'}],rows);
+}
+
+/* ==========================================
+   MAENGEL
+========================================== */
+function renderMängel(mc){
+  var pr=p();secLabel(mc,'Mängelliste');
+  var mgc=card(mc,null,'+ Mangel',function(){openModal('mangel');});var rows=[];
+  var tod=new Date().toISOString().slice(0,10);
+  pr.maengel.slice().sort(function(a,b){return a.st==='offen'&&b.st!=='offen'?-1:1;}).forEach(function(m){
+    var i=pr.maengel.indexOf(m);
+    var sb=m.st==='behoben'?badge('Behoben','badge-green'):badge('Offen','badge-red');
+    var schw=m.schw==='hoch'?badge('Hoch','badge-red'):m.schw==='mittel'?badge('Mittel','badge-amber'):badge('Gering','badge-gray');
+    var ov=m.st==='offen'&&m.frist<tod;
+    var tr=mkTr([{v:m.gw},{v:m.firma,cls:'dim'},{v:m.dat,cls:'dim'},{v:m.bez},{v:schw},{v:'<span class="'+(ov?'neg':'dim')+'">'+m.frist+(ov?' !':'')+'</span>'},{v:sb},{v:'<div style="display:flex;gap:3px;justify-content:flex-end;">'+(m.st==='offen'?'<button class="act-btn ok" onclick="markMangel('+i+')">&#10003;</button>':'')+'<button class="act-btn" onclick="del(\'maengel\','+i+')">&#215;</button></div>',st:'text-align:right;white-space:nowrap;'}]);
+    if(ov)tr.style.background='rgba(168,0,0,0.04)';rows.push(tr);});
+  if(!rows.length)rows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Mängel</div></div>'}]));
+  tbl(mgc,[{l:'Gewerk'},{l:'Firma'},{l:'Datum',w:'85px'},{l:'Beschreibung'},{l:'Schwere',w:'75px'},{l:'Frist',w:'90px'},{l:'Status',w:'85px'},{l:'',w:'65px'}],rows);
+
+  secLabel(mc,'Gewährleistungsfristen (5 Jahre ab Beauftragung)');
+  var gwc=card(mc);var rows2=[];
+  var gewerke={};
+  pr.angebote.filter(function(a){return a.st==='beauftragt';}).forEach(function(a){gewerke[a.gw]={firma:a.firma,dat:a.dat};});
+  Object.keys(gewerke).forEach(function(gw){
+    var g=gewerke[gw];var ablauf='-';var rest='-';var rCls='';
+    if(g.dat){var ab=new Date(g.dat);ab.setFullYear(ab.getFullYear()+5);ablauf=ab.toISOString().slice(0,10);var r=daysDiff(tod,ablauf);rest=r>0?r+' Tage':'<span class="neg">Abgelaufen</span>';rCls=r<180?'neg':r<365?'amber':'';}
+    var mo=pr.maengel.filter(function(m){return m.gw===gw&&m.st==='offen';}).length;
+    rows2.push(mkTr([{v:'<strong>'+gw+'</strong>'},{v:g.firma,cls:'dim'},{v:g.dat,cls:'dim'},{v:ablauf},{v:'<span class="'+rCls+'">'+rest+'</span>',cls:'r'},{v:mo>0?badge(mo+' offen','badge-red'):badge('Keine','badge-green')}]));});
+  if(!rows2.length)rows2.push(mkTr([{v:'<div class="empty"><div class="empty-text">Keine Auftraege vorhanden</div></div>'}]));
+  tbl(gwc,[{l:'Gewerk'},{l:'Firma'},{l:'Beauftragung',w:'95px'},{l:'GW-Ablauf',w:'90px'},{l:'Restlaufzeit',r:true,w:'105px'},{l:'Mängel offen',w:'110px'}],rows2);
+}
+
+/* ==========================================
+   BESPRECHUNGEN
+========================================== */
+function renderBesprechungen(mc){
+  var pr=p();secLabel(mc,'Baubesprechungen / Protokolle');
+  var addB=document.createElement('button');addB.className='header-btn';addB.style.cssText='margin-bottom:10px;font-size:11px;padding:6px 12px;';addB.textContent='+ Besprechung';addB.onclick=function(){openModal('besprechung');};mc.appendChild(addB);
+  pr.besprechungen.slice().sort(function(a,b){return b.dat>a.dat?1:-1;}).forEach(function(b,i){
+    var bc=document.createElement('div');bc.className='bspr-card';
+    var ri=pr.besprechungen.indexOf(b);
+    bc.innerHTML='<div class="bspr-head"><div class="bspr-title">'+b.titel+'</div><div style="display:flex;align-items:center;gap:6px;">'+badge(b.dat,'badge-blue')+'<button class="act-btn" onclick="del(\'besprechungen\','+ri+')">&#215;</button></div></div><div style="font-size:11px;color:var(--ink-3);margin-bottom:8px;">Teilnehmer: '+b.teiln+'</div><div class="bspr-beschl">'+b.beschl+'</div>';
+    mc.appendChild(bc);});
+  if(!pr.besprechungen.length){var e=document.createElement('div');e.className='empty';e.innerHTML='<div class="empty-text">Noch keine Besprechungen</div>';mc.appendChild(e);}
+}
+
+/* ==========================================
+   BETEILIGTE
+========================================== */
+function renderBeteiligte(mc){
+  var pr=p();secLabel(mc,'Projektbeteiligte');
+  var bc=card(mc,null,'+ Beteiligter',function(){openModal('beteiligter');});var rows=[];
+  pr.beteiligte.forEach(function(b,i){
+    rows.push(mkTr([{v:'<strong>'+b.name+'</strong>'},{v:badge(b.rolle,'badge-blue')},{v:b.kont},{v:'<a class="tel-link" href="tel:'+b.tel+'">'+b.tel+'</a>',cls:'dim'},{v:'<a class="mail-link" href="mailto:'+b.mail+'">'+b.mail+'</a>',cls:'dim'},{v:'<button class="act-btn" onclick="del(\'beteiligte\','+i+')">&#215;</button>',st:'text-align:right'}]));});
+  if(!rows.length)rows.push(mkTr([{v:'<div class="empty"><div class="empty-text">Noch keine Beteiligten</div></div>'}]));
+  tbl(bc,[{l:'Name'},{l:'Rolle',w:'120px'},{l:'Kontakt',w:'110px'},{l:'Telefon',w:'110px'},{l:'E-Mail'},{l:'',w:'30px'}],rows);
+}
+
+/* ==========================================
+   HONORAR
+========================================== */
+function renderHonorar(mc){
+  var pr=p();var abg=sm(pr.honorar_abg,'betrag');
+  var threeCol=document.createElement('div');threeCol.className='three-col';mc.appendChild(threeCol);
+  [{l:'Vereinbartes Honorar',v:fmt(pr.honorar),d:''},{l:'Abgerechnet',v:fmt(abg),d:(pr.honorar?(abg/pr.honorar*100).toFixed(1):0)+'% erbracht'},{l:'Noch offen',v:fmt(pr.honorar-abg),d:''}].forEach(function(item){
+    var c=document.createElement('div');c.className='card';c.style.padding='14px 16px';
+    c.innerHTML='<div class="kpi-label">'+item.l+'</div><div class="kpi-value">'+item.v+'</div>'+(item.d?'<div class="kpi-delta">'+item.d+'</div>':'');threeCol.appendChild(c);});
+  secLabel(mc,'Abrechnung nach Leistungsphase');
+  var hc=card(mc);var rows=[];
+  LP_NAMES.forEach(function(lpn,i){
+    var lpNr=i+1;var anteil=pr.honorar*LP_PCT[i]/100;
+    var abgLP=pr.honorar_abg.filter(function(h){return h.lp===lpNr;});var abgSum=sm(abgLP,'betrag');
+    var st=abgLP.length?abgLP[0].st:'-';var sb=st==='bezahlt'?badge('Bezahlt','badge-green'):st==='offen'?badge('Offen','badge-amber'):'-';
+    rows.push(mkTr([{v:'<strong>LP '+lpNr+'</strong>'},{v:lpn},{v:LP_PCT[i]+'%',cls:'r dim'},{v:fmt(anteil),cls:'r'},{v:abgSum?fmt(abgSum):'-',cls:'r'},{v:sb}]));});
+  rows.push(mkTr([{v:'<strong>GESAMT</strong>'},{v:''},{v:'<strong>100%</strong>',cls:'r dim'},{v:'<strong>'+fmt(pr.honorar)+'</strong>',cls:'r'},{v:'<strong>'+fmt(abg)+'</strong>',cls:'r'},{v:''}],'tot-row'));
+  tbl(hc,[{l:'LP',w:'40px'},{l:'Leistungsphase'},{l:'%',r:true,w:'40px'},{l:'Anteil netto',r:true,w:'115px'},{l:'Abgerechnet',r:true,w:'115px'},{l:'Status',w:'95px'}],rows);
+}
+
+/* ==========================================
+   KENNZAHLEN
+========================================== */
+function renderKennzahlen(mc){
+  var pr=p();
+  var sch=sm(pr.kosten_sch,'n'),ber=sm(pr.kosten_ber,'n');
+  var auftr=pr.angebote.filter(function(a){return a.st==='beauftragt';});
+  var verg=sm(auftr,'n'),rech=sm(pr.rechnungen,'n');
+  var bez=sm(pr.rechnungen.filter(function(r){return r.st==='bezahlt';}),'n');
+  var nt=sm(pr.nachtraege.filter(function(n){return n.st==='beauftragt';}),'n');
+  var prognose=verg+nt;var puffer=ber?(ber-prognose):0;var fertig=prognose?rech/prognose*100:0;
+  var threeCol=document.createElement('div');threeCol.className='three-col';mc.appendChild(threeCol);
+  [{l:'Fertigstellungsgrad',v:fertig.toFixed(1)+'%',d:'Rechnungen / Auftragssumme',c:''},{l:'Prognose Endkosten',v:fmtK(prognose),d:'Vergabe + Nachträge',c:prognose>ber?'neg':''},{l:'Budget-Puffer',v:fmtK(Math.abs(puffer)),d:puffer>=0?'Spielraum':'Ueberschreitung',c:puffer>=0?'pos':'neg'}].forEach(function(item){
+    var c=document.createElement('div');c.className='card';c.style.padding='14px 16px';
+    c.innerHTML='<div class="kpi-label">'+item.l+'</div><div class="kpi-value '+(item.c||'')+'">'+item.v+'</div><div class="kpi-delta '+(item.c||'')+'">'+item.d+'</div>';threeCol.appendChild(c);});
+  secLabel(mc,'Detailkennzahlen');
+  var kc=card(mc);var rows=[];
+  [['Kostenschaetzung (LP1-2)',fmt(sch),'Basis DIN 276'],['Kostenberechnung (LP3)',fmt(ber),pS(ber,sch)+' gg. Schaetzung'],['Vergabesumme',fmt(verg),pS(verg,ber||sch)+' gg. Berechnung'],['Nachträge beauftragt',fmt(nt),(verg?(nt/verg*100).toFixed(1):0)+'% der Vergabe'],['Auftragssumme inkl. NT',fmt(verg+nt),pS(verg+nt,ber||sch)+' gg. Berechnung'],['Bisher in Rechnung gestellt',fmt(rech),(prognose?(rech/prognose*100).toFixed(1):0)+'% der Auftragssumme'],['Davon bezahlt',fmt(bez),(rech?(bez/rech*100).toFixed(1):0)+'% der Rechnungen'],['Offene Mängel',pr.maengel.filter(function(m){return m.st==='offen';}).length+' Stueck',pr.maengel.filter(function(m){return m.st==='offen';}).length>0?'In Bearbeitung':'Alle behoben'],['HOAI Honorar vereinbart',fmt(pr.honorar),''],['HOAI abgerechnet',fmt(sm(pr.honorar_abg,'betrag')),(pr.honorar?(sm(pr.honorar_abg,'betrag')/pr.honorar*100).toFixed(1):0)+'% erbracht']].forEach(function(r){rows.push(mkTr([{v:r[0]},{v:'<strong>'+r[1]+'</strong>',cls:'r'},{v:r[2],cls:'dim'}]));});
+  tbl(kc,[{l:'Kennzahl'},{l:'Wert',r:true,w:'135px'},{l:'Bemerkung',w:'195px'}],rows);
+}
+
+/* ==========================================
+   PROJEKTE
+========================================== */
+function renderProjekte(mc){
+  secLabel(mc,'Projekte');
+  data.forEach(function(pr,i){
+    var c=document.createElement('div');c.className='card';c.style.padding='14px 16px';c.style.marginBottom='10px';c.style.cursor='pointer';
+    c.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:15px;font-weight:700;">'+pr.name+'</div><div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Nr. '+pr.nr+' &#183; '+pr.bh+'</div></div><span class="badge badge-blue">Budget: '+fmtK(pr.budget)+'</span></div>';
+    c.onclick=function(){el('projectSelect').value=i;switchProject(i);switchTab('dashboard');};mc.appendChild(c);});
+  var ab=document.createElement('button');ab.className='big-btn secondary';ab.textContent='+ Neues Projekt anlegen';ab.onclick=function(){openModal('projekt');};mc.appendChild(ab);
+}
+
+/* ==========================================
+   MODAL SYSTEM
+========================================== */
+function doPickType(){var sel=document.getElementById('addTypeSel');if(sel)openModal(sel.value);}
+function openAddModal(){
+  el('modalTitle').textContent='Neuer Eintrag';
+  el('modalBody').innerHTML=
+    '<div class="field"><label>Bereich waehlen</label>'+
+    '<select id="addTypeSel" style="font-size:15px;padding:11px 12px;margin-bottom:4px;">'+
+    '<option value="kosten_sch">Kostenschaetzung (LP 1-2)</option>'+
+    '<option value="kosten_ber">Kostenberechnung (LP 3)</option>'+
+    '<option value="angebot">Angebot</option>'+
+    '<option value="rechnung">Rechnung</option>'+
+    '<option value="nachtrag">Nachtrag</option>'+
+    '<option value="termin">Termin / Leistungsphase</option>'+
+    '<option value="mangel">Mangel</option>'+
+    '<option value="besprechung">Baubesprechung</option>'+
+    '<option value="beteiligter">Beteiligter</option>'+
+    '<option value="projekt">Neues Projekt</option>'+
+    '</select></div>'+
+    '<button class="big-btn primary" onclick="doPickType()">Weiter</button>'+
+    '<button class="big-btn secondary" onclick="closeModal()">Abbrechen</button>';
+  el('modal').classList.remove('hidden');
+}
+
+var MODAL_FORMS={
+  kosten_sch:function(){return simpleKostenForm('Kostenschaetzung');},
+  kosten_ber:function(){return simpleKostenForm('Kostenberechnung');},
+  angebot:function(){return '<div class="form-grid"><div class="field"><label>Gewerk</label><input type="text" id="f_gw" placeholder="z.B. Rohbau"></div><div class="field"><label>Firma</label><input type="text" id="f_firma"></div></div><div class="form-grid"><div class="field"><label>Datum</label><input type="date" id="f_dat"></div><div class="field"><label>Status</label><select id="f_st"><option value="pruefung">In Prüfung</option><option value="beauftragt">Beauftragt</option><option value="abgelehnt">Abgelehnt</option></select></div></div><div class="field"><label>Betrag netto (EUR)</label><input type="number" id="f_n" placeholder="0"></div>';},
+  rechnung:function(){return '<div class="form-grid"><div class="field"><label>Re-Nr.</label><input type="text" id="f_nr" placeholder="RE-001"></div><div class="field"><label>Firma</label><input type="text" id="f_firma"></div></div><div class="field"><label>Gewerk</label><input type="text" id="f_gw"></div><div class="form-grid"><div class="field"><label>Datum</label><input type="date" id="f_dat"></div><div class="field"><label>Fälligkeit</label><input type="date" id="f_faell"></div></div><div class="form-grid"><div class="field"><label>Betrag netto</label><input type="number" id="f_n" placeholder="0"></div><div class="field"><label>Status</label><select id="f_st"><option value="offen">Offen</option><option value="teilbezahlt">Teilbezahlt</option><option value="bezahlt">Bezahlt</option></select></div></div>';},
+  nachtrag:function(){return '<div class="form-grid"><div class="field"><label>Gewerk</label><input type="text" id="f_gw"></div><div class="field"><label>Firma</label><input type="text" id="f_firma"></div></div><div class="field"><label>Beschreibung</label><textarea id="f_bez"></textarea></div><div class="form-grid"><div class="field"><label>Ursache</label><select id="f_urs"><option>Planungsaenderung</option><option>Bauherrenwunsch</option><option>Unvorhergesehen</option><option>Boden/Baugrund</option><option>Sonstiges</option></select></div><div class="field"><label>Status</label><select id="f_st"><option value="pruefung">Prüfung</option><option value="beauftragt">Beauftragt</option><option value="abgelehnt">Abgelehnt</option></select></div></div><div class="form-grid"><div class="field"><label>Datum</label><input type="date" id="f_dat"></div><div class="field"><label>Betrag netto</label><input type="number" id="f_n" placeholder="0"></div></div>';},
+  termin:function(){var lpO=LP_NAMES.map(function(n,i){return '<option value="'+(i+1)+'">LP '+(i+1)+' - '+n+'</option>';}).join('');return '<div class="form-grid"><div class="field"><label>Leistungsphase</label><select id="f_lp">'+lpO+'</select></div><div class="field"><label>Status</label><select id="f_st"><option value="geplant">Geplant</option><option value="laufend">Laufend</option><option value="abgeschlossen">Abgeschlossen</option></select></div></div><div class="form-row"><div class="field"><label>Bezeichnung (optional)</label><input type="text" id="f_bez"></div></div><div class="form-grid"><div class="field"><label>Soll-Start</label><input type="date" id="f_ss"></div><div class="field"><label>Soll-Ende</label><input type="date" id="f_se"></div></div><div class="field"><label>Ist-Ende (wenn abgeschlossen)</label><input type="date" id="f_ie"></div>';},
+  mangel:function(){return '<div class="form-grid"><div class="field"><label>Gewerk</label><input type="text" id="f_gw"></div><div class="field"><label>Firma</label><input type="text" id="f_firma"></div></div><div class="field"><label>Beschreibung</label><textarea id="f_bez"></textarea></div><div class="form-grid"><div class="field"><label>Schwere</label><select id="f_schw"><option value="gering">Gering</option><option value="mittel">Mittel</option><option value="hoch">Hoch</option></select></div><div class="field"><label>Behebungsfrist</label><input type="date" id="f_frist"></div></div><div class="field"><label>Feststellungsdatum</label><input type="date" id="f_dat"></div>';},
+  besprechung:function(){return '<div class="form-grid"><div class="field"><label>Datum</label><input type="date" id="f_dat"></div><div class="field"><label>Titel</label><input type="text" id="f_bez" placeholder="Baubesprechung 01"></div></div><div class="field"><label>Teilnehmer</label><input type="text" id="f_teiln" placeholder="Mayer, Berger, Bauherr"></div><div class="field"><label>Beschluesse</label><textarea id="f_beschl" rows="3"></textarea></div>';},
+  beteiligter:function(){return '<div class="form-grid"><div class="field"><label>Name / Firma</label><input type="text" id="f_bez"></div><div class="field"><label>Rolle</label><input type="text" id="f_rolle" placeholder="Rohbau, Statik..."></div></div><div class="field"><label>Ansprechpartner</label><input type="text" id="f_kont"></div><div class="form-grid"><div class="field"><label>Telefon</label><input type="text" id="f_tel"></div><div class="field"><label>E-Mail</label><input type="email" id="f_mail"></div></div>';},
+  projekt:function(){return '<div class="field"><label>Projektname</label><input type="text" id="f_bez" placeholder="WH Musterstrasse - Neubau EFH"></div><div class="form-grid"><div class="field"><label>Bauherr</label><input type="text" id="f_bh"></div><div class="field"><label>Nr.</label><input type="text" id="f_nr" placeholder="2024-001"></div></div><div class="form-grid"><div class="field"><label>Start</label><input type="date" id="f_ss"></div><div class="field"><label>Ende</label><input type="date" id="f_se"></div></div><div class="form-grid"><div class="field"><label>Budget netto (EUR)</label><input type="number" id="f_n" placeholder="350000"></div><div class="field"><label>Honorar netto (EUR)</label><input type="number" id="f_h" placeholder="42000"></div></div>';}
+};
+function simpleKostenForm(titel){var kgO='<option value="200">200 Herrichten</option><option value="300" selected>300 Baukonstruktion</option><option value="400">400 Techn.Anlagen</option><option value="410">410 Abwasser</option><option value="420">420 Waerme</option><option value="430">430 Lueftung</option><option value="440">440 Elektro</option><option value="500">500 Aussenanlagen</option><option value="700">700 Baunebenkosten</option>';return '<div class="form-grid"><div class="field"><label>Kostengruppe</label><select id="f_kg">'+kgO+'</select></div><div class="field"><label>Betrag netto (EUR)</label><input type="number" id="f_n" placeholder="0"></div></div><div class="field"><label>Bezeichnung</label><input type="text" id="f_bez" placeholder="z.B. Rohbau gesamt"></div><div class="field"><label>Bemerkung</label><input type="text" id="f_bem"></div>';}
+
+var curModalType='';
+function openModal(type){
+  curModalType=type;
+  var titles={kosten_sch:'Kostenschaetzung',kosten_ber:'Kostenberechnung',angebot:'Angebot',rechnung:'Rechnung',nachtrag:'Nachtrag',termin:'Termin / LP',mangel:'Mängel',besprechung:'Baubesprechung',beteiligter:'Beteiligter',projekt:'Neues Projekt'};
+  el('modalTitle').textContent='+ '+titles[type];
+  el('modalBody').innerHTML=(MODAL_FORMS[type]?(MODAL_FORMS[type]()+
+    '<button class="big-btn primary" onclick="saveModal()">Speichern</button>'+
+    '<button class="big-btn secondary" onclick="closeModal()">Abbrechen</button>'):'');
+  el('modal').classList.remove('hidden');
+}
+function closeModal(){el('modal').classList.add('hidden');}
+el('modal').addEventListener('click',function(e){if(e.target===el('modal'))closeModal();});
+
+function saveModal(){
+  var pr=p();var type=curModalType;
+  if(type==='kosten_sch'||type==='kosten_ber'){pr[type].push({kg:gv('f_kg'),bez:gv('f_bez')||'Pos.',bem:gv('f_bem'),n:parseFloat(gv('f_n'))||0});}
+  else if(type==='angebot'){pr.angebote.push({gw:gv('f_gw')||'Gewerk',firma:gv('f_firma')||'Firma',dat:gv('f_dat'),st:gv('f_st'),n:parseFloat(gv('f_n'))||0});}
+  else if(type==='rechnung'){pr.rechnungen.push({nr:gv('f_nr')||'RE-NEU',firma:gv('f_firma')||'Firma',gw:gv('f_gw')||'Gewerk',dat:gv('f_dat'),faell:gv('f_faell'),st:gv('f_st'),n:parseFloat(gv('f_n'))||0});}
+  else if(type==='nachtrag'){pr.nachtraege.push({gw:gv('f_gw')||'Gewerk',firma:gv('f_firma')||'Firma',dat:gv('f_dat'),bez:gv('f_bez')||'Nachtrag',urs:gv('f_urs'),st:gv('f_st'),n:parseFloat(gv('f_n'))||0});}
+  else if(type==='termin'){pr.termine.push({lp:parseInt(gv('f_lp'))||1,bez:gv('f_bez')||LP_NAMES[parseInt(gv('f_lp'))-1],ss:gv('f_ss'),se:gv('f_se'),ie:gv('f_ie'),st:gv('f_st')});}
+  else if(type==='mangel'){pr.maengel.push({gw:gv('f_gw')||'Gewerk',firma:gv('f_firma')||'Firma',dat:gv('f_dat')||new Date().toISOString().slice(0,10),bez:gv('f_bez')||'Mangel',schw:gv('f_schw'),frist:gv('f_frist'),st:'offen'});}
+  else if(type==='besprechung'){pr.besprechungen.push({dat:gv('f_dat')||new Date().toISOString().slice(0,10),titel:gv('f_bez')||'Besprechung',teiln:gv('f_teiln'),beschl:gv('f_beschl')});}
+  else if(type==='beteiligter'){pr.beteiligte.push({name:gv('f_bez')||'Firma',rolle:gv('f_rolle'),kont:gv('f_kont'),tel:gv('f_tel'),mail:gv('f_mail')});}
+  else if(type==='projekt'){
+    var name=gv('f_bez')||'Neues Projekt';
+    data.push({name:name,nr:gv('f_nr'),bh:gv('f_bh'),start:gv('f_ss'),end:gv('f_se'),budget:parseFloat(gv('f_n'))||0,honorar:parseFloat(gv('f_h'))||0,kosten_sch:[],kosten_ber:[],angebote:[],rechnungen:[],nachtraege:[],termine:[],maengel:[],besprechungen:[],beteiligte:[],honorar_abg:[]});
+    var sel=el('projectSelect');var opt=document.createElement('option');opt.value=data.length-1;opt.textContent=name;sel.appendChild(opt);
+  }
+  save();closeModal();renderKPI();renderMain();toast('Gespeichert');
+}
+
+function del(arr,idx){data[cp][arr].splice(idx,1);save();renderKPI();renderMain();}
+function markBez(idx){data[cp].rechnungen[idx].st='bezahlt';save();renderKPI();renderMain();}
+function markMangel(idx){data[cp].maengel[idx].st='behoben';save();renderKPI();renderMain();}
+
+/* TOAST */
+var toastT=null;
+function toast(msg){var e=el('toast');e.textContent=msg;e.classList.add('show');if(toastT)clearTimeout(toastT);toastT=setTimeout(function(){e.classList.remove('show');},2200);}
+
+
+/* ======================
+   EINSTELLUNGEN
+====================== */
+function renderEinstellungen(mc){
+  var pr=p();
+
+  // Buero-Einstellungen
+  secLabel(mc,'Buerodaten');
+  var bc=card(mc,'Buerodaten');
+  var bBody=document.createElement('div');bBody.style.padding='14px 16px';
+  var settings=JSON.parse(localStorage.getItem('desch_ps_settings')||'{}');
+  bBody.innerHTML=
+    '<div class="form-grid">'+
+      '<div class="field"><label>Bueroname</label><input type="text" id="s_buero" value="'+(settings.buero||'')+'" placeholder="desch architekten+ingenieure"></div>'+
+      '<div class="field"><label>Adresse</label><input type="text" id="s_adresse" value="'+(settings.adresse||'')+'" placeholder="Musterstr. 1, 97070 Wuerzburg"></div>'+
+    '</div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Telefon</label><input type="text" id="s_tel" value="'+(settings.tel||'')+'" placeholder="+49 931 ..."></div>'+
+      '<div class="field"><label>E-Mail</label><input type="email" id="s_mail" value="'+(settings.mail||'')+'" placeholder="info@desch.de"></div>'+
+    '</div>'+
+    '<div class="field"><label>Bearbeiter / Projektleiter</label><input type="text" id="s_name" value="'+(settings.name||'')+'" placeholder="Dipl.-Ing. Max Mustermann"></div>'+
+    '<button class="big-btn primary" style="margin-top:8px;" onclick="saveSettings()">Einstellungen speichern</button>';
+  bc.appendChild(bBody);
+
+  // Export
+  secLabel(mc,'Exportieren & Drucken');
+  var ec=card(mc,'Projekt exportieren');
+  var eBody=document.createElement('div');eBody.style.padding='14px 16px';
+  eBody.innerHTML=
+    '<p style="font-size:12px;color:var(--ink-3);margin-bottom:14px;">Exportiert alle Daten des aktuellen Projekts: <strong>'+pr.name+'</strong></p>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+      '<button class="big-btn primary" style="flex:1;min-width:140px;" onclick="exportPDF()">&#128438; Als PDF drucken</button>'+
+      '<button class="big-btn secondary" style="flex:1;min-width:140px;" onclick="exportCSV()">&#128196; Als CSV / Excel</button>'+
+    '</div>';
+  ec.appendChild(eBody);
+
+  // Daten
+  secLabel(mc,'App-Daten');
+  var dc=card(mc,'Daten verwalten');
+  var dBody=document.createElement('div');dBody.style.padding='14px 16px';
+  dBody.innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+      '<button class="big-btn secondary" style="flex:1;min-width:140px;" onclick="exportJSON()">&#128190; Backup exportieren</button>'+
+      '<button class="big-btn secondary" style="flex:1;min-width:140px;color:var(--accent);" onclick="importJSON()">&#128194; Backup importieren</button>'+
+    '</div>'+
+    '<input type="file" id="importFile" accept=".json" style="display:none" onchange="doImport(this)">'+
+    '<button class="big-btn secondary" style="margin-top:4px;color:var(--accent);" onclick="confirmClear()">&#128465; Alle Daten loeschen</button>';
+  dc.appendChild(dBody);
+}
+
+function saveSettings(){
+  var s={
+    buero:document.getElementById('s_buero')?document.getElementById('s_buero').value:'',
+    adresse:document.getElementById('s_adresse')?document.getElementById('s_adresse').value:'',
+    tel:document.getElementById('s_tel')?document.getElementById('s_tel').value:'',
+    mail:document.getElementById('s_mail')?document.getElementById('s_mail').value:'',
+    name:document.getElementById('s_name')?document.getElementById('s_name').value:''
+  };
+  localStorage.setItem('desch_ps_settings',JSON.stringify(s));
+  toast('Einstellungen gespeichert');
+}
+
+function exportPDF(){
+  var pr=p();
+  var settings=JSON.parse(localStorage.getItem('desch_ps_settings')||'{}');
+  var buero=settings.buero||'desch architekten+ingenieure';
+  var bearbeiter=settings.name||'';
+  var heute=new Date().toLocaleDateString('de-DE');
+
+  var sch=sm(pr.kosten_sch,'n'),ber=sm(pr.kosten_ber,'n');
+  var auftr=pr.angebote.filter(function(a){return a.st==='beauftragt';});
+  var verg=sm(auftr,'n');
+  var rech=sm(pr.rechnungen,'n');
+  var bez=sm(pr.rechnungen.filter(function(r){return r.st==='bezahlt';}),'n');
+  var nt=sm(pr.nachtraege.filter(function(n){return n.st==='beauftragt';}),'n');
+  var mo=pr.maengel.filter(function(m){return m.st==='offen';}).length;
+
+  function fmtRow(cells){return '<tr>'+cells.map(function(c){return '<td style="padding:4px 8px;border-bottom:1px solid #e8e4de;font-size:11pt;">'+c+'</td>';}).join('')+'</tr>';}
+  function section(title){return '<tr><td colspan="4" style="background:#A80000;color:white;padding:6px 8px;font-size:10pt;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">'+title+'</td></tr>';}
+
+  var kostenRows='';
+  var kgAll={};
+  pr.kosten_sch.forEach(function(it){if(!kgAll[it.kg])kgAll[it.kg]={s:0,b:0};kgAll[it.kg].s+=it.n;});
+  pr.kosten_ber.forEach(function(it){if(!kgAll[it.kg])kgAll[it.kg]={s:0,b:0};kgAll[it.kg].b+=it.n;});
+  Object.keys(kgAll).sort().forEach(function(kg){
+    var v=kgAll[kg];
+    kostenRows+=fmtRow([kg+' '+KG[kg],fmt(v.s),fmt(v.b)||'-',fmt(v.b||v.s)]);
+  });
+  kostenRows+=fmtRow(['<strong>GESAMT</strong>','<strong>'+fmt(sch)+'</strong>','<strong>'+fmt(ber)+'</strong>','']);
+
+  var rechnRows='';
+  pr.rechnungen.forEach(function(r){
+    rechnRows+=fmtRow([r.nr,r.firma+' ('+r.gw+')',r.faell,fmt(r.n)+(r.st==='bezahlt'?' &#10003;':'')]);
+  });
+  if(!pr.rechnungen.length)rechnRows=fmtRow(['Keine Rechnungen','','','']);
+
+  var maengelRows='';
+  pr.maengel.forEach(function(m){
+    maengelRows+=fmtRow([m.gw,m.bez,m.frist,m.st==='behoben'?'Behoben':'Offen']);
+  });
+  if(!pr.maengel.length)maengelRows=fmtRow(['Keine Mängel','','','']);
+
+  var w=window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Projektsteuerung - '+pr.name+'</title>'+
+  '<style>'+
+  'body{font-family:"Arial Narrow",Arial,sans-serif;font-size:12pt;color:#1a1a1a;margin:0;padding:0;}'+
+  '@media print{@page{size:A4 portrait;margin:15mm 12mm 12mm 15mm;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+  '.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #A80000;padding-bottom:8px;margin-bottom:16px;}'+
+  '.brand{font-size:22pt;font-weight:700;color:#A80000;letter-spacing:-0.5px;}'+
+  '.brand-sub{font-size:9pt;color:#888;letter-spacing:0.1em;text-transform:uppercase;}'+
+  '.hdr-right{text-align:right;font-size:9pt;color:#888;}'+
+  '.proj-title{font-size:16pt;font-weight:700;margin-bottom:2px;}'+
+  '.proj-meta{font-size:9pt;color:#888;margin-bottom:14px;}'+
+  '.kpi-row{display:flex;gap:0;border:1px solid #e8e4de;margin-bottom:16px;}'+
+  '.kpi{flex:1;padding:8px 10px;border-right:1px solid #e8e4de;}'+
+  '.kpi:last-child{border-right:none;}'+
+  '.kpi-l{font-size:7pt;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:2px;}'+
+  '.kpi-v{font-size:13pt;font-weight:700;}'+
+  'table{width:100%;border-collapse:collapse;margin-bottom:16px;}'+
+  'thead th{background:#A80000;color:white;padding:5px 8px;text-align:left;font-size:9pt;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}'+
+  '.footer{margin-top:20px;border-top:1px solid #e8e4de;padding-top:8px;font-size:8pt;color:#aaa;display:flex;justify-content:space-between;}'+
+  '</style></head><body>'+
+  '<div class="hdr"><div><div class="brand">desch</div><div class="brand-sub">architekten+ingenieure</div></div><div class="hdr-right"><div>PROJEKTSTEUERUNG</div><div>'+heute+'</div>'+(bearbeiter?'<div>'+bearbeiter+'</div>':'')+'</div></div>'+
+  '<div class="proj-title">'+pr.name+'</div>'+
+  '<div class="proj-meta">Nr. '+pr.nr+' &nbsp;|&nbsp; Bauherr: '+pr.bh+'&nbsp;|&nbsp; '+pr.start+' &ndash; '+pr.end+'</div>'+
+  '<div class="kpi-row">'+
+    '<div class="kpi"><div class="kpi-l">Kostenschaetzung</div><div class="kpi-v">'+fmtK(sch)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-l">Kostenberechnung</div><div class="kpi-v">'+fmtK(ber)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-l">Vergabe</div><div class="kpi-v">'+fmtK(verg)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-l">Nachträge</div><div class="kpi-v">'+fmtK(nt)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-l">Rechnungen</div><div class="kpi-v">'+fmtK(rech)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-l">Bezahlt</div><div class="kpi-v">'+fmtK(bez)+'</div></div>'+
+  '</div>'+
+  '<table><thead><tr><th>KGR / Bezeichnung</th><th>Schaetzung</th><th>Berechnung</th><th>Gesamt</th></tr></thead><tbody>'+
+  section('Kosten nach Kostengruppe')+kostenRows+'</tbody></table>'+
+  '<table><thead><tr><th>Re-Nr.</th><th>Firma / Gewerk</th><th>Fälligkeit</th><th>Betrag / Status</th></tr></thead><tbody>'+
+  section('Rechnungen')+rechnRows+'</tbody></table>'+
+  '<table><thead><tr><th>Gewerk</th><th>Mangel</th><th>Frist</th><th>Status</th></tr></thead><tbody>'+
+  section('Mängelliste')+maengelRows+'</tbody></table>'+
+  '<div class="footer"><span>'+buero+(settings.adresse?' &nbsp;|&nbsp; '+settings.adresse:'')+'</span><span>Erstellt am '+heute+'</span></div>'+
+  '</body></html>');
+  w.document.close();
+  setTimeout(function(){w.print();},400);
+}
+
+function exportCSV(){
+  var pr=p();
+  var lines=[];
+  function row(cells){
+    return cells.map(function(c){
+      var v=String(c==null?'':c);
+      if(v.indexOf(';')>=0||v.indexOf('"')>=0){v='"'+v.replace(/"/g,'""')+'"';}
+      return v;
+    }).join(';');
+  }
+  lines.push(row(['PROJEKTSTEUERUNG',pr.name]));
+  lines.push(row(['Projektnummer',pr.nr,'Bauherr',pr.bh]));
+  lines.push(row(['Laufzeit',pr.start+' bis '+pr.end,'Budget',pr.budget,'Honorar',pr.honorar]));
+  lines.push('');
+  lines.push(row(['KOSTENSCHAETZUNG']));
+  lines.push(row(['KGR','Bezeichnung','Bemerkung','Netto EUR','Brutto EUR']));
+  pr.kosten_sch.forEach(function(it){lines.push(row([it.kg,it.bez,it.bem,it.n,(it.n*1.19).toFixed(2)]));});
+  lines.push('');
+  lines.push(row(['KOSTENBERECHNUNG']));
+  lines.push(row(['KGR','Bezeichnung','Bemerkung','Netto EUR','Brutto EUR']));
+  pr.kosten_ber.forEach(function(it){lines.push(row([it.kg,it.bez,it.bem,it.n,(it.n*1.19).toFixed(2)]));});
+  lines.push('');
+  lines.push(row(['ANGEBOTE']));
+  lines.push(row(['Gewerk','Firma','Datum','Status','Netto EUR','Brutto EUR']));
+  pr.angebote.forEach(function(a){lines.push(row([a.gw,a.firma,a.dat,a.st,a.n,(a.n*1.19).toFixed(2)]));});
+  lines.push('');
+  lines.push(row(['RECHNUNGEN']));
+  lines.push(row(['Re-Nr.','Firma','Gewerk','Datum','Fälligkeit','Status','Netto EUR']));
+  pr.rechnungen.forEach(function(r){lines.push(row([r.nr,r.firma,r.gw,r.dat,r.faell,r.st,r.n]));});
+  lines.push('');
+  lines.push(row(['NACHTRAEGE']));
+  lines.push(row(['Gewerk','Firma','Datum','Beschreibung','Ursache','Status','Netto EUR']));
+  pr.nachtraege.forEach(function(n){lines.push(row([n.gw,n.firma,n.dat,n.bez,n.urs,n.st,n.n]));});
+  lines.push('');
+  lines.push(row(['MAENGEL']));
+  lines.push(row(['Gewerk','Firma','Datum','Beschreibung','Schwere','Frist','Status']));
+  pr.maengel.forEach(function(m){lines.push(row([m.gw,m.firma,m.dat,m.bez,m.schw,m.frist,m.st]));});
+  lines.push('');
+  lines.push(row(['BETEILIGTE']));
+  lines.push(row(['Name','Rolle','Kontakt','Telefon','E-Mail']));
+  pr.beteiligte.forEach(function(b){lines.push(row([b.name,b.rolle,b.kont,b.tel,b.mail]));});
+  var bom='\uFEFF';
+  var crlf=String.fromCharCode(13,10);var blob=new Blob([bom+lines.join(crlf)],{type:'text/csv;charset=utf-8;'});
+
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;
+  a.download='PS_'+pr.name.replace(/[^a-zA-Z0-9]/g,'_')+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('CSV exportiert');
+}
+
+function exportJSON(){
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='desch_projektsteuerung_backup.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Backup exportiert');
+}
+
+function importJSON(){document.getElementById('importFile').click();}
+function doImport(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var imported=JSON.parse(e.target.result);
+      if(Array.isArray(imported)){
+        data=imported;save();
+        var sel=document.getElementById('projectSelect');
+        sel.innerHTML='';
+        data.forEach(function(pr,i){var o=document.createElement('option');o.value=i;o.textContent=pr.name;sel.appendChild(o);});
+        cp=0;renderKPI();renderMain();toast('Backup importiert');
+      } else {toast('Ungueltige Datei');}
+    } catch(e){toast('Fehler beim Import');}
+  };
+  reader.readAsText(file);
+}
+
+function confirmClear(){if(window.confirm("Alle Daten loeschen?"))clearData();}
+function clearData(){
+  localStorage.removeItem('desch_ps_v1');
+  location.reload();
+}
+
+/* INIT */
+// Build project select
+var pSel=document.createElement('select');pSel.id='projectSelect';pSel.onchange=function(){switchProject(this.value);};pSel.style.cssText='font-family:"Arial Narrow",Arial,sans-serif;font-size:13px;background:var(--paper-2);border:1.5px solid var(--paper-3);color:var(--ink);padding:5px 10px;border-radius:8px;outline:none;margin-right:10px;max-width:220px;';
+data.forEach(function(pr,i){var o=document.createElement('option');o.value=i;o.textContent=pr.name;pSel.appendChild(o);});
+
+// Insert project select into header
+var headerBtn=document.querySelector('.header-btn');
+headerBtn.parentNode.insertBefore(pSel,headerBtn);
+
+// Add KPI strip below tabs
+var ks=document.createElement('div');ks.id='kpiStrip';ks.className='kpi-strip';ks.style.marginBottom='0';
+el('mainContent').parentNode.insertBefore(ks,el('mainContent'));
+
+el('headerSub').textContent=' - '+p().name;
+buildTabs();
+renderKPI();
+renderMain();
+</script>
+</body>
+</html>
