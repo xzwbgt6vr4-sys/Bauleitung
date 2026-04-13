@@ -581,6 +581,7 @@
 <div class="tabs">
   <button class="tab active" onclick="switchTab('projekte',this)">Projekte</button>
   <button class="tab" onclick="switchTab('protokoll',this)">Protokoll</button>
+  <button class="tab" onclick="switchTab('aktennotiz',this);starteAktennotizTab()">Aktennotiz</button>
   <button class="tab" onclick="switchTab('aufgaben',this)">Aufgaben</button>
   <button class="tab" onclick="switchTab('einstellungen',this)" title="Einstellungen" style="font-size:17px;padding:8px 12px 9px">⚙️</button>
 </div>
@@ -695,7 +696,10 @@
      TAB: PROJEKT-VERLAUF (Protokolle eines Projekts)
 ══════════════════════════════════════════ -->
 <div id="tab-projektverlauf" class="screen">
-  <button class="big-btn primary" style="margin-bottom:16px" onclick="starteNeuesProtokoll()">＋ Neues Protokoll anlegen</button>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="big-btn primary" style="margin:0;flex:1" onclick="starteNeuesProtokoll()">＋ Protokoll</button>
+    <button class="big-btn secondary" style="margin:0;flex:1;border:2px solid var(--accent);color:var(--accent)" onclick="starteAktennotiz()">📝 Aktennotiz</button>
+  </div>
   <p class="sec-label" id="projektverlaufLabel">Protokolle</p>
   <div id="projektverlaufListe"></div>
 </div>
@@ -888,6 +892,87 @@
       <button class="big-btn secondary" style="color:var(--accent)" onclick="clearAllData()">Alle App-Daten löschen</button>
     </div>
   </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN: AKTENNOTIZ
+══════════════════════════════════════════ -->
+<div id="tab-aktennotiz" class="screen">
+
+  <div style="margin-bottom:10px">
+    <button id="btnZurueckAktennotiz" onclick="geheZuProjektVerlauf()" style="background:none;border:none;color:var(--accent);font-size:15px;font-family:'Arial Narrow',Arial,sans-serif;font-weight:600;cursor:pointer;padding:0">‹ Zur Übersicht</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📝 Aktennotiz</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>Projekt</label>
+        <select id="anProjekt" onchange="onAktennotizProjektChange(this.value)">
+          <option value="">— Projekt wählen —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Datum</label>
+        <input type="date" id="anDatum">
+      </div>
+      <div class="field">
+        <label>Art der Notiz</label>
+        <select id="anArt" onchange="onAktennotizArtChange(this.value)">
+          <option value="Telefonnotiz">📞 Telefonnotiz</option>
+          <option value="Videokonferenz">💻 Videokonferenz</option>
+          <option value="Jour-Fixe">🗓 Jour-Fixe</option>
+          <option value="sonstiges">✏️ Sonstiges…</option>
+        </select>
+      </div>
+      <div class="field" id="anArtEigenField" style="display:none">
+        <label>Bezeichnung</label>
+        <input type="text" id="anArtEigen" placeholder="z. B. Ortstermin, Besprechung…">
+      </div>
+      <div class="field">
+        <label>Teilnehmer / Gesprächspartner</label>
+        <div class="voice-row">
+          <textarea id="anTeilnehmer" placeholder="z. B. Hr. Müller (Bauherr), Fr. Schmidt (Fachplanung)…" style="min-height:60px"></textarea>
+          <button class="voice-btn" id="vBtnAnTeilnehmer" onclick="toggleVoice('anTeilnehmer','vBtnAnTeilnehmer')">🎤</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Inhalt / Ergebnis</label>
+        <div class="voice-row">
+          <textarea id="anInhalt" placeholder="Worum ging es? Was wurde besprochen, entschieden?"></textarea>
+          <button class="voice-btn" id="vBtnAnInhalt" onclick="toggleVoice('anInhalt','vBtnAnInhalt')">🎤</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Maßnahmen / Aufgaben</label>
+        <div class="voice-row">
+          <textarea id="anMassnahmen" placeholder="Was ist zu tun? Wer macht was bis wann?"></textarea>
+          <button class="voice-btn" id="vBtnAnMassnahmen" onclick="toggleVoice('anMassnahmen','vBtnAnMassnahmen')">🎤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">📧 Senden an</span></div>
+    <div class="card-body">
+      <div class="field">
+        <label>Betreff</label>
+        <input type="text" id="anBetreff" placeholder="Aktennotiz Projektname – Datum">
+      </div>
+      <div class="field">
+        <label>E-Mail Empfänger</label>
+        <input type="email" id="anEmail" placeholder="empfaenger@beispiel.de">
+      </div>
+      <div class="field">
+        <label>CC (optional)</label>
+        <input type="email" id="anEmailCC" placeholder="weitere@empfaenger.de">
+      </div>
+    </div>
+  </div>
+
+  <button class="big-btn primary" onclick="generiereAktennotiz()">📄 Aktennotiz generieren & vorschauen</button>
 
 </div>
 
@@ -1224,8 +1309,8 @@ function renderProjektVerlauf(projektName) {
       <div class="history-item">
         <div class="history-dot" style="cursor:pointer" onclick="showProtokollDetail(${i})"></div>
         <div class="history-info" onclick="showProtokollDetail(${i})" style="cursor:pointer">
-          <div class="history-date">${p.datum}</div>
-          <div class="history-proj">Bauleiter: ${p.bauleiter||'–'}</div>
+          <div class="history-date">${p.datum} ${p.typ==='aktennotiz'?'<span class="badge datum">📝 '+p.art+'</span>':''}</div>
+          <div class="history-proj">${p.bauleiter||'–'}</div>
           <div class="history-preview">${p.text.substring(200,360)}</div>
         </div>
         <button onclick="deleteProtokoll(${i})" style="flex-shrink:0;background:none;border:none;color:var(--ink-3);font-size:20px;cursor:pointer;padding:4px 6px;line-height:1" title="Löschen">×</button>
@@ -1440,8 +1525,200 @@ function updateProjektSelects() {
 }
 
 // ══════════════════════════════════
-// STAMM-FIRMEN (Projekt-Modal)
+// AKTENNOTIZ
 // ══════════════════════════════════
+function starteAktennotizTab() {
+  // If called from tab directly (not from projektverlauf), init fresh
+  const d = new Date();
+  document.getElementById('anDatum').value = d.toISOString().split('T')[0];
+  document.getElementById('anArt').value = 'Telefonnotiz';
+  document.getElementById('anArtEigenField').style.display = 'none';
+  document.getElementById('anTeilnehmer').value = '';
+  document.getElementById('anInhalt').value = '';
+  document.getElementById('anMassnahmen').value = '';
+
+  const opts = '<option value="">— Projekt wählen —</option>' + state.projekte.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  document.getElementById('anProjekt').innerHTML = opts;
+
+  // Pre-fill from current project if one is selected
+  if (currentProjektIndex >= 0 && state.projekte[currentProjektIndex]) {
+    const p = state.projekte[currentProjektIndex];
+    document.getElementById('anProjekt').value = p.name;
+    if (p.email) document.getElementById('anEmail').value = p.email;
+    if (p.cc) document.getElementById('anEmailCC').value = p.cc;
+    updateAktennotizBetreff(p.name);
+  } else {
+    document.getElementById('anEmail').value = getSettings().sDefaultMail || '';
+    document.getElementById('anEmailCC').value = getSettings().sDefaultCC || '';
+    document.getElementById('anBetreff').value = '';
+  }
+
+  const btn = document.getElementById('btnZurueckAktennotiz');
+  if (btn) btn.style.display = 'none';
+}
+
+function starteAktennotiz() {
+  const p = currentProjektIndex >= 0 ? state.projekte[currentProjektIndex] : null;
+
+  // Pre-fill fields
+  const d = new Date();
+  document.getElementById('anDatum').value = d.toISOString().split('T')[0];
+  document.getElementById('anArt').value = 'Telefonnotiz';
+  document.getElementById('anArtEigenField').style.display = 'none';
+  document.getElementById('anTeilnehmer').value = '';
+  document.getElementById('anInhalt').value = '';
+  document.getElementById('anMassnahmen').value = '';
+
+  // Update selects
+  const opts = '<option value="">— Projekt wählen —</option>' + state.projekte.map(pr => `<option value="${pr.name}">${pr.name}</option>`).join('');
+  document.getElementById('anProjekt').innerHTML = opts;
+
+  if (p) {
+    document.getElementById('anProjekt').value = p.name;
+    if (p.email) document.getElementById('anEmail').value = p.email;
+    if (p.cc) document.getElementById('anEmailCC').value = p.cc;
+    updateAktennotizBetreff(p.name);
+  }
+
+  const btn = document.getElementById('btnZurueckAktennotiz');
+  if (btn) btn.style.display = currentProjektIndex >= 0 ? 'block' : 'none';
+
+  switchTab('aktennotiz', null);
+}
+
+function onAktennotizProjektChange(name) {
+  const proj = state.projekte.find(p => p.name === name);
+  if (proj) {
+    if (proj.email) document.getElementById('anEmail').value = proj.email;
+    if (proj.cc) document.getElementById('anEmailCC').value = proj.cc;
+  }
+  updateAktennotizBetreff(name);
+}
+
+function onAktennotizArtChange(val) {
+  document.getElementById('anArtEigenField').style.display = val === 'sonstiges' ? 'block' : 'none';
+}
+
+function updateAktennotizBetreff(projektName) {
+  const datum = document.getElementById('anDatum').value.split('-');
+  const datumDE = datum.length===3 ? `${datum[2]}.${datum[1]}.${datum[0]}` : '';
+  document.getElementById('anBetreff').value = `Aktennotiz ${projektName} – ${datumDE}`;
+}
+
+function generiereAktennotiz() {
+  const projekt = document.getElementById('anProjekt').value || '–';
+  const datum = document.getElementById('anDatum').value.split('-');
+  const datumDE = datum.length===3 ? `${datum[2]}.${datum[1]}.${datum[0]}` : '';
+  const artVal = document.getElementById('anArt').value;
+  const art = artVal === 'sonstiges'
+    ? (document.getElementById('anArtEigen').value.trim() || 'Sonstiges')
+    : artVal;
+  const teilnehmer = document.getElementById('anTeilnehmer').value.trim() || '–';
+  const inhalt = document.getElementById('anInhalt').value.trim() || '–';
+  const massnahmen = document.getElementById('anMassnahmen').value.trim() || '–';
+
+  const s = getSettings();
+  const accentColor = s.sAccentColor || '#A80000';
+  const buero = s.sBuero || 'desch architekten+ingenieure';
+  const stellvHtml = s.sStellvName ? `<br>Stellvertretung: ${s.sStellvName}${s.sStellvMail?' · '+s.sStellvMail:''}` : '';
+
+  const customLogo = getLogoForProtokoll();
+  let LOGO;
+  if (customLogo !== null) {
+    LOGO = customLogo;
+  } else {
+    const backup = document.getElementById('logoSvgBackup');
+    LOGO = backup ? backup.innerHTML.replace('width="100%"','width="200"').replace('height="100%"','height="22"') : '';
+  }
+
+  // Format inhalt as bullet points if multi-line
+  const formatText = txt => txt.split('\n').filter(Boolean)
+    .map(l => `<div style="display:flex;gap:6px;margin:3px 0 4px"><span style="color:${accentColor};font-weight:700;flex-shrink:0">·</span><span style="line-height:1.5">${l.trim()}</span></div>`)
+    .join('');
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Aktennotiz ${projekt} ${datumDE}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; background: #fff; line-height: 1.45; }
+  .page { max-width: 210mm; margin: 0 auto; padding: 18mm 20mm; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 3px solid ${accentColor}; margin-bottom: 20px; }
+  .header-logo { width: 200px; }
+  .header-meta { text-align: right; font-size: 9pt; color: #444; line-height: 1.7; }
+  .header-meta strong { font-size: 13pt; color: #1a1a1a; display: block; margin-bottom: 3px; }
+  .art-badge { display: inline-block; background: ${accentColor}; color: #fff; font-size: 10pt; font-weight: 700; padding: 4px 14px; border-radius: 20px; margin-bottom: 16px; }
+  h2 { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: ${accentColor}; margin: 16px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #ddd8d0; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin-bottom: 4px; }
+  .meta-item { font-size: 10pt; }
+  .meta-label { font-weight: 700; color: #666; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
+  .content-text { font-size: 10.5pt; line-height: 1.6; white-space: pre-wrap; }
+  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ddd8d0; font-size: 8.5pt; color: #666; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+  @page { size: A4; margin: 18mm 20mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { padding: 0; max-width: 100%; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-logo">${LOGO}</div>
+    <div class="header-meta">
+      <strong>Aktennotiz</strong>
+      ${projekt}<br>${datumDE}<br>${s.sName || buero}
+    </div>
+  </div>
+
+  <div class="art-badge">${art}</div>
+
+  <h2>Projektdaten</h2>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="meta-label">Projekt</div>${projekt}</div>
+    <div class="meta-item"><div class="meta-label">Datum</div>${datumDE}</div>
+    <div class="meta-item"><div class="meta-label">Art</div>${art}</div>
+    <div class="meta-item"><div class="meta-label">Verfasser</div>${s.sName || '–'}</div>
+  </div>
+
+  <h2>Teilnehmer / Gesprächspartner</h2>
+  ${formatText(teilnehmer)}
+
+  <h2>Inhalt / Ergebnis</h2>
+  ${formatText(inhalt)}
+
+  ${massnahmen !== '–' ? `<h2>Maßnahmen / Aufgaben</h2>${formatText(massnahmen)}` : ''}
+
+  <div class="footer">
+    <div>${buero}${s.sBueroAdresse ? ' · ' + s.sBueroAdresse : ''}</div>
+    <div style="text-align:right">Erstellt: ${new Date().toLocaleString('de-DE')}${stellvHtml}</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  // Store as current protokoll for send/PDF functions
+  state.currentProtokoll = htmlContent;
+
+  // Save to verlauf
+  const eintrag = {
+    id: Date.now(), datum: datumDE, projekt,
+    bauleiter: s.sName || '–',
+    text: htmlContent,
+    email: document.getElementById('anEmail').value,
+    typ: 'aktennotiz', art,
+    erstellt: new Date().toISOString()
+  };
+  state.protokolle.unshift(eintrag);
+  save();
+  renderVerlauf();
+  if (currentProjektIndex >= 0 && state.projekte[currentProjektIndex]) renderProjektVerlauf(projekt);
+
+  const preview = document.getElementById('protokollPreview');
+  createProtokollPreview(htmlContent, preview);
+  openModal('modalProtokoll');
+}
+
+
 let mProjFirmenList = []; // temp list while modal is open
 
 function renderMProjFirmen() {
@@ -1650,10 +1927,16 @@ function renderSectionCard(s) {
 function renderBlock(secId, block, i) {
   if (block.type === 'photo' || block.type === 'sketch') {
     const bullet = block.type === 'sketch' ? '✏️' : '📷';
+    const ext = block.type === 'sketch' ? 'png' : 'jpg';
+    const label = block.type === 'sketch' ? 'Skizze' : 'Foto';
     return `<div class="block-item">
       <div class="block-bullet">${bullet}</div>
-      <div class="block-photo">
-        <img src="${block.data}" alt="${block.type === 'sketch' ? 'Skizze' : 'Foto'}" style="${block.type === 'sketch' ? 'background:#fff;border-radius:6px;' : ''}">
+      <div class="block-photo" style="position:relative">
+        <img src="${block.data}" alt="${label}" style="${block.type === 'sketch' ? 'background:#fff;border-radius:6px;' : ''}">
+        <button onclick="saveFotoToDevice('${secId}',${i})"
+          style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:'Arial Narrow',Arial,sans-serif">
+          ⬇️ Sichern
+        </button>
       </div>
       <button class="block-del" onclick="deleteBlock('${secId}',${i})">×</button>
     </div>`;
@@ -1814,6 +2097,44 @@ function triggerPhotoForSection(secId) {
   input.value = '';
   input.click();
 }
+
+function saveFotoToDevice(secId, i) {
+  const block = (state.blocks[secId] || [])[i];
+  if (!block || !block.data) return;
+
+  const isSketch = block.type === 'sketch';
+  const ext = isSketch ? 'png' : block.data.startsWith('data:image/png') ? 'png' : 'jpg';
+  const mimeType = isSketch ? 'image/png' : (ext === 'png' ? 'image/png' : 'image/jpeg');
+  const filename = `${isSketch ? 'Skizze' : 'Foto'}_${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.${ext}`;
+
+  // Try Web Share API (iOS: shows "Bild sichern" option)
+  if (navigator.share && navigator.canShare) {
+    fetch(block.data)
+      .then(r => r.blob())
+      .then(blob => {
+        const file = new File([blob], filename, { type: mimeType });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: filename })
+            .catch(() => downloadFoto(block.data, filename));
+          return;
+        }
+        downloadFoto(block.data, filename);
+      });
+    return;
+  }
+  downloadFoto(block.data, filename);
+}
+
+function downloadFoto(dataUri, filename) {
+  const a = document.createElement('a');
+  a.href = dataUri;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('Foto wird gespeichert…');
+}
+
 
 function handlePhotoForSection(input) {
   const files = Array.from(input.files);
