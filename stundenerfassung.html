@@ -615,6 +615,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
       </table>
     </div>
   </div>
+  <div class="card" id="zkReportCard" style="display:none">
+    <div class="card-header">
+      <span class="card-title" id="zkReportTitle">Zeitkonto</span>
+      <button class="header-btn" onclick="zkOpenEntry(null)" style="font-size:16px;padding:5px 11px;line-height:1">＋</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table class="report-table">
+        <thead><tr><th>Zeitart</th><th>Datum</th><th>Dauer</th><th></th></tr></thead>
+        <tbody id="zkReportBody"></tbody>
+      </table>
+    </div>
+  </div>
   <div class="export-row">
     <button class="export-btn excel" onclick="exportExcel()">📊 Excel exportieren</button>
     <button class="export-btn pdf" onclick="exportPDF()">📄 PDF exportieren</button>
@@ -933,7 +945,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 <script>
 // ══ KONSTANTEN ══
 const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a5a8c','#5b3a9e','#8e3090','#555'];
-const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
+const ICONS = ['🏗️','🏠','🏡','🏢','🏬','🏭','🏛️','🏟️','🏰','🏯','🏘️','🏚️','🏙️','🏗','🛖','⛪','🕌','🕍','🛕','📐','📏','🗂️','📋','📁','📄','🗒️','📊','📈','🖊️','🔨','🪚','🔧','🪛','⛏️','🪝','🧱','🪞','🚪','🪟','🛗','🚧','🌉','🌁','⛽','🚦','🛣️','🛤️','🚉','✈️','🌿','🌳','🌲','🌴','⛰️','🗻','🏔️','🌊','🏞️','🌾','⚡','🔌','💡','🔋','☀️','💨','🌡️','⚙️','🔩','🪜','🔑','🗝️','📍','🏷️','🚜','🏕️','🔎','🧭','📌','🎯'];
 const HOAI_NAMES = {1:'LP 1 - Grundlagenermittlung',2:'LP 2 - Vorplanung',3:'LP 3 - Entwurfsplanung',4:'LP 4 - Genehmigungsplanung',5:'LP 5 - Ausführungsplanung',6:'LP 6 - Vorbereitung Vergabe',7:'LP 7 - Mitwirkung Vergabe',8:'LP 8 - Objektüberwachung',9:'LP 9 - Objektbetreuung'};
 const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
 const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius','sDefaultHours'];
@@ -1544,10 +1556,13 @@ function renderReport(){
   const navLabel=document.getElementById('periodNavLabel');
   if(navLabel)navLabel.textContent=periodLabel;
   const nb=document.getElementById('periodNavNext');if(nb)nb.disabled=(periodOffset>=0);
+  // Zeitkonto-Summe für Summary
+  const{start:_zkS,end:_zkE}=getPeriodBounds();
+  const _zkMin=(state.zkEntries||[]).filter(e=>{const d=new Date(e.date+'T12:00:00');return d>=_zkS&&d<=_zkE;}).reduce((a,e)=>a+e.minutes,0);
   document.getElementById('summaryRow').innerHTML=`
-    <div class="summary-card"><div class="summary-card-label">Gesamt</div><div class="summary-card-value">${fmtHM(totalMs)}<span class="summary-card-unit">h</span></div></div>
-    <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.filter(e=>e.id!=='live').length}</div></div>
-    <div class="summary-card"><div class="summary-card-label">Projekte</div><div class="summary-card-value">${projCount}</div></div>`;
+    <div class="summary-card"><div class="summary-card-label">Projektzeit</div><div class="summary-card-value">${fmtHM(totalMs)}<span class="summary-card-unit">h</span></div></div>
+    <div class="summary-card"><div class="summary-card-label">Zeitkonto</div><div class="summary-card-value" style="color:${_zkMin?'var(--accent)':'var(--ink)'}">${_zkMin?fmtHM_zk(_zkMin)+' h':'–'}</div></div>
+    <div class="summary-card"><div class="summary-card-label">Buchungen</div><div class="summary-card-value">${entries.filter(e=>e.id!=='live').length}</div></div>`;
   const body=document.getElementById('reportBody');
   if(!entries.length){body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:24px">Keine Buchungen</td></tr>`;return;}
   const sorted=[...entries].sort((a,b)=>b.start-a.start);
@@ -1570,6 +1585,47 @@ function renderReport(){
     </tr>`;
   }).join('');
   body.innerHTML+=`<tr class="total-row"><td colspan="3">GESAMT</td><td colspan="2">${fmtDur(totalMs)}</td></tr>`;
+
+  // ── Zeitkonto-Einträge im gleichen Zeitraum ──
+  const{start:zkStart,end:zkEnd}=getPeriodBounds();
+  const zkEntries=(state.zkEntries||[]).filter(e=>{
+    const d=new Date(e.date+'T12:00:00');
+    return d>=zkStart&&d<=zkEnd;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+
+  const zkCard=document.getElementById('zkReportCard');
+  const zkBody=document.getElementById('zkReportBody');
+  const zkTitle=document.getElementById('zkReportTitle');
+  if(!zkCard||!zkBody)return;
+
+  if(!zkEntries.length){
+    zkCard.style.display='none';
+    return;
+  }
+  zkCard.style.display='block';
+  const zkTotalMin=zkEntries.reduce((a,e)=>a+e.minutes,0);
+  if(zkTitle)zkTitle.textContent='Zeitkonto · '+fmtHM_zk(zkTotalMin)+' h';
+
+  zkBody.innerHTML=zkEntries.map(e=>{
+    const t=(state.zkTypes||[]).find(x=>x.id===e.typeId)||{name:'?',icon:'📋',color:'#888'};
+    const [y,m,d]=e.date.split('-');
+    const dateStr=d+'.'+m+'.'+y;
+    const dur=e.allDay?'Ganztags':fmtHM_zk(e.minutes)+' h';
+    const timeText=e.von&&e.bis?' · '+e.von+'–'+e.bis:'';
+    return`<tr>
+      <td style="font-weight:600">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${t.color};margin-right:6px;vertical-align:middle"></span>
+        ${t.icon} ${t.name}
+        ${e.note?`<div style="font-size:10px;font-weight:400;color:var(--ink-3)">${e.note}</div>`:''}
+      </td>
+      <td style="font-size:12px;color:var(--ink-3);white-space:nowrap">${dateStr}${timeText}</td>
+      <td style="font-size:12px;font-variant-numeric:tabular-nums">${dur}</td>
+      <td><div class="entry-actions-cell">
+        <button class="entry-del" onclick="zkDeleteEntry(${e.id});renderReport();" title="Löschen">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  zkBody.innerHTML+=`<tr class="total-row"><td colspan="2">GESAMT Zeitkonto</td><td colspan="2">${fmtHM_zk(zkTotalMin)} h</td></tr>`;
 }
 function setPeriod(p,btn){
   currentPeriod=p;periodOffset=0;
@@ -1675,9 +1731,26 @@ function selectIcon(ic){
 }
 function handleProjImg(input){
   const file=input.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{selectedImg=e.target.result;selectedIcon=null;buildIconPicker();updateProjImgPreview();};
-  r.readAsDataURL(file);input.value='';
+  input.value='';
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const img=new Image();
+    img.onload=function(){
+      // Target: max 400×400px, JPEG quality 0.72 → ~15-30 KB
+      const MAX=400, Q=0.72;
+      let w=img.width, h=img.height;
+      if(w>h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
+      else    { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      selectedImg=c.toDataURL('image/jpeg',Q);
+      selectedIcon=null;
+      buildIconPicker();updateProjImgPreview();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 function clearProjImg(){
   selectedImg=null;selectedIcon=ICONS[0];buildIconPicker();updateProjImgPreview();
