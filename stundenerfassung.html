@@ -664,10 +664,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
         <p class="hint">Bild hat Vorrang vor Text. Leer = desch-Logo.</p>
       </div>
       <div class="field"><label>Büroname</label><input type="text" id="sBuero" placeholder="desch architekten+ingenieure" oninput="saveSettings()"></div>
-      <div class="field"><label>Adresse</label><input type="text" id="sBueroAdresse" placeholder="Musterstraße 1, 97070 Würzburg" oninput="saveSettings()"></div>
-      <div class="field"><label>Büro-Telefon</label><input type="text" id="sBueroTel" placeholder="+49 931 …" oninput="saveSettings()"></div>
-      <div class="field"><label>Büro-E-Mail</label><input type="text" id="sBueroMail" placeholder="info@desch.de" oninput="saveSettings()"></div>
-      <div class="field"><label>Website</label><input type="text" id="sBueroWeb" placeholder="www.desch.de" oninput="saveSettings()"></div>
+      <div class="field"><label>Adresse</label><input type="text" id="sBueroAdresse" placeholder="Bad Füssinger Straße 8, 94148 Kirchham" oninput="saveSettings()"></div>
+      <div class="field"><label>Büro-Telefon</label><input type="text" id="sBueroTel" placeholder="08533-96470" oninput="saveSettings()"></div>
+      <div class="field"><label>Büro-E-Mail</label><input type="text" id="sBueroMail" placeholder="mail@desch-architekten.de" oninput="saveSettings()"></div>
+      <div class="field"><label>Website</label><input type="text" id="sBueroWeb" placeholder="www.desch-architekten.de" oninput="saveSettings()"></div>
     </div>
   </div>
 
@@ -1820,7 +1820,16 @@ function saveSettings(){
 }
 function loadSettings(){
   try{
-    const s=JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{};
+    // Voreinstellungen Büro
+    const DEFAULTS={
+      sBuero:'desch architekten+ingenieure',
+      sBueroAdresse:'Bad Füssinger Straße 8, 94148 Kirchham',
+      sBueroTel:'08533-96470',
+      sBueroMail:'mail@desch-architekten.de',
+      sBueroWeb:'www.desch-architekten.de'
+    };
+    const saved=JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{};
+    const s={...DEFAULTS,...saved};
     SFIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&s[id]!==undefined)el.value=s[id];});
     if(s.sAccentColor)applyAccent(s.sAccentColor);
     applyDarkMode(s.sDarkMode||'auto');
@@ -1828,7 +1837,10 @@ function loadSettings(){
   applyCustomLogo();
   updateExportMailVisibility();
 }
-function getSettings(){try{return JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{};}catch(e){return{};}}
+function getSettings(){
+  const DEFAULTS={sBuero:'desch architekten+ingenieure',sBueroAdresse:'Bad Füssinger Straße 8, 94148 Kirchham',sBueroTel:'08533-96470',sBueroMail:'mail@desch-architekten.de',sBueroWeb:'www.desch-architekten.de'};
+  try{return {...DEFAULTS,...(JSON.parse(localStorage.getItem('zeit2_settings')||'{}')||{})};}catch(e){return DEFAULTS;}
+}
 function updateExportMailVisibility(){
   const sel=document.getElementById('sExportTarget');
   const field=document.getElementById('exportMailField');
