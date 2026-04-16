@@ -284,6 +284,34 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .transfer-info{background:var(--paper-2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--ink-2);line-height:1.6;margin-bottom:12px}
 .transfer-info .ok{color:#2a7a4e;font-weight:600}
 .transfer-info .err{color:var(--accent);font-weight:600}
+
+/* ── ZEITKONTO ── */
+.zk-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.zk-type-btn{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 12px;cursor:pointer;border:2px solid transparent;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:100px}
+.zk-type-btn:active{transform:scale(.97)}
+.zk-type-icon{font-size:26px;line-height:1}
+.zk-type-label{font-size:13px;font-weight:600;color:var(--ink)}
+.zk-type-sub{font-size:10px;color:var(--ink-3)}
+.zk-type-bar{width:100%;height:3px;border-radius:2px;margin-top:4px}
+[data-theme="dark"] .zk-type-btn{background:#1f1e1c}
+
+.zk-dur-toggle{display:flex;gap:8px;margin-bottom:12px}
+.zk-dur-btn{flex:1;padding:10px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;font-family:'Arial Narrow',Arial,sans-serif;border:1.5px solid var(--paper-3);background:var(--card);color:var(--ink-3);cursor:pointer;transition:all .15s;text-align:center}
+.zk-dur-btn.active{border-color:var(--accent);color:var(--accent);font-weight:700;background:#fff0f0}
+[data-theme="dark"] .zk-dur-btn.active{background:#2a0000}
+
+.zk-entry-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.zk-entry-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.zk-entry-info{flex:1;min-width:0}
+.zk-entry-title{font-size:14px;font-weight:600}
+.zk-entry-meta{font-size:11px;color:var(--ink-3);margin-top:2px}
+.zk-entry-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.zk-entry-dur{font-size:18px;font-weight:300;color:var(--accent);font-variant-numeric:tabular-nums}
+.zk-del{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;line-height:1;padding:0}
+[data-theme="dark"] .zk-entry-card{background:#1f1e1c}
+
+.zk-stype-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--paper-3)}
+.zk-stype-item:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -540,6 +568,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     </div>
     <div class="timeline-legend" id="timelineLegend"></div>
   </div>
+
+  <div style="margin-top:6px">
+    <div class="card-header" style="background:var(--card);border-radius:var(--radius) var(--radius) 0 0;box-shadow:var(--shadow)">
+      <span class="card-title">🏖 Zeitkonto</span>
+      <button class="header-btn" style="font-size:13px;padding:5px 10px" onclick="zkOpenEntry(null)">＋ Eintrag</button>
+    </div>
+    <div style="background:var(--card);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:14px">
+      <div class="zk-type-grid" id="zkTypeGrid" style="margin-bottom:8px"></div>
+      <div id="zkTodayList"></div>
+    </div>
+  </div>
 </div>
 <div class="timeline-tooltip" id="timelineTooltip"></div>
 
@@ -721,8 +760,97 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🏖 Zeitkonto-Arten</span>
+      <button class="header-btn" style="font-size:13px;padding:5px 10px" onclick="openZkTypeModal(null)">＋ Neu</button>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Standard-Arbeitstag</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="sDefaultHours" value="8" min="1" max="24" step="0.5" style="width:80px;padding:10px;text-align:center" oninput="saveSettings()">
+          <span style="font-size:13px;color:var(--ink-3)">Stunden = 1 Ganztags-Eintrag</span>
+        </div>
+        <p class="hint">Gilt wenn bei der Zeitart keine eigene Stundenzahl hinterlegt ist.</p>
+      </div>
+      <div id="zkStypeList"></div>
+    </div>
+  </div>
+
 </div>
+
 </main>
+
+<!-- MODAL: ZEITKONTO-EINTRAG -->
+<div class="modal-overlay hidden" id="modalZkEntry">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Zeiteintrag erfassen</div>
+    <div class="field">
+      <label>Datum</label>
+      <input type="date" id="zkDate">
+    </div>
+    <div class="field">
+      <label>Zeitart</label>
+      <select id="zkTypeSelect" onchange="zkOnTypeChange()"></select>
+    </div>
+    <div class="field">
+      <label>Dauer</label>
+      <div class="zk-dur-toggle">
+        <button class="zk-dur-btn active" id="zkDurAll" onclick="zkSetDur('all')">🌅 Ganztags</button>
+        <button class="zk-dur-btn" id="zkDurH" onclick="zkSetDur('hours')">⏱ Stundenweise</button>
+      </div>
+      <div id="zkAllInfo" style="font-size:13px;color:var(--ink-3);margin-bottom:8px"></div>
+      <div id="zkHoursFields" style="display:none">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div class="field" style="flex:1;margin-bottom:0"><label>Von</label><input type="time" id="zkVon" oninput="zkCalcDur()"></div>
+          <div style="padding-bottom:13px;color:var(--ink-3)">–</div>
+          <div class="field" style="flex:1;margin-bottom:0"><label>Bis</label><input type="time" id="zkBis" oninput="zkCalcDur()"></div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--ink-3)">oder:</span>
+          <input type="number" id="zkH" min="0" max="24" placeholder="0" style="width:58px;padding:8px;text-align:center" oninput="zkCalcFromH()">
+          <span style="font-size:12px;color:var(--ink-3)">h</span>
+          <input type="number" id="zkM" min="0" max="59" placeholder="0" style="width:58px;padding:8px;text-align:center" oninput="zkCalcFromH()">
+          <span style="font-size:12px;color:var(--ink-3)">min</span>
+        </div>
+        <div id="zkDurPreview" style="font-size:12px;color:var(--accent);margin-top:6px;font-weight:600"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Notiz (optional)</label>
+      <input type="text" id="zkNote" placeholder="z.B. Überstunden KW 12…">
+    </div>
+    <button class="big-btn primary" onclick="zkSaveEntry()" style="margin-top:8px">Speichern</button>
+    <button class="big-btn secondary" onclick="closeModal('modalZkEntry')">Abbrechen</button>
+  </div>
+</div>
+
+<!-- MODAL: ZEITART BEARBEITEN -->
+<div class="modal-overlay hidden" id="modalZkType">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalZkTypeTitle">Zeitart anlegen</div>
+    <div class="field"><label>Name *</label><input type="text" id="ztName" placeholder="z.B. Urlaub, Überstunden…"></div>
+    <div class="field"><label>Symbol</label><div style="display:flex;gap:6px;flex-wrap:wrap" id="ztIconPicker"></div></div>
+    <div class="field"><label>Farbe</label><div style="display:flex;gap:8px;flex-wrap:wrap" id="ztColorPicker"></div></div>
+    <div class="field">
+      <label>Stunden bei Ganztags <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">(leer = Standard)</span></label>
+      <input type="number" id="ztHours" min="0.5" max="24" step="0.5" placeholder="z.B. 8">
+    </div>
+    <div class="field"><label>Standard-Dauer</label>
+      <select id="ztDefaultDur">
+        <option value="all">Ganztags</option>
+        <option value="hours">Stundenweise</option>
+      </select>
+    </div>
+    <input type="hidden" id="ztEditId">
+    <button class="big-btn primary" onclick="zkSaveType()" style="margin-top:8px">Speichern</button>
+    <button class="big-btn secondary" id="ztDelBtn" onclick="zkDeleteType()" style="display:none;color:var(--accent)">🗑 Zeitart löschen</button>
+    <button class="big-btn secondary" onclick="closeModal('modalZkType')">Abbrechen</button>
+  </div>
+</div>
 
 <!-- MODAL: BUCHUNG -->
 <div class="modal-overlay hidden" id="modalEntry">
@@ -808,12 +936,19 @@ const COLORS = ['#A80000','#d35400','#c57b00','#5d8a27','#1e8449','#1a7a6e','#1a
 const ICONS  = ['🏗️','🏠','🏢','🏛️','🏘️','🔧','📐','📏','🗂️','🌿'];
 const HOAI_NAMES = {1:'LP 1 - Grundlagenermittlung',2:'LP 2 - Vorplanung',3:'LP 3 - Entwurfsplanung',4:'LP 4 - Genehmigungsplanung',5:'LP 5 - Ausführungsplanung',6:'LP 6 - Vorbereitung Vergabe',7:'LP 7 - Mitwirkung Vergabe',8:'LP 8 - Objektüberwachung',9:'LP 9 - Objektbetreuung'};
 const HOAI_SHORT = {1:'LP 1',2:'LP 2',3:'LP 3',4:'LP 4',5:'LP 5',6:'LP 6',7:'LP 7',8:'LP 8',9:'LP 9'};
-const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius'];
+const SFIELDS = ['sName','sFunktion','sMail','sTel','sBuero','sBueroAdresse','sBueroTel','sBueroMail','sBueroWeb','sDarkMode','sAccentColor','sLogoText','sExportTarget','sExportMail','sGeoAuto','sGeoRadius','sDefaultHours'];
 
 // ══ STATE ══
-let state = JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1};
+let state = JSON.parse(localStorage.getItem('zeit2_state')||'null')||{projects:[],entries:[],active:null,nextProjId:1,nextEntryId:1,zkEntries:[],zkTypes:[{id:1,name:'Urlaub',icon:'🏖',color:'#2a7a4e',hours:null,defaultDur:'all'},{id:2,name:'Überstunden',icon:'⏰',color:'#A80000',hours:null,defaultDur:'hours'},{id:3,name:'Krank',icon:'🤒',color:'#c57b00',hours:null,defaultDur:'all'},{id:4,name:'Homeoffice',icon:'🏠',color:'#1a5a8c',hours:null,defaultDur:'all'},{id:5,name:'Eigenes',icon:'📋',color:'#555',hours:null,defaultDur:'all'}],nextZkTypeId:6,nextZkEntryId:1};
 let elapsedInterval=null, currentPeriod='day', editingProjId=null, selectedIcon=ICONS[0], selectedColor=COLORS[0], selectedImg=null;
-function save(){localStorage.setItem('zeit2_state',JSON.stringify(state));}
+function save(){
+  // Ensure zkTypes/zkEntries exist for older saved states
+  if(!state.zkEntries)state.zkEntries=[];
+  if(!state.zkTypes)state.zkTypes=[{id:1,name:'Urlaub',icon:'🏖',color:'#2a7a4e',hours:null,defaultDur:'all'},{id:2,name:'Überstunden',icon:'⏰',color:'#A80000',hours:null,defaultDur:'hours'},{id:3,name:'Krank',icon:'🤒',color:'#c57b00',hours:null,defaultDur:'all'},{id:4,name:'Homeoffice',icon:'🏠',color:'#1a5a8c',hours:null,defaultDur:'all'},{id:5,name:'Eigenes',icon:'📋',color:'#555',hours:null,defaultDur:'all'}];
+  if(!state.nextZkTypeId)state.nextZkTypeId=6;
+  if(!state.nextZkEntryId)state.nextZkEntryId=1;
+  localStorage.setItem('zeit2_state',JSON.stringify(state));
+}
 
 // ══ CLOCK ══
 function updateClock(){
@@ -840,7 +975,7 @@ function switchTab(id,btn){
   if(id==='auswertung')renderReport();
   if(id==='erfassung')renderErf();
   if(id==='projekte')renderProjekte();
-  if(id==='einstellungen')updateExportMailVisibility();
+  if(id==='einstellungen'){updateExportMailVisibility();zkRenderStypeList();}
 }
 
 // ══ TRACKING ══
@@ -1183,6 +1318,7 @@ function renderErf(){
     }).join('');
   }
   renderDailyBars();
+  renderZkSection();
 }
 function renderDailyBars(){
   const data=state.projects.map(p=>({p,ms:getTodayMs(p.id)})).filter(x=>x.ms>0);
@@ -1783,8 +1919,25 @@ function exportExcel(){
   let xml=`<?xml version="1.0" encoding="UTF-8"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">\n`;
     const xlsAccent=(getSettings().sAccentColor||'#A80000').replace('#','');
   xml+=`<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#${xlsAccent}" ss:Pattern="Solid"/></Style><Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#ECE8E0" ss:Pattern="Solid"/></Style></Styles>\n`;
+  // Zeitkonto-Einträge für den gleichen Zeitraum
+  const {start:pBound,end:eBound}=getPeriodBounds();
+  const zkInPeriod=(state.zkEntries||[]).filter(e=>{
+    const d=new Date(e.date+'T12:00:00');
+    return d>=pBound&&d<=eBound;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  const zkHdr=['Datum','Zeitart','Typ','Von','Bis','Dauer (h)'];
+  const zkRows=zkInPeriod.map(e=>{
+    const t=(state.zkTypes||[]).find(x=>x.id===e.typeId)||{name:'?',icon:'?'};
+    const [y,m,d]=e.date.split('-');
+    const dStr=d+'.'+m+'.'+y;
+    const dur=e.allDay?fmtDec(e.minutes*60000):(e.minutes/60).toFixed(2);
+    return[dStr,t.icon+' '+t.name,e.allDay?'Ganztags':'Stundenweise',e.von||'-',e.bis||'-',dur];
+  });
+  const zkTotal=['','','','','GESAMT',zkInPeriod.reduce((a,e)=>a+e.minutes/60,0).toFixed(2)];
+
   xml+=mkSheet('Buchungen',bHdr,bRows,bTotal);
   xml+=mkSheet('Zusammenfassung',sHdr,sRows,sTotal);
+  if(zkInPeriod.length) xml+=mkSheet('Zeitkonto',zkHdr,zkRows,zkTotal);
   xml+='</Workbook>';
 
   const filename=`Stundenerfassung_${periodShort}_${dateStr}.xls`;
@@ -1825,6 +1978,27 @@ function exportPDF(){
   const sumRows=Object.entries(pt).map(([n,{ms,phase,num}])=>
     `<tr><td class="b">${n}</td><td>${num}</td><td><span class="ph">${phase}</span></td><td class="n">${fmtHM(ms)}</td><td class="n">${fmtDec(ms)}</td></tr>`
   ).join('');
+
+  // Zeitkonto-Block für PDF
+  const {start:pdfStart,end:pdfEnd}=getPeriodBounds();
+  const zkPdf=(state.zkEntries||[]).filter(e=>{
+    const d=new Date(e.date+'T12:00:00');
+    return d>=pdfStart&&d<=pdfEnd;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  let zkPdfBlock='';
+  if(zkPdf.length){
+    const zkTotal=zkPdf.reduce((a,e)=>a+e.minutes,0);
+    const zkRows=zkPdf.map(e=>{
+      const t=(state.zkTypes||[]).find(x=>x.id===e.typeId)||{name:'?',icon:'?'};
+      const [y,m,d]=e.date.split('-');
+      const dStr=d+'.'+m+'.'+y;
+      const dur=e.allDay?'Ganztags':(Math.floor(e.minutes/60)+':'+(String(e.minutes%60).padStart(2,'0'))+' h');
+      const timeText=e.von&&e.bis?e.von+'–'+e.bis:'-';
+      return`<tr><td>${dStr}</td><td class="b">${t.icon} ${t.name}</td><td>${e.allDay?'Ganztags':'Stundenweise'}</td><td>${timeText}</td><td class="n">${dur}</td></tr>`;
+    }).join('');
+    const zkTotalH=Math.floor(zkTotal/60)+':'+(String(zkTotal%60).padStart(2,'0'));
+    zkPdfBlock=`<h3>Zeitkonto</h3><table><thead><tr><th>Datum</th><th>Zeitart</th><th>Typ</th><th>Von-Bis</th><th>Dauer</th></tr></thead><tbody>${zkRows}</tbody><tfoot><tr><td colspan="4" style="text-align:right">GESAMT</td><td class="n">${zkTotalH} h</td></tr></tfoot></table>`;
+  }
 
   const printHTML=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${label}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1867,6 +2041,7 @@ tfoot td{background:#ece8e0;font-weight:700;padding:2mm;border-top:1.5px solid #
 <tfoot><tr><td colspan="6" style="text-align:right">GESAMT</td><td class="n">${fmtHM(totalMs)}</td><td class="n">${fmtDec(totalMs)}</td></tr></tfoot></table>
 <h3>Zusammenfassung nach Projekt</h3>
 <table><thead><tr><th>Projekt</th><th>Nr.</th><th>Phase</th><th>Gesamt</th><th>Dez. h</th></tr></thead><tbody>${sumRows}</tbody></table>
+${zkPdfBlock}
 <div class="footer"><span>${buero}${adresse?' · '+adresse:''}</span><span>Exportiert ${now.toLocaleString('de-DE')}</span></div>
 </div>
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},400);});<\/script>
@@ -2010,6 +2185,242 @@ function buildLogoHtml(){
     return`<span style="font-family:'Arial Narrow',Arial,sans-serif;font-size:18pt;font-weight:700;letter-spacing:-.5px;color:#fff;line-height:1;white-space:nowrap">${logo.text||buero}</span>`;
   }
 }
+
+// ══════════════════════════════════════════
+// ZEITKONTO
+// ══════════════════════════════════════════
+const ZK_ICONS  = ['🏖','😴','🏠','💪','🤒','✈️','🎓','🧑‍u200dM-bM-^]M-^KM-bM-^]M-^K','⏰','📅','🌴','🎉','🔧','📋','💼','🌟'];
+const ZK_COLORS = ['#A80000','#2a7a4e','#1a5a8c','#c57b00','#5b3a9e','#8e3090','#1a7a6e','#d35400','#555'];
+
+function zkGetDefaultH(){ return parseFloat(getSettings().sDefaultHours||'8')||8; }
+
+function fmtHM_zk(totalMin){
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  return m ? h+':'+String(m).padStart(2,'0')+' h' : h+' h';
+}
+
+// ── Render Zeitkonto-Tab ──
+function renderZkTab(){ renderZkSection(); } // Compat-Alias
+
+function renderZkSection(){
+  if(!state.zkTypes)state.zkTypes=[];
+  if(!state.zkEntries)state.zkEntries=[];
+
+  // Typ-Buttons
+  const grid=document.getElementById('zkTypeGrid');
+  if(grid){
+    if(!state.zkTypes.length){
+      grid.innerHTML='<p style="font-size:12px;color:var(--ink-3)">Keine Zeitarten. In ⚙️ Einstellungen anlegen.</p>';
+    }else{
+      grid.innerHTML=state.zkTypes.map(t=>`
+        <button class="zk-type-btn" onclick="zkOpenEntry(${t.id})">
+          <div class="zk-type-icon">${t.icon}</div>
+          <div class="zk-type-label">${t.name}</div>
+          <div class="zk-type-sub">${t.defaultDur==='all'?'Ganztags':'Stundenweise'}</div>
+          <div class="zk-type-bar" style="background:${t.color}"></div>
+        </button>`).join('');
+    }
+  }
+
+  // Heutige Zeitkonto-Einträge
+  const today=new Date().toISOString().slice(0,10);
+  const todayZk=state.zkEntries.filter(e=>e.date===today).sort((a,b)=>b.id-a.id);
+  const el=document.getElementById('zkTodayList');
+  if(!el)return;
+  if(!todayZk.length){
+    el.innerHTML='<p style="font-size:12px;color:var(--ink-3);padding:4px 0">Heute noch keine Zeitkonto-Einträge.</p>';
+    return;
+  }
+  el.innerHTML=todayZk.map(e=>{
+    const t=state.zkTypes.find(x=>x.id===e.typeId)||{name:'?',icon:'📋',color:'#888'};
+    const timeText=e.von&&e.bis?' · '+e.von+'–'+e.bis:'';
+    const dLabel=e.allDay?'Ganztags':fmtHM_zk(e.minutes);
+    return`<div class="zk-entry-card">
+      <div class="zk-entry-dot" style="background:${t.color}"></div>
+      <div class="zk-entry-info">
+        <div class="zk-entry-title">${t.icon} ${t.name}</div>
+        <div class="zk-entry-meta">${dLabel}${timeText}${e.note?' · '+e.note:''}</div>
+      </div>
+      <div class="zk-entry-right">
+        <div class="zk-entry-dur">${dLabel}</div>
+        <button class="zk-del" onclick="zkDeleteEntry(${e.id})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Eintrag-Modal ──
+let _zkDurMode='all';
+
+function zkOpenEntry(preTypeId){
+  if(!state.zkTypes||!state.zkTypes.length){toast('Bitte zuerst Zeitarten in den Einstellungen anlegen');return;}
+  const sel=document.getElementById('zkTypeSelect');
+  sel.innerHTML=state.zkTypes.map(t=>`<option value="${t.id}">${t.icon} ${t.name}</option>`).join('');
+  if(preTypeId) sel.value=preTypeId;
+  document.getElementById('zkDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('zkNote').value='';
+  document.getElementById('zkVon').value='';
+  document.getElementById('zkBis').value='';
+  document.getElementById('zkH').value='';
+  document.getElementById('zkM').value='';
+  document.getElementById('zkDurPreview').textContent='';
+  zkOnTypeChange();
+  openModal('modalZkEntry');
+}
+
+function zkOnTypeChange(){
+  const id=parseInt(document.getElementById('zkTypeSelect').value);
+  const t=state.zkTypes&&state.zkTypes.find(x=>x.id===id);
+  zkSetDur(t?t.defaultDur||'all':'all');
+}
+
+function zkSetDur(mode){
+  _zkDurMode=mode;
+  document.getElementById('zkDurAll').classList.toggle('active',mode==='all');
+  document.getElementById('zkDurH').classList.toggle('active',mode==='hours');
+  document.getElementById('zkHoursFields').style.display=mode==='hours'?'block':'none';
+  const id=parseInt(document.getElementById('zkTypeSelect').value)||0;
+  const t=state.zkTypes&&state.zkTypes.find(x=>x.id===id);
+  const h=t&&t.hours?t.hours:zkGetDefaultH();
+  document.getElementById('zkAllInfo').textContent=mode==='all'?'= '+h+' Stunden':'';
+}
+
+function zkCalcDur(){
+  const von=document.getElementById('zkVon').value;
+  const bis=document.getElementById('zkBis').value;
+  if(!von||!bis){document.getElementById('zkDurPreview').textContent='';return;}
+  const [vh,vm]=von.split(':').map(Number);
+  const [bh,bm]=bis.split(':').map(Number);
+  let diff=(bh*60+bm)-(vh*60+vm); if(diff<0)diff+=1440;
+  document.getElementById('zkH').value=Math.floor(diff/60);
+  document.getElementById('zkM').value=diff%60;
+  document.getElementById('zkDurPreview').textContent=diff?'Dauer: '+fmtHM_zk(diff):'';
+}
+
+function zkCalcFromH(){
+  const h=parseInt(document.getElementById('zkH').value)||0;
+  const m=parseInt(document.getElementById('zkM').value)||0;
+  document.getElementById('zkDurPreview').textContent=(h||m)?'Dauer: '+fmtHM_zk(h*60+m):'';
+  document.getElementById('zkVon').value='';
+  document.getElementById('zkBis').value='';
+}
+
+function zkSaveEntry(){
+  const typeId=parseInt(document.getElementById('zkTypeSelect').value);
+  const date=document.getElementById('zkDate').value;
+  if(!date){toast('Bitte Datum wählen');return;}
+  const t=state.zkTypes&&state.zkTypes.find(x=>x.id===typeId);
+  const h=t&&t.hours?t.hours:zkGetDefaultH();
+  let minutes,allDay=false,von='',bis='';
+  if(_zkDurMode==='all'){
+    minutes=Math.round(h*60); allDay=true;
+  }else{
+    const eh=parseInt(document.getElementById('zkH').value)||0;
+    const em=parseInt(document.getElementById('zkM').value)||0;
+    von=document.getElementById('zkVon').value;
+    bis=document.getElementById('zkBis').value;
+    if(!eh&&!em&&von&&bis){
+      const [vh,vm]=von.split(':').map(Number);
+      const [bh,bm]=bis.split(':').map(Number);
+      let diff=(bh*60+bm)-(vh*60+vm); if(diff<0)diff+=1440;
+      minutes=diff;
+    }else{minutes=eh*60+em;}
+    if(!minutes){toast('Bitte Dauer angeben');return;}
+  }
+  if(!state.zkEntries)state.zkEntries=[];
+  state.zkEntries.unshift({id:state.nextZkEntryId++,typeId,date,minutes,allDay,von,bis,note:document.getElementById('zkNote').value.trim()});
+  save();closeModal('modalZkEntry');renderZkTab();
+  toast('Eintrag gespeichert ✓');
+}
+
+function zkDeleteEntry(id){
+  if(!confirm('Eintrag loeschen?'))return;
+  state.zkEntries=state.zkEntries.filter(e=>e.id!==id);
+  save();renderZkTab();toast('Eintrag geloescht');
+}
+
+// ── Zeitart-Verwaltung (Einstellungen) ──
+const ZK_ICON_LIST  = ['🏖','😴','🏠','💪','🤒','✈️','🎓','⏰','📅','🌴','🎉','🔧','📋','💼','🌟','🏋️'];
+const ZK_COLOR_LIST = ['#A80000','#2a7a4e','#1a5a8c','#c57b00','#5b3a9e','#8e3090','#1a7a6e','#d35400','#555','#1e8449'];
+let _ztIcon=ZK_ICON_LIST[0], _ztColor=ZK_COLOR_LIST[0];
+
+function zkBuildIconPicker(){
+  document.getElementById('ztIconPicker').innerHTML=ZK_ICON_LIST.map(ic=>
+    `<span style="font-size:22px;cursor:pointer;padding:5px;border-radius:8px;border:2px solid ${ic===_ztIcon?'var(--accent)':'transparent'};transition:border-color .15s" onclick="zkSelIcon('${ic}')">${ic}</span>`
+  ).join('');
+}
+function zkSelIcon(ic){_ztIcon=ic;zkBuildIconPicker();}
+
+function zkBuildColorPicker(){
+  document.getElementById('ztColorPicker').innerHTML=ZK_COLOR_LIST.map(c=>
+    `<div style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===_ztColor?'var(--ink)':'transparent'};flex-shrink:0;transition:border-color .15s" onclick="zkSelColor('${c}')"></div>`
+  ).join('');
+}
+function zkSelColor(c){_ztColor=c;zkBuildColorPicker();}
+
+function openZkTypeModal(id){
+  if(!state.zkTypes)state.zkTypes=[];
+  const t=id!=null?state.zkTypes.find(x=>x.id===id):null;
+  document.getElementById('modalZkTypeTitle').textContent=t?'Zeitart bearbeiten':'Zeitart anlegen';
+  document.getElementById('ztName').value=t?t.name:'';
+  document.getElementById('ztHours').value=t&&t.hours?t.hours:'';
+  document.getElementById('ztDefaultDur').value=t?t.defaultDur||'all':'all';
+  document.getElementById('ztEditId').value=t?t.id:'';
+  document.getElementById('ztDelBtn').style.display=t?'flex':'none';
+  _ztIcon=t?t.icon:ZK_ICON_LIST[0];
+  _ztColor=t?t.color:ZK_COLOR_LIST[0];
+  zkBuildIconPicker();zkBuildColorPicker();
+  openModal('modalZkType');
+}
+
+function zkSaveType(){
+  if(!state.zkTypes)state.zkTypes=[];
+  const name=document.getElementById('ztName').value.trim();
+  if(!name){toast('Bitte Name eingeben');return;}
+  const hours=parseFloat(document.getElementById('ztHours').value)||null;
+  const editId=parseInt(document.getElementById('ztEditId').value)||0;
+  const data={name,icon:_ztIcon,color:_ztColor,hours,defaultDur:document.getElementById('ztDefaultDur').value};
+  if(editId){
+    const idx=state.zkTypes.findIndex(x=>x.id===editId);
+    if(idx>-1)state.zkTypes[idx]={...state.zkTypes[idx],...data};
+    toast('Zeitart aktualisiert');
+  }else{
+    if(!state.nextZkTypeId)state.nextZkTypeId=6;
+    state.zkTypes.push({id:state.nextZkTypeId++,...data});
+    toast('Zeitart angelegt');
+  }
+  save();closeModal('modalZkType');zkRenderStypeList();renderZkTab();
+}
+
+function zkDeleteType(){
+  const id=parseInt(document.getElementById('ztEditId').value);
+  const t=state.zkTypes&&state.zkTypes.find(x=>x.id===id);
+  if(!t||!confirm('"'+t.name+'" loeschen?'))return;
+  state.zkTypes=state.zkTypes.filter(x=>x.id!==id);
+  save();closeModal('modalZkType');zkRenderStypeList();renderZkTab();
+  toast('Zeitart geloescht');
+}
+
+function zkRenderStypeList(){
+  const el=document.getElementById('zkStypeList');
+  if(!el)return;
+  if(!state.zkTypes||!state.zkTypes.length){
+    el.innerHTML='<p style="font-size:13px;color:var(--ink-3)">Noch keine Zeitarten angelegt.</p>';
+    return;
+  }
+  const defH=zkGetDefaultH();
+  el.innerHTML=state.zkTypes.map(t=>`
+    <div class="zk-stype-item">
+      <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
+      <span style="font-size:18px">${t.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${t.name}</div>
+        <div style="font-size:11px;color:var(--ink-3)">${t.defaultDur==='all'?'Ganztags · '+(t.hours||defH)+' h':'Stundenweise'}</div>
+      </div>
+      <button class="settings-btn" onclick="openZkTypeModal(${t.id})">✏️</button>
+    </div>`).join('');
+}
+
 
 // ══ INIT ══
 loadSettings();
